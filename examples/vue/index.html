@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue Calendar Example</title>
+    <link rel="stylesheet" href="../../dist/styles/calendar.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "vue": "https://esm.sh/vue@3.3.4"
+        }
+    }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .test-header h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .add-event-btn {
+            background: #42b883;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .add-event-btn:hover {
+            background: #33a06f;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script type="module">
+        import { createApp, ref, h } from 'vue';
+        import { Calendar } from '../../dist/vue/index.mjs';
+        
+        const app = createApp({
+            setup() {
+                const events = ref([
+                    {
+                        id: 1,
+                        name: 'Vue Test Event',
+                        date: new Date(2025, 0, 15),
+                        description: 'Testing Vue calendar'
+                    },
+                    {
+                        id: 2,
+                        name: 'Today Event',
+                        date: new Date(),
+                        description: 'Something today'
+                    }
+                ]);
+
+                const lastSelected = ref(null);
+
+                const handleDateSelect = (date) => {
+                    console.log('Vue: Date selected', date);
+                    lastSelected.value = date;
+                };
+
+                const handleMonthChange = (year, month) => {
+                    console.log('Vue: Month changed', year, month + 1);
+                };
+
+                const addEvent = () => {
+                    const newEvent = {
+                        id: Date.now(),
+                        name: `Vue Event ${Math.floor(Math.random() * 100)}`,
+                        date: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000),
+                        description: 'Added from Vue'
+                    };
+                    events.value.push(newEvent);
+                };
+
+                return () => h('div', { style: { fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '20px', backgroundColor: '#f5f5f5' } }, [
+                    h('div', {
+                        class: 'test-header',
+                        style: {
+                            background: 'white',
+                            padding: '20px',
+                            borderRadius: '8px',
+                            marginBottom: '20px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            textAlign: 'center'
+                        }
+                    }, [
+                        h('h1', null, 'kalendly Universal Calendar Scheduler - Vue Demo'),
+                        h('h2', { style: { marginTop: '0', color: '#333' } }, 'Demo Controls'),
+                        h('button', {
+                            onClick: addEvent,
+                            class: 'add-event-btn',
+                            style: {
+                                background: '#fc8917',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                margin: '10px'
+                            }
+                        }, 'Add Random Event'),
+                        lastSelected.value ? h('p', null, `Last selected: ${lastSelected.value.toDateString()}`) : null
+                    ]),
+                    h(Calendar, {
+                        events: events.value,
+                        onDateSelect: handleDateSelect,
+                        onMonthChange: handleMonthChange,
+                        title: 'My Event Calendar'
+                    }, {
+                        event: ({ event }) => [
+                            h('strong', null, event.name),
+                            h('br'),
+                            h('small', { style: { color: '#666' } }, event.description)
+                        ]
+                    })
+                ]);
+            }
+        });
+        
+        app.mount('#app');
+        
+        console.log('✅ Vue calendar loaded successfully!');
+    </script>
+</body>
+</html>

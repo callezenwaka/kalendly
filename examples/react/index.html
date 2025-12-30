@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Calendar Example</title>
+    <link rel="stylesheet" href="../../dist/styles/calendar.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.3.1",
+            "react-dom": "https://esm.sh/react-dom@18.3.1",
+            "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+        import React, { useState } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { Calendar } from '../../dist/react/index.mjs';
+
+        function App() {
+            const [events, setEvents] = useState([
+                {
+                    id: 1,
+                    name: 'React Test Event',
+                    date: new Date(2025, 0, 15),
+                    description: 'Testing React calendar'
+                },
+                {
+                    id: 2,
+                    name: 'Today Event',
+                    date: new Date(),
+                    description: 'Something today'
+                }
+            ]);
+
+            const handleDateSelect = (date) => {
+                console.log('React: Date selected', date);
+                alert(`Selected: ${date.toDateString()}`);
+            };
+
+            const addEvent = () => {
+                const newEvent = {
+                    id: Date.now(),
+                    name: `React Event ${Math.floor(Math.random() * 100)}`,
+                    date: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000),
+                    description: 'Added from React'
+                };
+                setEvents([...events, newEvent]);
+            };
+
+            return React.createElement('div', { style: { fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '20px' } },
+                React.createElement('div', {
+                    style: {
+                        padding: '20px',
+                        textAlign: 'center',
+                        background: 'white',
+                        marginBottom: '20px',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }
+                },
+                    React.createElement('h1', null, 'kalendly Universal Calendar Scheduler - React Demo'),
+                    React.createElement('h2', null, 'Demo Controls'),
+                    React.createElement('button', {
+                        onClick: addEvent,
+                        style: {
+                            background: '#fc8917',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                        }
+                    }, 'Add Random Event')
+                ),
+                React.createElement(Calendar, {
+                    events: events,
+                    onDateSelect: handleDateSelect,
+                    title: 'My Event Calendar'
+                })
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+
+        console.log('✅ React calendar loaded successfully!');
+    </script>
+</body>
+</html>

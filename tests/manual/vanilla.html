@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local NPM Package Test</title>
+    <!-- Load CSS directly from dist folder -->
+    <link rel="stylesheet" href="../../dist/styles/calendar.css">
+    <style>
+        .test-controls {
+            background: white;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 800px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-controls h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .test-controls button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .test-controls button:hover {
+            background: #0056b3;
+        }
+        
+        .log {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-controls">
+        <h2>🧪 Local NPM Package Test</h2>
+        <p>Testing <code>Kalendly</code> before publishing to NPM</p>
+        
+        <button id="addEventBtn">Add Test Event</button>
+        <button id="clearEventsBtn">Clear Events</button>
+        <button id="goToTodayBtn">Go to Today</button>
+        <button id="testApiBtn">Test API Methods</button>
+        
+        <div class="log" id="testLog">
+            <div>📝 Test log will appear here...</div>
+        </div>
+    </div>
+    
+    <!-- Calendar container -->
+    <div id="calendar"></div>
+
+    <script type="module">
+        // Import from the local dist folder
+        import { createCalendar } from '../../dist/vanilla/index.mjs';
+        
+        console.log('✅ Successfully imported from local dist folder!');
+        
+        // Test data
+        let events = [
+            { 
+                id: 1, 
+                name: 'Test Meeting', 
+                date: new Date(2025, 0, 15), // Jan 15, 2025
+                description: 'This is a test event'
+            },
+            { 
+                id: 2, 
+                name: 'Project Demo', 
+                date: new Date(2025, 0, 20), // Jan 20, 2025
+                description: 'Demo presentation'
+            },
+            { 
+                id: 3, 
+                name: 'Today Event', 
+                date: new Date(), // Today
+                description: 'Something happening today'
+            }
+        ];
+        
+        // Create calendar
+        const calendar = createCalendar({
+            container: '#calendar',
+            events: events,
+            title: 'Local Test Calendar',
+            renderEvent: (event) => `
+                <li class="event--item">
+                    <strong>${event.name}</strong>
+                    ${event.description ? `<br><small>${event.description}</small>` : ''}
+                </li>
+            `
+        });
+        
+        // Logging function
+        function log(message) {
+            const logDiv = document.getElementById('testLog');
+            const entry = document.createElement('div');
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // Event listeners for calendar
+        document.getElementById('calendar').addEventListener('dateSelect', (e) => {
+            log(`📅 Date selected: ${e.detail.date.toDateString()}`);
+        });
+        
+        document.getElementById('calendar').addEventListener('monthChange', (e) => {
+            log(`📆 Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`);
+        });
+        
+        // Test controls
+        document.getElementById('addEventBtn').addEventListener('click', () => {
+            const randomDate = new Date();
+            randomDate.setDate(randomDate.getDate() + Math.floor(Math.random() * 30));
+            
+            const newEvent = {
+                id: Date.now(),
+                name: `Test Event ${Math.floor(Math.random() * 100)}`,
+                date: randomDate,
+                description: 'Auto-generated test event'
+            };
+            
+            events.push(newEvent);
+            calendar.updateEvents(events);
+            log(`➕ Added event: ${newEvent.name}`);
+        });
+        
+        document.getElementById('clearEventsBtn').addEventListener('click', () => {
+            events = [];
+            calendar.updateEvents(events);
+            log(`🗑️ Cleared all events`);
+        });
+        
+        document.getElementById('goToTodayBtn').addEventListener('click', () => {
+            calendar.goToDate(new Date());
+            log(`🏠 Navigated to today`);
+        });
+        
+        document.getElementById('testApiBtn').addEventListener('click', () => {
+            log(`🔧 Testing API methods:`);
+            log(`   - Current date: ${calendar.getCurrentDate()?.toDateString() || 'None selected'}`);
+            log(`   - Engine state: ${JSON.stringify(calendar.getEngine().getState(), null, 2)}`);
+            
+            // Test navigation
+            const engine = calendar.getEngine();
+            const actions = engine.getActions();
+            
+            setTimeout(() => {
+                actions.next();
+                log(`   - ⏭️ Navigated to next month`);
+            }, 1000);
+            
+            setTimeout(() => {
+                actions.previous();
+                log(`   - ⏮️ Navigated back to previous month`);
+            }, 2000);
+        });
+        
+        // Initial log
+        log('🚀 Calendar initialized successfully!');
+        log('📦 Package loaded from local dist folder');
+        log('✨ Ready for testing!');
+
+        // Test that all exports work
+        (async () => {
+            try {
+                // Test core exports
+                const coreModule = await import('./dist/core/index.mjs');
+                const { CalendarEngine, MONTHS, DAYS } = coreModule;
+                log('✅ Core exports working');
+                log(`   - MONTHS: ${MONTHS.length} months`);
+                log(`   - DAYS: ${DAYS.length} days`);
+
+                // Test that we can create engine directly
+                const testEngine = new CalendarEngine({ events: [] });
+                log('✅ CalendarEngine can be instantiated');
+                testEngine.destroy();
+
+            } catch (error) {
+                log(`❌ Error testing core exports: ${error.message}`);
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+package-lock.json
+
+# Build outputs
+dist
+build
+coverage
+.next
+.nuxt
+
+# Cache
+.cache
+.parcel-cache
+.eslintcache
+
+# Config files
+*.config.js
+*.config.ts
+*.config.mjs
+
+# IDE
+.vscode
+.idea
+
+# Misc
+*.log
+.DS_Store
