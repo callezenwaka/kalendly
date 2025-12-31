@@ -110,6 +110,10 @@
     }
   },
   "lint-staged": {
+    "package.json": [
+      "sh -c 'npm install --package-lock-only' sh",
+      "git add package-lock.json"
+    ],
     "*.{ts,tsx,vue,js,jsx,json,css,md}": [
       "prettier --write"
     ],
