@@ -1,0 +1,23 @@
+[build]
+  publish = "dist-examples"
+  command = "npm run build:examples"
+
+[[redirects]]
+  from = "/"
+  to = "/vanilla/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/vanilla"
+  to = "/vanilla/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/react"
+  to = "/react/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/vue"
+  to = "/vue/index.html"
+  status = 200

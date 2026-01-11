@@ -8,10 +8,19 @@ A universal calendar scheduler component that works seamlessly across React, Vue
 - 📱 **Responsive**: Mobile-friendly design that matches your existing Vue implementation
 - 🎨 **Customizable**: Easy to theme and customize with CSS variables
 - 🔒 **Type Safe**: Full TypeScript support
-- 📅 **Event Management**: Add, display, and manage events
+- 📅 **Event Management**: Add, display, and manage events with rich metadata
+- 🔔 **Advanced Features**: Recurring events, reminders, categories, priorities, and collaboration
 - 🌐 **Accessible**: Built with accessibility in mind
 - 📦 **Tree Shakeable**: Import only what you need
 - 🎯 **Design Consistent**: Matches the original Vue calendar design and feel
+
+## Live Examples
+
+Check out the interactive examples: [https://kalendly.netlify.app](https://kalendly.netlify.app)
+
+- [Vanilla JavaScript](https://kalendly.netlify.app/vanilla)
+- [React](https://kalendly.netlify.app/react)
+- [Vue](https://kalendly.netlify.app/vue)
 
 ## Installation
 
@@ -264,28 +273,128 @@ export default App;
 
 ### Props
 
-| Prop            | Type                                    | Default            | Description                             |
-| --------------- | --------------------------------------- | ------------------ | --------------------------------------- |
-| `events`        | `CalendarEvent[]`                       | `[]`               | Array of events to display              |
-| `initialDate`   | `Date`                                  | `new Date()`       | Initial date to display                 |
-| `minYear`       | `number`                                | `currentYear - 30` | Minimum selectable year                 |
-| `maxYear`       | `number`                                | `currentYear + 10` | Maximum selectable year                 |
-| `weekStartsOn`  | `0 \| 1`                                | `0`                | Week start day (0 = Sunday, 1 = Monday) |
-| `onDateSelect`  | `(date: Date) => void`                  | -                  | Callback when date is selected          |
-| `onEventClick`  | `(event: CalendarEvent) => void`        | -                  | Callback when event is clicked          |
-| `onMonthChange` | `(year: number, month: number) => void` | -                  | Callback when month changes             |
+| Prop             | Type                                    | Default            | Description                             |
+| ---------------- | --------------------------------------- | ------------------ | --------------------------------------- |
+| `events`         | `CalendarEvent[]`                       | `[]`               | Array of events to display              |
+| `initialDate`    | `Date`                                  | `new Date()`       | Initial date to display                 |
+| `minYear`        | `number`                                | `currentYear - 30` | Minimum selectable year                 |
+| `maxYear`        | `number`                                | `currentYear + 10` | Maximum selectable year                 |
+| `weekStartsOn`   | `0 \| 1`                                | `0`                | Week start day (0 = Sunday, 1 = Monday) |
+| `categoryColors` | `CategoryColorMap`                      | `{}`               | Custom colors for event categories      |
+| `onDateSelect`   | `(date: Date) => void`                  | -                  | Callback when date is selected          |
+| `onEventClick`   | `(event: CalendarEvent) => void`        | -                  | Callback when event is clicked          |
+| `onMonthChange`  | `(year: number, month: number) => void` | -                  | Callback when month changes             |
 
 ### CalendarEvent Interface
 
 ```typescript
 interface CalendarEvent {
+  // Required fields
   id: string | number;
   name: string;
   date: string | Date;
+
+  // Time fields
+  startTime?: string; // e.g., "09:00", "14:30"
+  endTime?: string; // e.g., "10:00", "16:00"
+  allDay?: boolean; // True for all-day events
+
+  // Display & categorization
   description?: string;
-  color?: string;
-  [key: string]: any;
+  color?: string; // Custom event color
+  category?:
+    | 'work'
+    | 'personal'
+    | 'meeting'
+    | 'deadline'
+    | 'appointment'
+    | 'other';
+  location?: string; // Event location
+  url?: string; // Related URL or meeting link
+
+  // Status & priority
+  status?: 'scheduled' | 'completed' | 'cancelled' | 'tentative';
+  priority?: 'low' | 'medium' | 'high';
+
+  // Collaboration
+  attendees?: string[]; // List of attendee names/emails
+  organizer?: string; // Event organizer
+
+  // Reminders & recurrence
+  reminders?: number[]; // Minutes before event to remind (e.g., [15, 60])
+  recurring?: {
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    interval?: number; // Every X days/weeks/months/years
+    endDate?: string | Date; // When recurrence ends
+    daysOfWeek?: number[]; // For weekly recurrence (0 = Sunday)
+  };
+
+  // Metadata
+  notes?: string; // Additional notes
+  tags?: string[]; // Event tags
+  createdAt?: string | Date; // Creation timestamp
+  updatedAt?: string | Date; // Last update timestamp
+
+  // Flexibility for custom fields
+  [key: string]: unknown;
 }
+```
+
+#### Example with Enhanced Fields
+
+```typescript
+const events = [
+  {
+    id: 1,
+    name: 'Team Standup',
+    date: '2025-01-15',
+    startTime: '09:00',
+    endTime: '09:30',
+    category: 'meeting',
+    location: 'Conference Room A',
+    url: 'https://meet.google.com/abc-defg-hij',
+    attendees: ['john@example.com', 'jane@example.com'],
+    organizer: 'team-lead@example.com',
+    priority: 'high',
+    status: 'scheduled',
+    reminders: [15, 60],
+    recurring: {
+      frequency: 'daily',
+      interval: 1,
+      daysOfWeek: [1, 2, 3, 4, 5], // Mon-Fri
+      endDate: '2025-12-31',
+    },
+    tags: ['team', 'sync'],
+  },
+  {
+    id: 2,
+    name: 'Project Deadline',
+    date: '2025-01-20',
+    allDay: true,
+    category: 'deadline',
+    priority: 'high',
+    status: 'scheduled',
+    description: 'Final submission for Q1 project',
+    notes: 'Make sure all tests pass before submission',
+  },
+];
+```
+
+#### Category Colors
+
+You can customize colors for different event categories:
+
+```typescript
+const categoryColors = {
+  work: '#4CAF50',
+  personal: '#2196F3',
+  meeting: '#FF9800',
+  deadline: '#F44336',
+  appointment: '#9C27B0',
+  other: '#607D8B'
+};
+
+<Calendar events={events} categoryColors={categoryColors} />
 ```
 
 ## Framework-Specific Features
@@ -470,11 +579,29 @@ import type { CalendarEvent, CalendarProps, CalendarState } from 'kalendly';
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information on:
+
+- Development setup
+- Project structure
+- Building and testing
+- Running examples
+- Submitting pull requests
+- Release process
+
+Quick start:
+
+```bash
+# Clone and install
+git clone https://github.com/callezenwaka/kalendly.git
+cd kalendly
+npm install
+
+# Run tests
+npm test
+
+# Run examples locally
+npm run dev:examples
+```
 
 ## License
 
@@ -482,11 +609,10 @@ MIT © Callis Ezenwaka
 
 ## Changelog
 
-### 1.0.0
+See [CHANGELOG.md](CHANGELOG.md) for detailed release notes and version history.
 
-- Initial release
-- React, Vue, and React Native support
-- TypeScript definitions
-- Core calendar engine
-- Event management
-- Responsive design
+### Recent Updates
+
+- **v0.1.2** (Upcoming): Enhanced event parameters with structured metadata, categories, recurrence, collaboration features, and Netlify deployment
+- **v0.1.1**: Pre-commit hooks and trusted publishing with OIDC
+- **v0.1.0**: Initial release with React, Vue, React Native, and Vanilla JavaScript support

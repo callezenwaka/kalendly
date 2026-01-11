@@ -1,6 +1,6 @@
 {
   "name": "kalendly",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A kalendly universal calendar scheduler component for React, Vue, and React Native",
   "keywords": [
     "calendar",
@@ -26,7 +26,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0"
   },
   "exports": {
     ".": {
@@ -70,6 +70,7 @@
     "build": "npm run build:tsup && npm run build:vue && npm run copy:styles",
     "build:tsup": "tsup",
     "build:vue": "vite build",
+    "build:examples": "npm run build && vite build --config vite.examples.config.ts",
     "copy:styles": "mkdir -p dist/styles && cp src/styles/calendar.css dist/styles/",
     "dev": "tsup --watch",
     "dev:examples": "vite --config vite.examples.config.ts",
