@@ -14,13 +14,27 @@ A universal calendar scheduler component that works seamlessly across React, Vue
 - 📦 **Tree Shakeable**: Import only what you need
 - 🎯 **Design Consistent**: Matches the original Vue calendar design and feel
 
-## Live Examples
+## 🎯 Live Demo
 
-Check out the interactive examples: [https://kalendly-example.netlify.app/](https://kalendly-example.netlify.app)
+<div align="center">
 
-- [Vanilla JavaScript](https://kalendly-example.netlify.app/vanilla)
-- [React](https://kalendly-example.netlify.app/react)
-- [Vue](https://kalendly-example.netlify.app/vue)
+[![Kalendly Calendar Demo](./docs/images/calendar-demo.png)](https://kalendly-example.netlify.app/)
+
+**[🚀 Try the Interactive Demo →](https://kalendly-example.netlify.app/)**
+
+</div>
+
+<p align="center">
+  <a href="https://kalendly-example.netlify.app/vanilla">
+    <img src="https://img.shields.io/badge/Vanilla_JS-fc8917?style=for-the-badge&logo=javascript&logoColor=white" alt="Vanilla JS Demo"/>
+  </a>
+  <a href="https://kalendly-example.netlify.app/react">
+    <img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React Demo"/>
+  </a>
+  <a href="https://kalendly-example.netlify.app/vue">
+    <img src="https://img.shields.io/badge/Vue-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white" alt="Vue Demo"/>
+  </a>
+</p>
 
 ## Installation
 
@@ -281,6 +295,7 @@ export default App;
 | `maxYear`        | `number`                                | `currentYear + 10` | Maximum selectable year                 |
 | `weekStartsOn`   | `0 \| 1`                                | `0`                | Week start day (0 = Sunday, 1 = Monday) |
 | `categoryColors` | `CategoryColorMap`                      | `{}`               | Custom colors for event categories      |
+| `theme`          | `CalendarTheme`                         | `undefined`        | Custom theme colors for the calendar    |
 | `onDateSelect`   | `(date: Date) => void`                  | -                  | Callback when date is selected          |
 | `onEventClick`   | `(event: CalendarEvent) => void`        | -                  | Callback when event is clicked          |
 | `onMonthChange`  | `(year: number, month: number) => void` | -                  | Callback when month changes             |
@@ -396,6 +411,218 @@ const categoryColors = {
 
 <Calendar events={events} categoryColors={categoryColors} />
 ```
+
+## Theming
+
+Kalendly supports custom theming across all frameworks with a **consistent API**. Customize calendar colors to match your brand or create light/dark themes.
+
+### CalendarTheme Interface
+
+```typescript
+interface CalendarTheme {
+  primary?: string; // Primary brand color
+  secondary?: string; // Secondary brand color
+  tertiary?: string; // Tertiary/accent color
+  textColor?: string; // Main text color
+  textLight?: string; // Light/secondary text color
+  background?: string; // Background color
+  cellHover?: string; // Cell hover state color
+  borderColor?: string; // Border color
+  todayOutline?: string; // Today indicator color
+  selectedBg?: string; // Selected date background
+  eventIndicator?: string; // Event indicator dot color
+}
+```
+
+### Basic Theme Example
+
+**React:**
+
+```tsx
+import { Calendar } from 'kalendly/react';
+import 'kalendly/styles';
+
+function App() {
+  return (
+    <Calendar
+      events={events}
+      theme={{
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+        tertiary: '#93c5fd',
+        borderColor: '#e5e7eb',
+        todayOutline: '#fbbf24',
+        eventIndicator: '#10b981',
+      }}
+    />
+  );
+}
+```
+
+**Vue:**
+
+```vue
+<template>
+  <Calendar :events="events" :theme="calendarTheme" />
+</template>
+
+<script setup lang="ts">
+import { Calendar } from 'kalendly/vue';
+import 'kalendly/styles';
+
+const calendarTheme = {
+  primary: '#3b82f6',
+  secondary: '#60a5fa',
+  tertiary: '#93c5fd',
+  borderColor: '#e5e7eb',
+  todayOutline: '#fbbf24',
+  eventIndicator: '#10b981',
+};
+</script>
+```
+
+**Vanilla JavaScript:**
+
+```javascript
+import { createCalendar } from 'kalendly/vanilla';
+import 'kalendly/styles';
+
+const calendar = createCalendar({
+  container: '#calendar',
+  events: events,
+  theme: {
+    primary: '#3b82f6',
+    secondary: '#60a5fa',
+    tertiary: '#93c5fd',
+    borderColor: '#e5e7eb',
+    todayOutline: '#fbbf24',
+    eventIndicator: '#10b981',
+  },
+});
+```
+
+**React Native:**
+
+```tsx
+import { Calendar } from 'kalendly/react-native';
+
+function App() {
+  return (
+    <Calendar
+      events={events}
+      theme={{
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+        tertiary: '#93c5fd',
+        borderColor: '#e5e7eb',
+        todayOutline: '#fbbf24',
+        eventIndicator: '#10b981',
+      }}
+    />
+  );
+}
+```
+
+### Dark Theme Example
+
+```typescript
+const darkTheme = {
+  primary: '#6366f1',
+  secondary: '#818cf8',
+  tertiary: '#a5b4fc',
+  textColor: '#f9fafb',
+  textLight: '#d1d5db',
+  background: '#1f2937',
+  cellHover: '#374151',
+  borderColor: '#4b5563',
+  todayOutline: '#fbbf24',
+  selectedBg: '#312e81',
+  eventIndicator: '#34d399'
+};
+
+<Calendar events={events} theme={darkTheme} />
+```
+
+### Dynamic Theme Switching
+
+**React:**
+
+```tsx
+import { useState } from 'react';
+import { Calendar } from 'kalendly/react';
+
+const themes = {
+  blue: { primary: '#3b82f6', secondary: '#60a5fa' },
+  purple: { primary: '#8b5cf6', secondary: '#a78bfa' },
+  green: { primary: '#10b981', secondary: '#34d399' },
+};
+
+function App() {
+  const [currentTheme, setCurrentTheme] = useState('blue');
+
+  return (
+    <>
+      <button onClick={() => setCurrentTheme('blue')}>Blue</button>
+      <button onClick={() => setCurrentTheme('purple')}>Purple</button>
+      <button onClick={() => setCurrentTheme('green')}>Green</button>
+
+      <Calendar events={events} theme={themes[currentTheme]} />
+    </>
+  );
+}
+```
+
+**Vue:**
+
+```vue
+<template>
+  <div>
+    <button @click="currentTheme = 'blue'">Blue</button>
+    <button @click="currentTheme = 'purple'">Purple</button>
+    <button @click="currentTheme = 'green'">Green</button>
+
+    <Calendar :events="events" :theme="themes[currentTheme]" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { Calendar } from 'kalendly/vue';
+
+const themes = {
+  blue: { primary: '#3b82f6', secondary: '#60a5fa' },
+  purple: { primary: '#8b5cf6', secondary: '#a78bfa' },
+  green: { primary: '#10b981', secondary: '#34d399' },
+};
+
+const currentTheme = ref('blue');
+</script>
+```
+
+**Vanilla JavaScript:**
+
+```javascript
+import { createCalendar } from 'kalendly/vanilla';
+
+const themes = {
+  blue: { primary: '#3b82f6', secondary: '#60a5fa' },
+  purple: { primary: '#8b5cf6', secondary: '#a78bfa' },
+  green: { primary: '#10b981', secondary: '#34d399' },
+};
+
+const calendar = createCalendar({
+  container: '#calendar',
+  events: events,
+  theme: themes.blue,
+});
+
+// Update theme dynamically without recreation
+document.getElementById('purple-btn').addEventListener('click', () => {
+  calendar.updateTheme(themes.purple);
+});
+```
+
+> **Note:** The `updateTheme()` method is available in Vanilla JavaScript for efficient theme updates without recreating the calendar instance.
 
 ## Framework-Specific Features
 

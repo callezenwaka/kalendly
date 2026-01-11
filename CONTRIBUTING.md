@@ -146,7 +146,23 @@ This starts a local server on `http://localhost:8080` where you can:
 
 The `examples/` directory contains demo applications for each framework.
 
-### React Example:
+### Run All Examples:
+
+You can start all framework examples at once:
+
+```bash
+npm run dev:examples
+```
+
+This starts a Vite development server on port 5173 that serves all examples. The examples will be available at:
+
+- Vanilla: http://localhost:5173/examples/vanilla/index.html
+- React: http://localhost:5173/examples/react/index.html
+- Vue: http://localhost:5173/examples/vue/index.html
+
+### Run Individual Examples:
+
+#### React Example:
 
 ```bash
 cd examples/react
@@ -155,7 +171,7 @@ npm run dev
 # Open http://localhost:5173
 ```
 
-### Vue Example:
+#### Vue Example:
 
 ```bash
 cd examples/vue
@@ -164,7 +180,7 @@ npm run dev
 # Open http://localhost:5174
 ```
 
-### Vanilla JavaScript Example:
+#### Vanilla JavaScript Example:
 
 ```bash
 cd examples/vanilla
@@ -173,7 +189,7 @@ cd examples/vanilla
 npx serve .
 ```
 
-### React Native Example:
+#### React Native Example:
 
 ```bash
 cd examples/react-native

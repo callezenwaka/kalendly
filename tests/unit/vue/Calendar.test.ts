@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import Calendar from '../../../src/vue/components/Calendar.vue';
 import { CalendarEvent } from '../../../src/core/types';
 
@@ -442,6 +443,216 @@ describe('Vue Calendar Component', () => {
       );
       // Should render day 29
       expect(wrapper.findAll('td').some(td => td.text() === '29')).toBe(true);
+    });
+  });
+
+  describe('Theme Support', () => {
+    it('should apply theme on mount', async () => {
+      const theme = {
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+        tertiary: '#93c5fd',
+      };
+
+      mount(Calendar, {
+        props: {
+          events: [],
+          theme,
+        },
+      });
+
+      await nextTick();
+
+      const root = document.documentElement;
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#60a5fa'
+      );
+      expect(root.style.getPropertyValue('--calendar-tertiary-color')).toBe(
+        '#93c5fd'
+      );
+    });
+
+    it('should apply all theme properties', async () => {
+      const theme = {
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+        tertiary: '#93c5fd',
+        textColor: '#1f2937',
+        textLight: '#6b7280',
+        background: '#ffffff',
+        cellHover: '#f3f4f6',
+        borderColor: '#e5e7eb',
+        todayOutline: '#fbbf24',
+        selectedBg: '#dbeafe',
+        eventIndicator: '#10b981',
+      };
+
+      mount(Calendar, {
+        props: {
+          events: [],
+          theme,
+        },
+      });
+
+      await nextTick();
+
+      const root = document.documentElement;
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#60a5fa'
+      );
+      expect(root.style.getPropertyValue('--calendar-tertiary-color')).toBe(
+        '#93c5fd'
+      );
+      expect(root.style.getPropertyValue('--calendar-text-color')).toBe(
+        '#1f2937'
+      );
+      expect(root.style.getPropertyValue('--calendar-text-light')).toBe(
+        '#6b7280'
+      );
+      expect(root.style.getPropertyValue('--calendar-background')).toBe(
+        '#ffffff'
+      );
+      expect(root.style.getPropertyValue('--calendar-cell-hover')).toBe(
+        '#f3f4f6'
+      );
+      expect(root.style.getPropertyValue('--calendar-border-color')).toBe(
+        '#e5e7eb'
+      );
+      expect(root.style.getPropertyValue('--calendar-today-outline')).toBe(
+        '#fbbf24'
+      );
+      expect(root.style.getPropertyValue('--calendar-selected-bg')).toBe(
+        '#dbeafe'
+      );
+      expect(root.style.getPropertyValue('--calendar-event-indicator')).toBe(
+        '#10b981'
+      );
+    });
+
+    it('should handle partial theme objects', async () => {
+      const theme = {
+        primary: '#8b5cf6',
+        secondary: '#a78bfa',
+      };
+
+      mount(Calendar, {
+        props: {
+          events: [],
+          theme,
+        },
+      });
+
+      await nextTick();
+
+      const root = document.documentElement;
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#8b5cf6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#a78bfa'
+      );
+    });
+
+    it('should work without theme (no errors)', () => {
+      expect(() => {
+        mount(Calendar, {
+          props: {
+            events: [],
+          },
+        });
+      }).not.toThrow();
+    });
+
+    it('should update theme when prop changes', async () => {
+      const initialTheme = {
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+      };
+
+      const wrapper = mount(Calendar, {
+        props: {
+          events: [],
+          theme: initialTheme,
+        },
+      });
+
+      await nextTick();
+
+      const root = document.documentElement;
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#60a5fa'
+      );
+
+      // Update theme
+      const newTheme = {
+        primary: '#8b5cf6',
+        secondary: '#a78bfa',
+        tertiary: '#c4b5fd',
+      };
+
+      await wrapper.setProps({ theme: newTheme });
+      await nextTick();
+
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#8b5cf6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#a78bfa'
+      );
+      expect(root.style.getPropertyValue('--calendar-tertiary-color')).toBe(
+        '#c4b5fd'
+      );
+    });
+
+    it('should support theme switching', async () => {
+      const blueTheme = {
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+      };
+
+      const purpleTheme = {
+        primary: '#8b5cf6',
+        secondary: '#a78bfa',
+      };
+
+      const wrapper = mount(Calendar, {
+        props: {
+          events: [],
+          theme: blueTheme,
+        },
+      });
+
+      await nextTick();
+
+      const root = document.documentElement;
+
+      // Initial blue theme
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
+
+      // Switch to purple
+      await wrapper.setProps({ theme: purpleTheme });
+      await nextTick();
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#8b5cf6'
+      );
+
+      // Switch back to blue
+      await wrapper.setProps({ theme: blueTheme });
+      await nextTick();
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
     });
   });
 });

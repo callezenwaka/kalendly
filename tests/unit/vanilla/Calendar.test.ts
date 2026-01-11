@@ -477,4 +477,195 @@ describe('Vanilla Calendar', () => {
       expect(has29).toBe(true);
     });
   });
+
+  describe('Theme Support', () => {
+    it('should apply theme on initialization', () => {
+      const theme = {
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+        tertiary: '#93c5fd',
+      };
+
+      createCalendar({
+        container: container,
+        events: [],
+        theme,
+      });
+
+      const root = document.documentElement;
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#60a5fa'
+      );
+      expect(root.style.getPropertyValue('--calendar-tertiary-color')).toBe(
+        '#93c5fd'
+      );
+    });
+
+    it('should apply all theme properties', () => {
+      const theme = {
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+        tertiary: '#93c5fd',
+        textColor: '#1f2937',
+        textLight: '#6b7280',
+        background: '#ffffff',
+        cellHover: '#f3f4f6',
+        borderColor: '#e5e7eb',
+        todayOutline: '#fbbf24',
+        selectedBg: '#dbeafe',
+        eventIndicator: '#10b981',
+      };
+
+      createCalendar({
+        container: container,
+        events: [],
+        theme,
+      });
+
+      const root = document.documentElement;
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#60a5fa'
+      );
+      expect(root.style.getPropertyValue('--calendar-tertiary-color')).toBe(
+        '#93c5fd'
+      );
+      expect(root.style.getPropertyValue('--calendar-text-color')).toBe(
+        '#1f2937'
+      );
+      expect(root.style.getPropertyValue('--calendar-text-light')).toBe(
+        '#6b7280'
+      );
+      expect(root.style.getPropertyValue('--calendar-background')).toBe(
+        '#ffffff'
+      );
+      expect(root.style.getPropertyValue('--calendar-cell-hover')).toBe(
+        '#f3f4f6'
+      );
+      expect(root.style.getPropertyValue('--calendar-border-color')).toBe(
+        '#e5e7eb'
+      );
+      expect(root.style.getPropertyValue('--calendar-today-outline')).toBe(
+        '#fbbf24'
+      );
+      expect(root.style.getPropertyValue('--calendar-selected-bg')).toBe(
+        '#dbeafe'
+      );
+      expect(root.style.getPropertyValue('--calendar-event-indicator')).toBe(
+        '#10b981'
+      );
+    });
+
+    it('should handle partial theme objects', () => {
+      const theme = {
+        primary: '#8b5cf6',
+        secondary: '#a78bfa',
+      };
+
+      createCalendar({
+        container: container,
+        events: [],
+        theme,
+      });
+
+      const root = document.documentElement;
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#8b5cf6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#a78bfa'
+      );
+    });
+
+    it('should work without theme (no errors)', () => {
+      expect(() => {
+        createCalendar({
+          container: container,
+          events: [],
+        });
+      }).not.toThrow();
+    });
+
+    it('should update theme dynamically with updateTheme()', () => {
+      const initialTheme = {
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+      };
+
+      const calendar = createCalendar({
+        container: container,
+        events: [],
+        theme: initialTheme,
+      });
+
+      const root = document.documentElement;
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#60a5fa'
+      );
+
+      // Update theme
+      const newTheme = {
+        primary: '#8b5cf6',
+        secondary: '#a78bfa',
+        tertiary: '#c4b5fd',
+      };
+
+      calendar.updateTheme(newTheme);
+
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#8b5cf6'
+      );
+      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+        '#a78bfa'
+      );
+      expect(root.style.getPropertyValue('--calendar-tertiary-color')).toBe(
+        '#c4b5fd'
+      );
+    });
+
+    it('should support theme switching', () => {
+      const blueTheme = {
+        primary: '#3b82f6',
+        secondary: '#60a5fa',
+      };
+
+      const purpleTheme = {
+        primary: '#8b5cf6',
+        secondary: '#a78bfa',
+      };
+
+      const calendar = createCalendar({
+        container: container,
+        events: [],
+        theme: blueTheme,
+      });
+
+      const root = document.documentElement;
+
+      // Initial blue theme
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
+
+      // Switch to purple
+      calendar.updateTheme(purpleTheme);
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#8b5cf6'
+      );
+
+      // Switch back to blue
+      calendar.updateTheme(blueTheme);
+      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+        '#3b82f6'
+      );
+    });
+  });
 });

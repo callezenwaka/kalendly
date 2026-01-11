@@ -1,6 +1,6 @@
 {
   "name": "kalendly",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A kalendly universal calendar scheduler component for React, Vue, and React Native",
   "keywords": [
     "calendar",
@@ -59,10 +59,14 @@
       "import": "./dist/vanilla/index.mjs",
       "require": "./dist/vanilla/index.cjs"
     },
-    "./styles": "./dist/styles/calendar.css"
+    "./styles": {
+      "types": "./styles.d.ts",
+      "default": "./dist/styles/calendar.css"
+    }
   },
   "files": [
     "dist",
+    "styles.d.ts",
     "README.md",
     "LICENSE"
   ],

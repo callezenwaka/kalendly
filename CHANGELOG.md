@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Theme Support** - Universal theming system across all frameworks
+  - Added `CalendarTheme` interface with 11 customizable color properties
+  - Added `theme` prop to React, Vue, Vanilla, and React Native Calendar components
+  - React and Vue: Dynamic theme updates via prop changes
+  - Vanilla JavaScript: `updateTheme()` method for efficient theme switching
+  - React Native: Responsive theme integration with StyleSheet
+  - Comprehensive theme tests (18 tests) covering all frameworks
+- TypeScript support improvements
+  - Added `types` field in tsconfig.json for @testing-library/jest-dom matchers
+  - Created `styles.d.ts` module declaration for TypeScript projects
+  - Enhanced package.json exports with explicit types field for styles
+- Integration test improvements
+  - Updated package validation to include all build outputs
+  - Added validation for React Native builds (CJS, ESM, TypeScript declarations)
+  - Added validation for Vue TypeScript declarations
+  - Added validation for UMD build and styles.d.ts
+
+### Changed
+
+- **React Native Styling Architecture**
+  - Refactored `getResponsiveStyles()` to accept optional color overrides
+  - Renamed `colors` to `defaultColors` for clarity
+  - Exported `CalendarColors` type for type safety
+  - Enhanced Calendar component with dynamic style generation based on theme
+  - Select component now accepts style props for theme integration
+- Build & Type Generation
+  - Removed outdated comment about Vue not generating .d.ts files
+  - Package validation now checks 21 files (up from 16)
+
+### Fixed
+
+- TypeScript errors in test files
+  - Resolved missing jest-dom matcher types (toBeInTheDocument, toHaveClass, etc.)
+  - Added global type declarations for testing library matchers
+- Vanilla Calendar theme application
+  - Moved `applyTheme()` from constructor body to separate private method
+  - Fixed invalid method declaration syntax
+
 ## [0.1.4] - 2026-01-11
 
 ### Changed

@@ -1,5 +1,9 @@
 import { ReactNode, CSSProperties } from 'react';
-import { CalendarProps as CoreCalendarProps, CalendarEvent } from '../core';
+import {
+  CalendarProps as CoreCalendarProps,
+  CalendarEvent,
+  CalendarTheme,
+} from '../core';
 
 export interface ReactCalendarProps extends CoreCalendarProps {
   className?: string;
@@ -8,6 +12,7 @@ export interface ReactCalendarProps extends CoreCalendarProps {
   renderEvent?: (event: CalendarEvent) => ReactNode;
   renderNoEvents?: () => ReactNode;
   title?: string;
+  theme?: CalendarTheme;
 }
 
 export type CalendarComponentProps = ReactCalendarProps;

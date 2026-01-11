@@ -360,6 +360,47 @@ watch(
   { deep: true }
 );
 
+watch(
+  () => props.theme,
+  newTheme => {
+    if (newTheme) {
+      const root = document.documentElement;
+      if (newTheme.primary)
+        root.style.setProperty('--calendar-primary-color', newTheme.primary);
+      if (newTheme.secondary)
+        root.style.setProperty(
+          '--calendar-secondary-color',
+          newTheme.secondary
+        );
+      if (newTheme.tertiary)
+        root.style.setProperty('--calendar-tertiary-color', newTheme.tertiary);
+      if (newTheme.textColor)
+        root.style.setProperty('--calendar-text-color', newTheme.textColor);
+      if (newTheme.textLight)
+        root.style.setProperty('--calendar-text-light', newTheme.textLight);
+      if (newTheme.background)
+        root.style.setProperty('--calendar-background', newTheme.background);
+      if (newTheme.cellHover)
+        root.style.setProperty('--calendar-cell-hover', newTheme.cellHover);
+      if (newTheme.borderColor)
+        root.style.setProperty('--calendar-border-color', newTheme.borderColor);
+      if (newTheme.todayOutline)
+        root.style.setProperty(
+          '--calendar-today-outline',
+          newTheme.todayOutline
+        );
+      if (newTheme.selectedBg)
+        root.style.setProperty('--calendar-selected-bg', newTheme.selectedBg);
+      if (newTheme.eventIndicator)
+        root.style.setProperty(
+          '--calendar-event-indicator',
+          newTheme.eventIndicator
+        );
+    }
+  },
+  { immediate: true, deep: true }
+);
+
 let unsubscribe: (() => void) | null = null;
 
 onMounted(() => {
