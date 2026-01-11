@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createCalendar, VanillaCalendar } from '../../../src/vanilla/Calendar';
+import { createCalendar } from '../../../src/vanilla/Calendar';
 import { CalendarEvent } from '../../../src/core/types';
 
 const MOCK_EVENTS: CalendarEvent[] = [
@@ -435,7 +435,7 @@ describe('Vanilla Calendar', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty events array', () => {
-      const calendar = createCalendar({
+      createCalendar({
         container: container,
         events: [],
       });
