@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-export const colors = {
+export const defaultColors = {
   primary: '#fc8917',
   secondary: '#fca045',
   tertiary: '#fdb873',
@@ -14,7 +14,14 @@ export const colors = {
   scrollHintText: '#f59e0b',
 };
 
-export const getResponsiveStyles = (width: number, height: number) => {
+export type CalendarColors = typeof defaultColors;
+
+export const getResponsiveStyles = (
+  width: number,
+  height: number,
+  customColors?: Partial<CalendarColors>
+) => {
+  const colors = { ...defaultColors, ...customColors };
   // Device type detection
   const isTablet = width >= 768;
   const isSmallPhone = width < 375;

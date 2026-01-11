@@ -117,3 +117,17 @@ export interface CalendarProps {
   onEventClick?: CalendarEventHandler;
   onMonthChange?: (year: number, month: number) => void;
 }
+
+export interface CalendarTheme {
+  primary?: string;
+  secondary?: string;
+  tertiary?: string;
+  textColor?: string;
+  textLight?: string;
+  background?: string;
+  cellHover?: string;
+  borderColor?: string;
+  todayOutline?: string;
+  selectedBg?: string;
+  eventIndicator?: string;
+}

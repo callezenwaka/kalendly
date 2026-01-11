@@ -96,11 +96,19 @@
 }
 
 .calendar--table td:hover {
-  background-color: rgba(252, 137, 23, 0.1);
+  background-color: color-mix(
+    in srgb,
+    var(--calendar-primary-color) 10%,
+    transparent
+  );
 }
 
 .calendar--table td.has--event {
-  background-color: rgba(252, 160, 69, 0.3);
+  background-color: color-mix(
+    in srgb,
+    var(--calendar-secondary-color) 30%,
+    transparent
+  );
   position: relative;
 }
 
@@ -221,7 +229,11 @@
 }
 
 .popup-header {
-  background: linear-gradient(135deg, #fc8917, #fca045);
+  background: linear-gradient(
+    135deg,
+    var(--calendar-primary-color),
+    var(--calendar-secondary-color)
+  );
   padding: 15px 20px;
   display: flex;
   justify-content: space-between;
@@ -292,7 +304,7 @@
 .event-card {
   background: white;
   border: 1px solid #e5e7eb;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--calendar-primary-color);
   border-radius: 6px;
   padding: 14px;
   margin-bottom: 12px;

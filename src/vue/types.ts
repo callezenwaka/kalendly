@@ -1,10 +1,15 @@
-import { CalendarProps as CoreCalendarProps, CalendarEvent } from '../core';
+import {
+  CalendarProps as CoreCalendarProps,
+  CalendarEvent,
+  CalendarTheme,
+} from '../core';
 import type { VNode } from 'vue';
 
 export interface VueCalendarProps extends CoreCalendarProps {
   class?: string;
   style?: Record<string, string | number>;
   title?: string;
+  theme?: CalendarTheme;
 }
 
 export interface VueCalendarEmits {

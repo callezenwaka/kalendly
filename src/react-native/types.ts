@@ -1,6 +1,10 @@
 import { ReactNode } from 'react';
 import { ViewStyle, TextStyle } from 'react-native';
-import { CalendarProps as CoreCalendarProps, CalendarEvent } from '../core';
+import {
+  CalendarProps as CoreCalendarProps,
+  CalendarEvent,
+  CalendarTheme,
+} from '../core';
 
 export interface ReactNativeCalendarProps extends CoreCalendarProps {
   style?: ViewStyle;
@@ -13,6 +17,7 @@ export interface ReactNativeCalendarProps extends CoreCalendarProps {
   renderNoEvents?: () => ReactNode;
   title?: string;
   showCloseButton?: boolean;
+  theme?: CalendarTheme;
 }
 
 export type CalendarComponentProps = ReactNativeCalendarProps;

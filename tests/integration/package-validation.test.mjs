@@ -66,13 +66,18 @@ async function runTests() {
         'dist/vanilla/index.js',
         'dist/vanilla/index.mjs',
         'dist/vanilla/index.d.ts',
+        'dist/vanilla/index.umd.js',
         'dist/react/index.js',
         'dist/react/index.mjs',
         'dist/react/index.d.ts',
+        'dist/react-native/index.js',
+        'dist/react-native/index.mjs',
+        'dist/react-native/index.d.ts',
         'dist/vue/index.js',
         'dist/vue/index.mjs',
-        // Note: Vue build uses Vite and doesn't generate .d.ts files
-        'dist/styles/calendar.css'
+        'dist/vue/index.d.ts',
+        'dist/styles/calendar.css',
+        'styles.d.ts'
     ];
     
     coreFiles.forEach(file => {

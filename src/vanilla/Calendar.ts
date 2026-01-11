@@ -36,7 +36,40 @@ export class VanillaCalendar implements VanillaCalendarInstance {
 
     this.actions = this.engine.getActions();
 
+    this.applyTheme();
     this.init();
+  }
+
+  private applyTheme(): void {
+    if (this.props.theme) {
+      const root = document.documentElement;
+      const theme = this.props.theme;
+      if (theme.primary)
+        root.style.setProperty('--calendar-primary-color', theme.primary);
+      if (theme.secondary)
+        root.style.setProperty('--calendar-secondary-color', theme.secondary);
+      if (theme.tertiary)
+        root.style.setProperty('--calendar-tertiary-color', theme.tertiary);
+      if (theme.textColor)
+        root.style.setProperty('--calendar-text-color', theme.textColor);
+      if (theme.textLight)
+        root.style.setProperty('--calendar-text-light', theme.textLight);
+      if (theme.background)
+        root.style.setProperty('--calendar-background', theme.background);
+      if (theme.cellHover)
+        root.style.setProperty('--calendar-cell-hover', theme.cellHover);
+      if (theme.borderColor)
+        root.style.setProperty('--calendar-border-color', theme.borderColor);
+      if (theme.todayOutline)
+        root.style.setProperty('--calendar-today-outline', theme.todayOutline);
+      if (theme.selectedBg)
+        root.style.setProperty('--calendar-selected-bg', theme.selectedBg);
+      if (theme.eventIndicator)
+        root.style.setProperty(
+          '--calendar-event-indicator',
+          theme.eventIndicator
+        );
+    }
   }
 
   private init(): void {
@@ -453,6 +486,11 @@ export class VanillaCalendar implements VanillaCalendarInstance {
 
   public updateEvents(events: import('../core').CalendarEvent[]): void {
     this.engine.updateEvents(events);
+  }
+
+  public updateTheme(theme: import('../core').CalendarTheme): void {
+    this.props.theme = theme;
+    this.applyTheme();
   }
 
   public getCurrentDate(): Date | null {

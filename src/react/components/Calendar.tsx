@@ -17,6 +17,7 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
   renderEvent,
   renderNoEvents,
   title = 'Event Schedule',
+  theme,
 }) => {
   const engine = useMemo(
     () =>
@@ -47,6 +48,37 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
       engine.destroy();
     };
   }, [engine]);
+
+  useEffect(() => {
+    if (theme) {
+      const root = document.documentElement;
+      if (theme.primary)
+        root.style.setProperty('--calendar-primary-color', theme.primary);
+      if (theme.secondary)
+        root.style.setProperty('--calendar-secondary-color', theme.secondary);
+      if (theme.tertiary)
+        root.style.setProperty('--calendar-tertiary-color', theme.tertiary);
+      if (theme.textColor)
+        root.style.setProperty('--calendar-text-color', theme.textColor);
+      if (theme.textLight)
+        root.style.setProperty('--calendar-text-light', theme.textLight);
+      if (theme.background)
+        root.style.setProperty('--calendar-background', theme.background);
+      if (theme.cellHover)
+        root.style.setProperty('--calendar-cell-hover', theme.cellHover);
+      if (theme.borderColor)
+        root.style.setProperty('--calendar-border-color', theme.borderColor);
+      if (theme.todayOutline)
+        root.style.setProperty('--calendar-today-outline', theme.todayOutline);
+      if (theme.selectedBg)
+        root.style.setProperty('--calendar-selected-bg', theme.selectedBg);
+      if (theme.eventIndicator)
+        root.style.setProperty(
+          '--calendar-event-indicator',
+          theme.eventIndicator
+        );
+    }
+  }, [theme]);
 
   const viewModel = engine.getViewModel();
   const actions = engine.getActions();

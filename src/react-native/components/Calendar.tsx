@@ -1,9 +1,19 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Dimensions,
+} from 'react-native';
 import { CalendarEngine, getCellClasses } from '../../core';
 import { CalendarComponentProps, SelectProps } from '../types';
 import { DatePopup } from './DatePopup';
-import { calendarStyles } from '../../styles/react-native-styles';
+import {
+  getResponsiveStyles,
+  CalendarColors,
+} from '../../styles/react-native-styles';
 
 // Simple Select component for React Native
 const Select: React.FC<SelectProps> = ({
@@ -27,13 +37,8 @@ const Select: React.FC<SelectProps> = ({
   };
 
   return (
-    <TouchableOpacity
-      style={[calendarStyles.jumpSelect, style]}
-      onPress={showPicker}
-    >
-      <Text style={[calendarStyles.jumpSelectText, textStyle]}>
-        {selectedOption?.label}
-      </Text>
+    <TouchableOpacity style={style} onPress={showPicker}>
+      <Text style={textStyle}>{selectedOption?.label}</Text>
     </TouchableOpacity>
   );
 };
@@ -57,6 +62,7 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
   renderNoEvents,
   title = 'Event Schedule',
   showCloseButton = true,
+  theme,
 }) => {
   const engine = useMemo(
     () =>
@@ -69,6 +75,27 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
       }),
     [events, initialDate, minYear, maxYear, weekStartsOn]
   );
+
+  // Map CalendarTheme to CalendarColors format
+  const themeColors = useMemo<Partial<CalendarColors> | undefined>(() => {
+    if (!theme) return undefined;
+    return {
+      primary: theme.primary,
+      secondary: theme.secondary,
+      tertiary: theme.tertiary,
+      text: theme.textColor,
+      border: theme.borderColor,
+      todayOutline: theme.todayOutline,
+      eventIndicator: theme.eventIndicator,
+      background: theme.background,
+    };
+  }, [theme]);
+
+  // Generate responsive styles based on screen dimensions and theme
+  const calendarStyles = useMemo(() => {
+    const { width, height } = Dimensions.get('window');
+    return getResponsiveStyles(width, height, themeColors);
+  }, [themeColors]);
 
   const [, forceUpdate] = useState({});
   const rerender = useCallback(() => forceUpdate({}), []);
@@ -225,11 +252,15 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
               options={monthOptions}
               selectedValue={viewModel.currentMonth}
               onValueChange={handleMonthChange}
+              style={calendarStyles.jumpSelect}
+              textStyle={calendarStyles.jumpSelectText}
             />
             <Select
               options={yearOptions}
               selectedValue={viewModel.currentYear}
               onValueChange={handleYearChange}
+              style={calendarStyles.jumpSelect}
+              textStyle={calendarStyles.jumpSelectText}
             />
           </View>
         </View>
