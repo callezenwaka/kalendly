@@ -16,11 +16,11 @@ A universal calendar scheduler component that works seamlessly across React, Vue
 
 ## Live Examples
 
-Check out the interactive examples: [https://kalendly.netlify.app](https://kalendly.netlify.app)
+Check out the interactive examples: [https://kalendly-example.netlify.app/](https://kalendly-example.netlify.app)
 
-- [Vanilla JavaScript](https://kalendly.netlify.app/vanilla)
-- [React](https://kalendly.netlify.app/react)
-- [Vue](https://kalendly.netlify.app/vue)
+- [Vanilla JavaScript](https://kalendly-example.netlify.app/vanilla)
+- [React](https://kalendly-example.netlify.app/react)
+- [Vue](https://kalendly-example.netlify.app/vue)
 
 ## Installation
 
