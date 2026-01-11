@@ -4,20 +4,20 @@
 
 [[redirects]]
   from = "/"
-  to = "/vanilla/index.html"
+  to = "/examples/vanilla/index.html"
   status = 200
 
 [[redirects]]
   from = "/vanilla"
-  to = "/vanilla/index.html"
+  to = "/examples/vanilla/index.html"
   status = 200
 
 [[redirects]]
   from = "/react"
-  to = "/react/index.html"
+  to = "/examples/react/index.html"
   status = 200
 
 [[redirects]]
   from = "/vue"
-  to = "/vue/index.html"
+  to = "/examples/vue/index.html"
   status = 200
