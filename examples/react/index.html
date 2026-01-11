@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>React Calendar Example</title>
+    <title>React Calendar Example - Enhanced</title>
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
     <link rel="stylesheet" href="../../dist/styles/calendar.css">
     <script type="importmap">
     {
@@ -14,6 +15,90 @@
         }
     }
     </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .demo-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .demo-header h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            background: #fc8917;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #e67612;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .event-log {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .event-log h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #f9fafb;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-left: 3px solid #fc8917;
+        }
+        
+        .log-entry .timestamp {
+            color: #6b7280;
+            margin-right: 10px;
+        }
+    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -27,70 +112,218 @@
             const [events, setEvents] = useState([
                 {
                     id: 1,
-                    name: 'React Test Event',
+                    name: 'Team Standup',
                     date: new Date(2025, 0, 15),
-                    description: 'Testing React calendar'
+                    startTime: '09:00',
+                    endTime: '09:30',
+                    description: 'Daily team sync to discuss progress',
+                    location: 'Conference Room A',
+                    category: 'meeting',
+                    color: '#10b981',
+                    priority: 'high',
+                    attendees: ['John', 'Sarah', 'Mike'],
+                    tags: ['daily', 'team']
                 },
                 {
                     id: 2,
-                    name: 'Today Event',
+                    name: 'Project Deadline',
+                    date: new Date(2025, 0, 20),
+                    startTime: '17:00',
+                    description: 'Final submission for Q1 deliverables',
+                    category: 'deadline',
+                    color: '#ef4444',
+                    priority: 'high',
+                    notes: 'Double-check all requirements',
+                    tags: ['deadline', 'important']
+                },
+                {
+                    id: 3,
+                    name: 'Code Review',
                     date: new Date(),
-                    description: 'Something today'
+                    startTime: '14:00',
+                    endTime: '15:00',
+                    description: 'Review PR #234',
+                    location: 'Virtual - Zoom',
+                    category: 'work',
+                    color: '#3b82f6',
+                    status: 'completed',
+                    priority: 'medium',
+                    tags: ['development', 'review']
                 }
             ]);
 
-            const handleDateSelect = (date) => {
-                console.log('React: Date selected', date);
-                alert(`Selected: ${date.toDateString()}`);
+            const [logs, setLogs] = useState([]);
+
+            const addLog = (message) => {
+                const timestamp = new Date().toLocaleTimeString();
+                setLogs(prev => [{ timestamp, message }, ...prev.slice(0, 19)]);
             };
 
-            const addEvent = () => {
+            const handleDateSelect = (date) => {
+                addLog(`Date selected: ${date.toDateString()}`);
+            };
+
+            const handleEventClick = (event) => {
+                addLog(`Event clicked: ${event.name}`);
+            };
+
+            const handleMonthChange = (year, month) => {
+                addLog(`Month changed: ${year}-${month + 1}`);
+            };
+
+            const addRandomEvent = () => {
+                const eventTemplates = [
+                    { name: 'Client Meeting', category: 'meeting', color: '#10b981' },
+                    { name: 'Code Review', category: 'work', color: '#3b82f6' },
+                    { name: 'Training Session', category: 'work', color: '#8b5cf6' },
+                    { name: 'Lunch Break', category: 'personal', color: '#ec4899' },
+                    { name: 'Project Deadline', category: 'deadline', color: '#ef4444' }
+                ];
+
+                const template = eventTemplates[Math.floor(Math.random() * eventTemplates.length)];
+                const randomDate = new Date();
+                randomDate.setDate(randomDate.getDate() + Math.floor(Math.random() * 30));
+
                 const newEvent = {
                     id: Date.now(),
-                    name: `React Event ${Math.floor(Math.random() * 100)}`,
-                    date: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000),
-                    description: 'Added from React'
+                    name: `${template.name} ${Math.floor(Math.random() * 100)}`,
+                    date: randomDate,
+                    startTime: `${9 + Math.floor(Math.random() * 8)}:00`,
+                    endTime: `${10 + Math.floor(Math.random() * 8)}:00`,
+                    description: 'Auto-generated test event',
+                    category: template.category,
+                    color: template.color,
+                    priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+                    tags: ['test', 'demo']
                 };
+
                 setEvents([...events, newEvent]);
+                addLog(`Added event: ${newEvent.name} on ${randomDate.toDateString()}`);
             };
 
-            return React.createElement('div', { style: { fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '20px' } },
-                React.createElement('div', {
-                    style: {
-                        padding: '20px',
-                        textAlign: 'center',
-                        background: 'white',
-                        marginBottom: '20px',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            const addEnhancedEvent = () => {
+                const now = new Date();
+                const newEvent = {
+                    id: Date.now(),
+                    name: 'Enhanced Event',
+                    date: now,
+                    startTime: '10:00',
+                    endTime: '11:00',
+                    description: 'Event with all enhanced fields',
+                    location: 'Conference Room B',
+                    category: 'meeting',
+                    color: '#06b6d4',
+                    status: 'scheduled',
+                    priority: 'high',
+                    attendees: ['Alice', 'Bob', 'Charlie'],
+                    organizer: 'Project Manager',
+                    url: 'https://example.com/meeting',
+                    notes: 'Bring laptop and notes',
+                    tags: ['important', 'planning', 'Q1']
+                };
+
+                setEvents([...events, newEvent]);
+                addLog(`Added enhanced event with all fields`);
+            };
+
+            const clearEvents = () => {
+                setEvents([]);
+                addLog('Cleared all events');
+            };
+
+            const loadSampleData = () => {
+                const sampleEvents = [
+                    {
+                        id: Date.now() + 1,
+                        name: 'Sprint Planning',
+                        date: new Date(2025, 0, 17),
+                        startTime: '13:00',
+                        endTime: '15:00',
+                        description: 'Plan tasks for upcoming sprint',
+                        location: 'Zoom',
+                        category: 'meeting',
+                        priority: 'high',
+                        attendees: ['Dev Team', 'Product Owner'],
+                        tags: ['agile', 'planning']
+                    },
+                    {
+                        id: Date.now() + 2,
+                        name: 'Doctor Appointment',
+                        date: new Date(2025, 0, 18),
+                        startTime: '14:00',
+                        endTime: '15:00',
+                        description: 'Annual checkup',
+                        location: 'City Medical Center',
+                        category: 'personal',
+                        priority: 'medium',
+                        notes: 'Bring insurance card',
+                        tags: ['health', 'personal']
+                    },
+                    {
+                        id: Date.now() + 3,
+                        name: 'Team Building',
+                        date: new Date(2025, 0, 22),
+                        allDay: true,
+                        description: 'Annual team building event',
+                        location: 'Recreation Center',
+                        category: 'other',
+                        priority: 'low',
+                        tags: ['social', 'team']
                     }
-                },
-                    React.createElement('h1', null, 'kalendly Universal Calendar Scheduler - React Demo'),
-                    React.createElement('h2', null, 'Demo Controls'),
-                    React.createElement('button', {
-                        onClick: addEvent,
-                        style: {
-                            background: '#fc8917',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }
-                    }, 'Add Random Event')
+                ];
+
+                setEvents([...events, ...sampleEvents]);
+                addLog(`Loaded ${sampleEvents.length} sample events`);
+            };
+
+            return React.createElement('div', null,
+                React.createElement('div', { className: 'demo-header' },
+                    React.createElement('h1', null, '📅 kalendly - React Demo (Enhanced)'),
+                    React.createElement('p', null, 'Testing all enhanced event fields: time, location, attendees, notes, tags, and more!'),
+                    React.createElement('div', { className: 'controls' },
+                        React.createElement('button', {
+                            className: 'btn',
+                            onClick: addRandomEvent
+                        }, '➕ Add Random Event'),
+                        React.createElement('button', {
+                            className: 'btn',
+                            onClick: addEnhancedEvent
+                        }, '✨ Add Enhanced Event'),
+                        React.createElement('button', {
+                            className: 'btn',
+                            onClick: loadSampleData
+                        }, '📦 Load Sample Data'),
+                        React.createElement('button', {
+                            className: 'btn btn-secondary',
+                            onClick: clearEvents
+                        }, '🗑️ Clear All')
+                    )
                 ),
                 React.createElement(Calendar, {
                     events: events,
                     onDateSelect: handleDateSelect,
-                    title: 'My Event Calendar'
-                })
+                    onEventClick: handleEventClick,
+                    onMonthChange: handleMonthChange,
+                    title: 'My Enhanced Calendar'
+                }),
+                React.createElement('div', { className: 'event-log' },
+                    React.createElement('h3', null, '📋 Event Log'),
+                    logs.length === 0
+                        ? React.createElement('p', { style: { color: '#6b7280', textAlign: 'center' } }, 'No events logged yet. Interact with the calendar!')
+                        : logs.map((log, index) =>
+                            React.createElement('div', { key: index, className: 'log-entry' },
+                                React.createElement('span', { className: 'timestamp' }, `[${log.timestamp}]`),
+                                React.createElement('span', null, log.message)
+                            )
+                        )
+                )
             );
         }
 
         const root = createRoot(document.getElementById('root'));
         root.render(React.createElement(App));
 
-        console.log('✅ React calendar loaded successfully!');
+        console.log('React calendar with enhanced features loaded successfully!');
     </script>
 </body>
 </html>

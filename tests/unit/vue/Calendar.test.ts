@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import Calendar from '../../../src/vue/components/Calendar.vue';
 import { CalendarEvent } from '../../../src/core/types';
@@ -150,7 +150,7 @@ describe('Vue Calendar Component', () => {
       await wrapper.vm.$nextTick();
 
       // Click event
-      const eventItem = wrapper.find('.event--item');
+      const eventItem = wrapper.find('.event-card');
       await eventItem.trigger('click');
 
       expect(wrapper.emitted('event-click')).toBeTruthy();
@@ -340,7 +340,7 @@ describe('Vue Calendar Component', () => {
       await dateCell2?.trigger('click');
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.event--wrapper').exists()).toBe(true);
+      expect(wrapper.find('.event-card').exists()).toBe(true);
     });
   });
 

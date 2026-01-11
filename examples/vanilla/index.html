@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vanilla JS Calendar Example</title>
+    <title>Vanilla JS Calendar Example - Enhanced</title>
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
     <link rel="stylesheet" href="../../dist/styles/calendar.css">
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -22,24 +23,51 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        .demo-controls h2 {
+        .demo-controls h1 {
             margin-top: 0;
             color: #333;
+            text-align: center;
+        }
+        
+        .demo-controls p {
+            text-align: center;
+            color: #6b7280;
+        }
+        
+        .demo-controls h2 {
+            margin-top: 20px;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
         }
         
         .demo-controls button {
             background: #fc8917;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 16px;
             border-radius: 4px;
             cursor: pointer;
-            margin-right: 10px;
-            margin-bottom: 10px;
+            font-size: 14px;
+            transition: background 0.2s;
         }
         
         .demo-controls button:hover {
             background: #e67612;
+        }
+        
+        .demo-controls button.secondary {
+            background: #6b7280;
+        }
+        
+        .demo-controls button.secondary:hover {
+            background: #4b5563;
         }
         
         .event-log {
@@ -48,7 +76,7 @@
             border-radius: 8px;
             margin-top: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: auto;
         }
         
@@ -58,82 +86,103 @@
         }
         
         .log-entry {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-            font-family: monospace;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #f9fafb;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
             font-size: 12px;
+            border-left: 3px solid #fc8917;
+        }
+        
+        .log-entry .timestamp {
+            color: #6b7280;
+            margin-right: 10px;
         }
         
         .log-entry:last-child {
-            border-bottom: none;
+            margin-bottom: 0;
         }
     </style>
 </head>
 <body>
-    <h1>kalendly Universal Calendar Scheduler - Vanilla JavaScript Demo</h1>
-    
     <div class="demo-controls">
+        <h1>📅 kalendly - Vanilla JavaScript Demo (Enhanced)</h1>
+        <p>Testing all enhanced event fields: badges, time ranges, locations, attendees, and more!</p>
         <h2>Demo Controls</h2>
-        <button id="addRandomBtn">Add Random Event</button>
-        <button id="clearAllBtn">Clear All Events</button>
-        <button id="goToTodayBtn">Go to Today</button>
-        <button id="nextMonthBtn">Next Month</button>
-        <button id="customEventBtn">Add Custom Event</button>
+        <div class="button-grid">
+            <button id="addRandomBtn">➕ Add Random Event</button>
+            <button id="addEnhancedBtn">✨ Add Enhanced Event</button>
+            <button id="loadSampleBtn">📦 Load Sample Data</button>
+            <button id="clearAllBtn" class="secondary">🗑️ Clear All Events</button>
+            <button id="goToTodayBtn">📍 Go to Today</button>
+            <button id="nextMonthBtn">➡️ Next Month</button>
+        </div>
     </div>
     
     <!-- Calendar will be rendered here -->
     <div id="calendar"></div>
     
     <div class="event-log">
-        <h3>Event Log</h3>
+        <h3>📋 Event Log</h3>
         <div id="log"></div>
     </div>
 
     <script type="module">
-        // In a real project, you would import from 'kalendly/vanilla'
         import { createCalendar } from '../../dist/vanilla/index.mjs';
         
-        // Sample events
+        // Sample events with enhanced fields
         let events = [
             { 
                 id: 1, 
-                name: 'Team Meeting', 
-                date: new Date(2025, 0, 15), // Jan 15, 2025
-                description: 'Weekly team sync'
+                name: 'Team Standup', 
+                date: new Date(2025, 0, 15),
+                startTime: '09:00',
+                endTime: '09:30',
+                description: 'Daily team sync to discuss progress',
+                location: 'Conference Room A',
+                category: 'meeting',
+                color: '#10b981',
+                priority: 'high',
+                attendees: ['John', 'Sarah', 'Mike'],
+                tags: ['daily', 'team', 'agile']
             },
             { 
                 id: 2, 
                 name: 'Project Deadline', 
-                date: new Date(2025, 0, 20), // Jan 20, 2025
-                description: 'Final submission due'
+                date: new Date(2025, 0, 20),
+                startTime: '17:00',
+                description: 'Final submission for Q1 deliverables',
+                category: 'deadline',
+                color: '#ef4444',
+                priority: 'high',
+                location: 'Submit via Portal',
+                notes: 'Double-check all requirements before submission',
+                tags: ['deadline', 'important', 'Q1']
             },
             { 
                 id: 3, 
-                name: 'Birthday Party', 
-                date: new Date(), // Today
-                description: 'Office celebration'
+                name: 'Code Review', 
+                date: new Date(),
+                startTime: '14:00',
+                endTime: '15:00',
+                description: 'Review PR #234 - Authentication feature',
+                location: 'Virtual - Zoom',
+                category: 'work',
+                color: '#3b82f6',
+                status: 'completed',
+                priority: 'medium',
+                organizer: 'Tech Lead',
+                notes: 'Focus on security aspects',
+                tags: ['development', 'review', 'security']
             }
         ];
-        
-        // Custom event renderer
-        const renderEvent = (event) => {
-            return `
-                <li class="event--item" style="cursor: pointer;" data-event-id="${event.id}">
-                    <strong>${event.name}</strong>
-                    ${event.description ? `<br><small>${event.description}</small>` : ''}
-                </li>
-            `;
-        };
         
         // Create calendar instance
         const calendar = createCalendar({
             container: '#calendar',
             events: events,
-            title: 'My Event Calendar',
-            renderEvent: renderEvent,
-            onDateSelect: (date) => {
-                logEvent(`Date selected: ${date.toDateString()}`);
-            }
+            title: 'My Enhanced Calendar'
         });
         
         // Event logging
@@ -141,7 +190,16 @@
             const log = document.getElementById('log');
             const entry = document.createElement('div');
             entry.className = 'log-entry';
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            const timestamp = document.createElement('span');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = `[${new Date().toLocaleTimeString()}]`;
+            
+            const text = document.createElement('span');
+            text.textContent = message;
+            
+            entry.appendChild(timestamp);
+            entry.appendChild(text);
             log.insertBefore(entry, log.firstChild);
             
             // Keep only last 20 entries
@@ -159,39 +217,112 @@
             logEvent(`Month changed to: ${e.detail.year}-${e.detail.month + 1}`);
         });
         
-        // Handle event item clicks
-        document.getElementById('calendar').addEventListener('click', (e) => {
-            const eventItem = e.target.closest('[data-event-id]');
-            if (eventItem) {
-                const eventId = eventItem.dataset.eventId;
-                const event = events.find(evt => evt.id == eventId);
-                if (event) {
-                    logEvent(`Event clicked: ${event.name}`);
-                }
-            }
-        });
-        
         // Demo functions
         function addRandomEvent() {
-            const eventNames = [
-                'Code Review', 'Client Call', 'Lunch Meeting', 'Workshop', 
-                'Conference', 'Training', 'Demo Day', 'Standup', 'Sprint Planning'
+            const eventTemplates = [
+                { name: 'Client Meeting', category: 'meeting', color: '#10b981' },
+                { name: 'Code Review', category: 'work', color: '#3b82f6' },
+                { name: 'Training Session', category: 'work', color: '#8b5cf6' },
+                { name: 'Lunch Break', category: 'personal', color: '#ec4899' },
+                { name: 'Project Deadline', category: 'deadline', color: '#ef4444' }
             ];
             
-            const randomName = eventNames[Math.floor(Math.random() * eventNames.length)];
+            const template = eventTemplates[Math.floor(Math.random() * eventTemplates.length)];
             const randomDate = new Date();
             randomDate.setDate(randomDate.getDate() + Math.floor(Math.random() * 30));
             
             const newEvent = {
                 id: Date.now(),
-                name: randomName,
+                name: `${template.name} ${Math.floor(Math.random() * 100)}`,
                 date: randomDate,
-                description: 'Auto-generated event'
+                startTime: `${9 + Math.floor(Math.random() * 8)}:00`,
+                endTime: `${10 + Math.floor(Math.random() * 8)}:00`,
+                description: 'Auto-generated test event',
+                category: template.category,
+                color: template.color,
+                priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+                tags: ['test', 'demo']
             };
             
             events.push(newEvent);
             calendar.updateEvents(events);
             logEvent(`Added event: ${newEvent.name} on ${randomDate.toDateString()}`);
+        }
+        
+        function addEnhancedEvent() {
+            const now = new Date();
+            const newEvent = {
+                id: Date.now(),
+                name: 'Enhanced Event',
+                date: now,
+                startTime: '10:00',
+                endTime: '11:00',
+                description: 'Event with all enhanced fields',
+                location: 'Conference Room B',
+                category: 'meeting',
+                color: '#06b6d4',
+                status: 'scheduled',
+                priority: 'high',
+                attendees: ['Alice', 'Bob', 'Charlie'],
+                organizer: 'Project Manager',
+                url: 'https://example.com/meeting',
+                notes: 'Bring laptop and notes',
+                tags: ['important', 'planning', 'Q1']
+            };
+            
+            events.push(newEvent);
+            console.log('Adding enhanced event:', JSON.stringify(newEvent, null, 2));
+            calendar.updateEvents(events);
+            logEvent('Added enhanced event with all fields');
+        }
+        
+        function loadSampleData() {
+            const sampleEvents = [
+                {
+                    id: Date.now() + 1,
+                    name: 'Sprint Planning',
+                    date: new Date(2025, 0, 17),
+                    startTime: '13:00',
+                    endTime: '15:00',
+                    description: 'Plan tasks for upcoming sprint',
+                    location: 'Zoom',
+                    category: 'meeting',
+                    priority: 'high',
+                    attendees: ['Dev Team', 'Product Owner', 'Scrum Master'],
+                    url: 'https://zoom.us/j/123456789',
+                    tags: ['agile', 'planning', 'sprint']
+                },
+                {
+                    id: Date.now() + 2,
+                    name: 'Doctor Appointment',
+                    date: new Date(2025, 0, 18),
+                    startTime: '14:00',
+                    endTime: '15:00',
+                    description: 'Annual checkup',
+                    location: 'City Medical Center',
+                    category: 'personal',
+                    priority: 'medium',
+                    notes: 'Bring insurance card and ID',
+                    tags: ['health', 'personal']
+                },
+                {
+                    id: Date.now() + 3,
+                    name: 'Team Building Event',
+                    date: new Date(2025, 0, 22),
+                    allDay: true,
+                    description: 'Annual team building and networking event',
+                    location: 'Recreation Center',
+                    category: 'other',
+                    priority: 'low',
+                    attendees: ['All Staff'],
+                    notes: 'Casual attire, lunch provided',
+                    tags: ['team', 'social', 'annual']
+                }
+            ];
+            
+            events = [...events, ...sampleEvents];
+            calendar.updateEvents(events);
+            logEvent(`Loaded ${sampleEvents.length} sample events`);
         }
         
         function clearAllEvents() {
@@ -211,39 +342,17 @@
             logEvent('Navigated to next month');
         }
         
-        function showCustomEvent() {
-            const name = prompt('Event name:');
-            if (name) {
-                const dateStr = prompt('Date (YYYY-MM-DD):');
-                if (dateStr) {
-                    const date = new Date(dateStr);
-                    if (!isNaN(date.getTime())) {
-                        const newEvent = {
-                            id: Date.now(),
-                            name: name,
-                            date: date,
-                            description: 'Custom event'
-                        };
-                        
-                        events.push(newEvent);
-                        calendar.updateEvents(events);
-                        logEvent(`Added custom event: ${name} on ${date.toDateString()}`);
-                    } else {
-                        alert('Invalid date format');
-                    }
-                }
-            }
-        }
-        
         // Attach event listeners to buttons
         document.getElementById('addRandomBtn').addEventListener('click', addRandomEvent);
+        document.getElementById('addEnhancedBtn').addEventListener('click', addEnhancedEvent);
+        document.getElementById('loadSampleBtn').addEventListener('click', loadSampleData);
         document.getElementById('clearAllBtn').addEventListener('click', clearAllEvents);
         document.getElementById('goToTodayBtn').addEventListener('click', goToToday);
         document.getElementById('nextMonthBtn').addEventListener('click', goToNextMonth);
-        document.getElementById('customEventBtn').addEventListener('click', showCustomEvent);
         
         // Initial log
-        logEvent('Calendar initialized with vanilla JavaScript');
+        logEvent('Calendar initialized with enhanced features');
+        console.log('Vanilla JS calendar with enhanced features loaded successfully!');
     </script>
 </body>
 </html>

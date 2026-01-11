@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { CalendarEngine } from '../../../src/core/calendar-engine';
 import { CalendarEvent } from '../../../src/core/types';
 
@@ -564,6 +564,83 @@ describe('CalendarEngine', () => {
 
       const events = engine.getEventsForDate(new Date('2024-01-15'));
       expect(events.length).toBe(2);
+    });
+  });
+
+  describe('Category Colors', () => {
+    it('should initialize with default category colors', () => {
+      const engine = new CalendarEngine({ events: [] });
+      const color = engine.getCategoryColor('work');
+
+      expect(color).toBe('#3b82f6');
+    });
+
+    it('should initialize with custom category colors', () => {
+      const engine = new CalendarEngine({
+        events: [],
+        categoryColors: { work: '#ff0000' },
+      });
+      const color = engine.getCategoryColor('work');
+
+      expect(color).toBe('#ff0000');
+    });
+
+    it('should get category color for known category', () => {
+      const engine = new CalendarEngine({ events: [] });
+
+      expect(engine.getCategoryColor('work')).toBe('#3b82f6');
+      expect(engine.getCategoryColor('personal')).toBe('#8b5cf6');
+      expect(engine.getCategoryColor('meeting')).toBe('#10b981');
+    });
+
+    it('should return other category color for unknown category', () => {
+      const engine = new CalendarEngine({ events: [] });
+      const color = engine.getCategoryColor('unknown');
+
+      expect(color).toBe('#6b7280'); // Returns 'other' category color
+    });
+
+    it('should return default color when category is undefined', () => {
+      const engine = new CalendarEngine({ events: [] });
+      const color = engine.getCategoryColor();
+
+      expect(color).toBe('#fc8917');
+    });
+
+    it('should update category colors dynamically', () => {
+      const engine = new CalendarEngine({ events: [] });
+
+      let color = engine.getCategoryColor('work');
+      expect(color).toBe('#3b82f6');
+
+      engine.updateCategoryColors({ work: '#00ff00' });
+      color = engine.getCategoryColor('work');
+      expect(color).toBe('#00ff00');
+    });
+
+    it('should merge custom colors with existing ones on update', () => {
+      const engine = new CalendarEngine({
+        events: [],
+        categoryColors: { work: '#ff0000' },
+      });
+
+      expect(engine.getCategoryColor('work')).toBe('#ff0000');
+      expect(engine.getCategoryColor('personal')).toBe('#8b5cf6');
+
+      engine.updateCategoryColors({ personal: '#0000ff' });
+
+      expect(engine.getCategoryColor('work')).toBe('#3b82f6'); // Reset to default
+      expect(engine.getCategoryColor('personal')).toBe('#0000ff');
+    });
+
+    it('should handle custom category colors', () => {
+      const engine = new CalendarEngine({
+        events: [],
+        categoryColors: { myCustomCategory: '#abcdef' },
+      });
+
+      const color = engine.getCategoryColor('myCustomCategory');
+      expect(color).toBe('#abcdef');
     });
   });
 });

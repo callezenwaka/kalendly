@@ -7,7 +7,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -30,10 +29,10 @@ function log(message, color = 'reset') {
 
 function checkFile(filePath, description) {
     if (fs.existsSync(filePath)) {
-        log(`✅ ${description}: ${filePath}`, 'green');
+        log(`${description}: ${filePath}`, 'green');
         return true;
     } else {
-        log(`❌ ${description}: ${filePath}`, 'red');
+        log(`${description}: ${filePath}`, 'red');
         return false;
     }
 }
@@ -90,60 +89,60 @@ async function runTests() {
         total++;
         const { createCalendar } = await import('../../dist/vanilla/index.mjs');
         if (typeof createCalendar === 'function') {
-            log('✅ Vanilla JS import successful', 'green');
+            log('Vanilla JS import successful', 'green');
             passed++;
         } else {
-            log('❌ Vanilla JS import failed - createCalendar not a function', 'red');
+            log('Vanilla JS import failed - createCalendar not a function', 'red');
         }
     } catch (error) {
         total++;
-        log(`❌ Vanilla JS import failed: ${error.message}`, 'red');
+        log(`Vanilla JS import failed: ${error.message}`, 'red');
     }
 
     try {
         total++;
         const coreModule = await import('../../dist/core/index.mjs');
         if (coreModule.CalendarEngine && coreModule.MONTHS && coreModule.DAYS) {
-            log('✅ Core module import successful', 'green');
+            log('Core module import successful', 'green');
             passed++;
         } else {
-            log('❌ Core module import failed - missing exports', 'red');
+            log('Core module import failed - missing exports', 'red');
         }
     } catch (error) {
         total++;
-        log(`❌ Core module import failed: ${error.message}`, 'red');
+        log(`Core module import failed: ${error.message}`, 'red');
     }
 
     try {
         total++;
         const { Calendar: ReactCalendar } = await import('../../dist/react/index.mjs');
         if (typeof ReactCalendar === 'function') {
-            log('✅ React module import successful', 'green');
+            log('React module import successful', 'green');
             passed++;
         } else {
-            log('❌ React module import failed', 'red');
+            log('React module import failed', 'red');
         }
     } catch (error) {
         total++;
-        log(`❌ React module import failed: ${error.message}`, 'red');
+        log(`React module import failed: ${error.message}`, 'red');
     }
 
     try {
         total++;
         const vueModule = await import('../../dist/vue/index.mjs');
         if (vueModule.default || vueModule.Calendar) {
-            log('✅ Vue module import successful', 'green');
+            log('Vue module import successful', 'green');
             passed++;
         } else {
-            log('❌ Vue module import failed - missing default export', 'red');
+            log('Vue module import failed - missing default export', 'red');
         }
     } catch (error) {
         total++;
-        log(`❌ Vue module import failed: ${error.message}`, 'red');
+        log(`Vue module import failed: ${error.message}`, 'red');
     }
 
     // Test 5: Validate package.json exports
-    log('\n📋 Validating package.json exports:', 'blue');
+    log('\nValidating package.json exports:', 'blue');
     try {
         total++;
         const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -152,22 +151,22 @@ async function runTests() {
         let exportsValid = true;
         requiredExports.forEach(exportPath => {
             if (!packageJson.exports || !packageJson.exports[exportPath]) {
-                log(`❌ Missing export: ${exportPath}`, 'red');
+                log(`Missing export: ${exportPath}`, 'red');
                 exportsValid = false;
             }
         });
         
         if (exportsValid) {
-            log('✅ All required exports present in package.json', 'green');
+            log('All required exports present in package.json', 'green');
             passed++;
         }
     } catch (error) {
         total++;
-        log(`❌ Failed to validate package.json: ${error.message}`, 'red');
+        log(`Failed to validate package.json: ${error.message}`, 'red');
     }
     
     // Test 6: Verify API structure
-    log('\n🗓️ Verifying API Structure:', 'blue');
+    log('\nVerifying API Structure:', 'blue');
     try {
         total++;
         const { createCalendar, VanillaCalendar } = await import('../../dist/vanilla/index.mjs');
@@ -175,28 +174,28 @@ async function runTests() {
 
         // Verify exports are the correct types
         if (typeof createCalendar === 'function' && typeof VanillaCalendar === 'function') {
-            log('✅ Vanilla Calendar API exports validated', 'green');
+            log('Vanilla Calendar API exports validated', 'green');
             passed++;
         } else {
-            log('❌ Vanilla Calendar API structure invalid', 'red');
+            log('Vanilla Calendar API structure invalid', 'red');
         }
 
         total++;
         if (typeof CalendarEngine === 'function') {
-            log('✅ CalendarEngine class exported correctly', 'green');
+            log('CalendarEngine class exported correctly', 'green');
             passed++;
         } else {
-            log('❌ CalendarEngine export invalid', 'red');
+            log('CalendarEngine export invalid', 'red');
         }
 
         // Note: Actual calendar creation requires DOM (tested in unit tests with jsdom)
     } catch (error) {
         total++;
-        log(`❌ API structure validation failed: ${error.message}`, 'red');
+        log(`API structure validation failed: ${error.message}`, 'red');
     }
     
     // Test 7: Check file sizes
-    log('\n📏 Checking Bundle Sizes:', 'blue');
+    log('\nChecking Bundle Sizes:', 'blue');
     const bundleFiles = [
         'dist/vanilla/index.mjs',
         'dist/core/index.mjs',
@@ -208,15 +207,15 @@ async function runTests() {
             const stats = fs.statSync(file);
             const sizeKB = (stats.size / 1024).toFixed(2);
             if (sizeKB < 100) { // Reasonable size check
-                log(`✅ ${path.basename(file)}: ${sizeKB}KB`, 'green');
+                log(`${path.basename(file)}: ${sizeKB}KB`, 'green');
             } else {
-                log(`⚠️  ${path.basename(file)}: ${sizeKB}KB (large)`, 'yellow');
+                log(`${path.basename(file)}: ${sizeKB}KB (large)`, 'yellow');
             }
         }
     });
     
     // Summary
-    log(`\n📊 Test Results: ${passed}/${total} tests passed`, passed === total ? 'green' : 'red');
+    log(`\nTest Results: ${passed}/${total} tests passed`, passed === total ? 'green' : 'red');
     
     if (passed === total) {
         log('\n🎉 All tests passed! Your package is ready for publishing.', 'green');
@@ -225,7 +224,7 @@ async function runTests() {
         log('2. Run: npm publish --dry-run');
         log('3. Run: npm publish');
     } else {
-        log('\n❌ Some tests failed. Please fix the issues before publishing.', 'red');
+        log('\nSome tests failed. Please fix the issues before publishing.', 'red');
         process.exit(1);
     }
 }

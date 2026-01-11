@@ -19,6 +19,6 @@ export default {
 };
 
 // Create a convenient factory function
-export function createCalendar(props: VueCalendarProps) {
+export function createCalendar(_props: VueCalendarProps) {
   return Calendar;
 }

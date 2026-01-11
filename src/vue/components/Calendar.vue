@@ -40,36 +40,120 @@
           v-if="viewModel.selectedDate"
           :class="['date-popup', viewModel.popupPositionClass]"
         >
-          <button
-            type="button"
-            class="popup-close"
-            aria-label="Close"
-            @click="handleClosePopup"
-          >
-            ✕
-          </button>
-          <div class="schedule--wrapper">
-            <div class="schedule--block">
-              <h2 class="schedule--day">
-                {{ viewModel.scheduleDay }}
-              </h2>
-            </div>
+          <div class="popup-header">
+            <h2>{{ viewModel.scheduleDay }}</h2>
+            <button
+              type="button"
+              class="popup-close"
+              aria-label="Close"
+              @click="handleClosePopup"
+            >
+              ✕
+            </button>
+          </div>
 
-            <div v-if="viewModel.tasks.length > 0" class="event--wrapper">
-              <ul>
-                <li
-                  v-for="event in viewModel.tasks"
-                  :key="event.id || event.name"
-                  class="event--item"
-                  style="cursor: pointer"
-                  @click="emit('event-click', event)"
-                >
-                  <slot name="event" :event="event">
-                    {{ event.name }}
-                  </slot>
-                </li>
-              </ul>
-            </div>
+          <div v-if="showScrollHint" class="scroll-hint">
+            ↓ Scroll to see more events ↓
+          </div>
+
+          <div class="events-container">
+            <template v-if="viewModel.tasks.length > 0">
+              <div
+                v-for="event in viewModel.tasks"
+                :key="event.id || event.name"
+                class="event-card"
+                :style="{ borderLeftColor: event.color }"
+                style="cursor: pointer"
+                @click="emit('event-click', event)"
+              >
+                <slot name="event" :event="event">
+                  <div class="event-header">
+                    <div class="event-title">{{ event.name }}</div>
+                    <div class="event-badges">
+                      <span
+                        v-if="event.category"
+                        :class="`badge category-${event.category}`"
+                      >
+                        {{ getCategoryLabel(event.category) }}
+                      </span>
+                      <span
+                        v-if="event.priority"
+                        :class="`badge priority-${event.priority}`"
+                      >
+                        {{ getPriorityLabel(event.priority) }}
+                      </span>
+                      <span
+                        v-if="event.status && event.status !== 'scheduled'"
+                        :class="`badge status-${event.status}`"
+                      >
+                        {{ getStatusLabel(event.status) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-if="getTimeRange(event)" class="event-time">
+                    <span class="event-time-label">Time:</span>
+                    <span class="event-time-value">{{
+                      getTimeRange(event)
+                    }}</span>
+                  </div>
+
+                  <div v-if="event.description" class="event-description">
+                    {{ event.description }}
+                  </div>
+
+                  <div v-if="event.location" class="event-time">
+                    <span class="event-time-label">Location:</span>
+                    <span class="event-time-value">{{ event.location }}</span>
+                  </div>
+
+                  <div
+                    v-if="event.attendees && event.attendees.length > 0"
+                    class="event-time"
+                  >
+                    <span class="event-time-label">Attendees:</span>
+                    <span class="event-time-value">{{
+                      formatAttendeesList(event.attendees)
+                    }}</span>
+                  </div>
+
+                  <div v-if="event.organizer" class="event-time">
+                    <span class="event-time-label">Organizer:</span>
+                    <span class="event-time-value">{{ event.organizer }}</span>
+                  </div>
+
+                  <div v-if="event.notes" class="event-time">
+                    <span class="event-time-label">Notes:</span>
+                    <span class="event-time-value">{{ event.notes }}</span>
+                  </div>
+
+                  <div v-if="event.url" class="event-time">
+                    <a
+                      :href="event.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="event-link"
+                      @click.stop
+                    >
+                      View Details →
+                    </a>
+                  </div>
+
+                  <div
+                    v-if="event.tags && event.tags.length > 0"
+                    class="event-tags"
+                  >
+                    <span
+                      v-for="(tag, idx) in event.tags"
+                      :key="idx"
+                      class="event-tag"
+                    >
+                      {{ tag }}
+                    </span>
+                  </div>
+                </slot>
+              </div>
+            </template>
 
             <div v-else class="no-events-message">
               <slot name="no-events"> No events scheduled for this day. </slot>
@@ -128,6 +212,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   CalendarEngine,
   getCellClasses as getCoreCellClasses,
+  formatTimeRange,
+  formatAttendees,
 } from '../../core';
 import type { VueCalendarProps } from '../types';
 import type { CalendarEvent, CalendarDate } from '../../core/types';
@@ -156,16 +242,56 @@ const engine = new CalendarEngine({
 
 const forceUpdate = ref(0);
 const viewModel = computed(() => {
-  // Trigger reactivity when forceUpdate changes
   void forceUpdate.value;
   return engine.getViewModel();
 });
+
+const showScrollHint = computed(() => viewModel.value.tasks.length > 3);
 
 const actions = engine.getActions();
 
 const getCellClasses = (calendarDate: CalendarDate | null) => {
   if (!calendarDate) return '';
   return getCoreCellClasses(calendarDate);
+};
+
+const getTimeRange = (event: CalendarEvent) => {
+  return formatTimeRange(event);
+};
+
+const formatAttendeesList = (attendees: string[]) => {
+  return formatAttendees(attendees);
+};
+
+const getCategoryLabel = (category: string) => {
+  const labels: Record<string, string> = {
+    work: 'WORK',
+    personal: 'PERSONAL',
+    meeting: 'MEETING',
+    deadline: 'DEADLINE',
+    appointment: 'APPOINTMENT',
+    other: 'OTHER',
+  };
+  return labels[category] || category.toUpperCase();
+};
+
+const getPriorityLabel = (priority: string) => {
+  const labels: Record<string, string> = {
+    high: 'HIGH',
+    medium: 'MEDIUM',
+    low: 'LOW',
+  };
+  return labels[priority] || priority.toUpperCase();
+};
+
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    completed: 'COMPLETED',
+    cancelled: 'CANCELLED',
+    tentative: 'TENTATIVE',
+    scheduled: 'SCHEDULED',
+  };
+  return labels[status] || status.toUpperCase();
 };
 
 const handleDateClick = (event: Event) => {
@@ -225,7 +351,6 @@ const handleClosePopup = () => {
   engine.clearSelection();
 };
 
-// Watch for prop changes
 watch(
   () => props.events,
   newEvents => {
@@ -235,7 +360,6 @@ watch(
   { deep: true }
 );
 
-// Subscribe to engine updates
 let unsubscribe: (() => void) | null = null;
 
 onMounted(() => {

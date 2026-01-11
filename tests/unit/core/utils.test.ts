@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   normalizeDate,
   isSameDay,
@@ -11,6 +11,11 @@ import {
   getCellClasses,
   formatDateForDisplay,
   getMonthYearText,
+  mergeCategoryColors,
+  getCategoryColor,
+  isValidHexColor,
+  getDefaultEventColor,
+  DEFAULT_CATEGORY_COLORS,
   MONTHS,
   DAYS,
 } from '../../../src/core/utils';
@@ -557,5 +562,137 @@ describe('Constants', () => {
     expect(DAYS.length).toBe(7);
     expect(DAYS[0]).toBe('Sunday');
     expect(DAYS[6]).toBe('Saturday');
+  });
+});
+
+describe('Category Color Functions', () => {
+  describe('isValidHexColor', () => {
+    it('should validate correct hex colors', () => {
+      expect(isValidHexColor('#fff')).toBe(true);
+      expect(isValidHexColor('#FFF')).toBe(true);
+      expect(isValidHexColor('#ffffff')).toBe(true);
+      expect(isValidHexColor('#FFFFFF')).toBe(true);
+      expect(isValidHexColor('#123abc')).toBe(true);
+    });
+
+    it('should reject invalid hex colors', () => {
+      expect(isValidHexColor('fff')).toBe(false);
+      expect(isValidHexColor('#gggggg')).toBe(false);
+      expect(isValidHexColor('#ff')).toBe(false);
+      expect(isValidHexColor('#fffffff')).toBe(false);
+      expect(isValidHexColor('rgb(255,255,255)')).toBe(false);
+    });
+  });
+
+  describe('mergeCategoryColors', () => {
+    it('should return default colors when no custom colors provided', () => {
+      const merged = mergeCategoryColors();
+
+      expect(merged).toEqual(DEFAULT_CATEGORY_COLORS);
+    });
+
+    it('should merge custom colors with defaults', () => {
+      const customColors = {
+        work: '#ff0000',
+        custom: '#00ff00',
+      };
+
+      const merged = mergeCategoryColors(customColors);
+
+      expect(merged.work).toBe('#ff0000');
+      expect(merged.custom).toBe('#00ff00');
+      expect(merged.personal).toBe(DEFAULT_CATEGORY_COLORS.personal);
+      expect(merged.meeting).toBe(DEFAULT_CATEGORY_COLORS.meeting);
+    });
+
+    it('should override default colors with custom ones', () => {
+      const customColors = {
+        work: '#custom1',
+        personal: '#custom2',
+      };
+
+      const merged = mergeCategoryColors(customColors);
+
+      expect(merged.work).toBe('#custom1');
+      expect(merged.personal).toBe('#custom2');
+    });
+
+    it('should handle empty object', () => {
+      const merged = mergeCategoryColors({});
+
+      expect(merged).toEqual(DEFAULT_CATEGORY_COLORS);
+    });
+  });
+
+  describe('getCategoryColor', () => {
+    it('should return color for known category', () => {
+      const color = getCategoryColor('work');
+
+      expect(color).toBe(DEFAULT_CATEGORY_COLORS.work);
+    });
+
+    it('should return custom color when provided', () => {
+      const customColors = { work: '#ff0000' };
+      const color = getCategoryColor('work', customColors);
+
+      expect(color).toBe('#ff0000');
+    });
+
+    it('should return other category color for unknown category', () => {
+      const color = getCategoryColor('unknown');
+
+      expect(color).toBe(DEFAULT_CATEGORY_COLORS.other);
+    });
+
+    it('should return fallback for invalid hex color', () => {
+      const customColors = { work: 'invalid' };
+      const color = getCategoryColor('work', customColors);
+
+      expect(color).toBe('#fc8917');
+    });
+
+    it('should handle custom categories', () => {
+      const customColors = { myCategory: '#123456' };
+      const color = getCategoryColor('myCategory', customColors);
+
+      expect(color).toBe('#123456');
+    });
+  });
+
+  describe('getDefaultEventColor', () => {
+    it('should return category color when category exists', () => {
+      const color = getDefaultEventColor('work');
+
+      expect(color).toBe(DEFAULT_CATEGORY_COLORS.work);
+    });
+
+    it('should return custom color when provided', () => {
+      const customColors = { meeting: '#abcdef' };
+      const color = getDefaultEventColor('meeting', customColors);
+
+      expect(color).toBe('#abcdef');
+    });
+
+    it('should return default fallback when category not found', () => {
+      const color = getDefaultEventColor('nonexistent');
+
+      expect(color).toBe('#fc8917');
+    });
+
+    it('should return default fallback when category is undefined', () => {
+      const color = getDefaultEventColor();
+
+      expect(color).toBe('#fc8917');
+    });
+
+    it('should use custom colors map', () => {
+      const customColors = {
+        work: '#111111',
+        personal: '#222222',
+      };
+
+      expect(getDefaultEventColor('work', customColors)).toBe('#111111');
+      expect(getDefaultEventColor('personal', customColors)).toBe('#222222');
+    });
   });
 });
