@@ -27,7 +27,7 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
         maxYear,
         weekStartsOn,
       }),
-    []
+    [events, initialDate, minYear, maxYear, weekStartsOn]
   );
 
   const [, forceUpdate] = useState({});
@@ -50,7 +50,7 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
 
   const viewModel = engine.getViewModel();
   const actions = engine.getActions();
-  const { selectedDate, tasks, selectedDayIndex } = viewModel;
+  const { selectedDate, tasks } = viewModel;
 
   const handleDateClick = (
     event: React.MouseEvent<HTMLTableSectionElement>

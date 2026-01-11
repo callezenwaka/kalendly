@@ -2,9 +2,50 @@ export interface CalendarEvent {
   id: string | number;
   name: string;
   date: string | Date;
+
+  // Time fields
+  startTime?: string;
+  endTime?: string;
+  allDay?: boolean;
+
+  // Display & categorization
   description?: string;
   color?: string;
-  [key: string]: any;
+  category?:
+    | 'work'
+    | 'personal'
+    | 'meeting'
+    | 'deadline'
+    | 'appointment'
+    | 'other';
+  location?: string;
+  url?: string;
+
+  // Status & priority
+  status?: 'scheduled' | 'completed' | 'cancelled' | 'tentative';
+  priority?: 'low' | 'medium' | 'high';
+
+  // Collaboration
+  attendees?: string[];
+  organizer?: string;
+
+  // Reminders & recurrence
+  reminders?: number[];
+  recurring?: {
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    interval?: number;
+    endDate?: string | Date;
+    daysOfWeek?: number[];
+  };
+
+  // Metadata
+  notes?: string;
+  tags?: string[];
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+
+  // Flexibility for custom fields
+  [key: string]: unknown;
 }
 
 export interface CalendarDate {
@@ -24,12 +65,17 @@ export interface CalendarState {
   tasks: CalendarEvent[];
 }
 
+export interface CategoryColorMap {
+  [category: string]: string;
+}
+
 export interface CalendarConfig {
   events: CalendarEvent[];
   initialDate?: Date;
   minYear?: number;
   maxYear?: number;
-  weekStartsOn?: 0 | 1; // 0 = Sunday, 1 = Monday
+  weekStartsOn?: 0 | 1;
+  categoryColors?: CategoryColorMap;
 }
 
 export interface CalendarActions {

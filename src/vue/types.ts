@@ -1,8 +1,9 @@
 import { CalendarProps as CoreCalendarProps, CalendarEvent } from '../core';
+import type { VNode } from 'vue';
 
 export interface VueCalendarProps extends CoreCalendarProps {
   class?: string;
-  style?: Record<string, any>;
+  style?: Record<string, string | number>;
   title?: string;
 }
 
@@ -13,7 +14,7 @@ export interface VueCalendarEmits {
 }
 
 export interface VueCalendarSlots {
-  title?: () => any;
-  event?: (props: { event: CalendarEvent }) => any;
-  'no-events'?: () => any;
+  title?: () => VNode | VNode[];
+  event?: (props: { event: CalendarEvent }) => VNode | VNode[];
+  'no-events'?: () => VNode | VNode[];
 }

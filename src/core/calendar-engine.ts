@@ -4,6 +4,7 @@ import {
   CalendarConfig,
   CalendarActions,
   CalendarViewModel,
+  CategoryColorMap,
 } from './types';
 import {
   generateCalendarDates,
@@ -12,6 +13,8 @@ import {
   getPopupPositionClass,
   getMonthYearText,
   formatDateForDisplay,
+  mergeCategoryColors,
+  getCategoryColor,
   MONTHS,
   DAYS,
 } from './utils';
@@ -20,9 +23,11 @@ export class CalendarEngine {
   private state: CalendarState;
   private config: CalendarConfig;
   private listeners: Set<() => void> = new Set();
+  private categoryColors: CategoryColorMap;
 
   constructor(config: CalendarConfig) {
     this.config = config;
+    this.categoryColors = mergeCategoryColors(config.categoryColors);
 
     const initialDate = config.initialDate || new Date();
     this.state = {
@@ -209,6 +214,37 @@ export class CalendarEngine {
     this.state.selectedDate = null;
     this.state.selectedDayIndex = null;
     this.state.tasks = [];
+    this.notify();
+  }
+
+  /**
+   * Get category color (with custom colors support)
+   */
+  getCategoryColor(category?: string): string {
+    if (!category) return '#fc8917';
+    return getCategoryColor(category, this.categoryColors);
+  }
+
+  /**
+   * Update category colors dynamically
+   */
+  updateCategoryColors(colors: CategoryColorMap): void {
+    this.categoryColors = mergeCategoryColors(colors);
+    this.notify();
+  }
+
+  /**
+   * Get all category colors
+   */
+  getCategoryColors(): CategoryColorMap {
+    return { ...this.categoryColors };
+  }
+
+  /**
+   * Register a new category with color
+   */
+  registerCategory(name: string, color: string): void {
+    this.categoryColors[name] = color;
     this.notify();
   }
 

@@ -45,7 +45,7 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
   maxYear,
   weekStartsOn = 0,
   onDateSelect,
-  onEventClick,
+  onEventClick: _onEventClick,
   onMonthChange,
   style,
   containerStyle,
@@ -67,7 +67,7 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
         maxYear,
         weekStartsOn,
       }),
-    []
+    [events, initialDate, minYear, maxYear, weekStartsOn]
   );
 
   const [, forceUpdate] = useState({});

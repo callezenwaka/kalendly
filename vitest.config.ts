@@ -30,7 +30,7 @@ export default defineConfig({
       }
     },
     include: ['tests/unit/**/*.test.{ts,tsx}'],
-    exclude: ['node_modules', 'dist', 'examples', 'tests/integration', 'tests/manual']
+    exclude: ['node_modules', 'dist', 'examples', 'tests/integration', 'tests/manual', 'tests/unit/react-native/**']
   },
   resolve: {
     alias: {

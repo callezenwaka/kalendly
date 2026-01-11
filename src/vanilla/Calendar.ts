@@ -1,4 +1,9 @@
-import { CalendarEngine, getCellClasses } from '../core';
+import {
+  CalendarEngine,
+  getCellClasses,
+  formatTimeRange,
+  formatAttendees,
+} from '../core';
 import { VanillaCalendarProps, VanillaCalendarInstance } from './types';
 
 export class VanillaCalendar implements VanillaCalendarInstance {
@@ -11,7 +16,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
   constructor(props: VanillaCalendarProps) {
     this.props = props;
 
-    // Get container element
     if (typeof props.container === 'string') {
       const element = document.querySelector(props.container);
       if (!element) {
@@ -22,7 +26,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       this.container = props.container;
     }
 
-    // Initialize engine
     this.engine = new CalendarEngine({
       events: props.events,
       initialDate: props.initialDate,
@@ -31,38 +34,175 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       weekStartsOn: props.weekStartsOn,
     });
 
-    // Cache actions for event handlers
     this.actions = this.engine.getActions();
 
     this.init();
   }
 
   private init(): void {
-    // Add CSS class to container
     this.container.classList.add('kalendly-calendar');
     if (this.props.className) {
       this.container.classList.add(this.props.className);
     }
 
-    // Subscribe to engine changes
     this.unsubscribe = this.engine.subscribe(() => {
       this.render();
     });
 
-    // Initial render
     this.render();
   }
 
   private render(): void {
     const viewModel = this.engine.getViewModel();
 
-    const defaultRenderEvent = (event: any) =>
-      `<li class="event--item">${event.name}</li>`;
+    const defaultRenderEvent = (
+      event: VanillaCalendarProps['events'][number]
+    ) => {
+      const timeRange = formatTimeRange(event);
+      const attendeesList = formatAttendees(event.attendees);
+
+      let borderColor = event.color || '#3b82f6';
+      if (event.category) {
+        borderColor = this.engine.getCategoryColor(event.category);
+      }
+
+      const getCategoryLabel = (category?: string) => {
+        const labels: Record<string, string> = {
+          work: 'WORK',
+          personal: 'PERSONAL',
+          meeting: 'MEETING',
+          deadline: 'DEADLINE',
+          appointment: 'APPOINTMENT',
+          other: 'OTHER',
+        };
+        return category ? labels[category] || category.toUpperCase() : '';
+      };
+
+      const getPriorityLabel = (priority?: string) => {
+        const labels: Record<string, string> = {
+          high: 'HIGH',
+          medium: 'MEDIUM',
+          low: 'LOW',
+        };
+        return priority ? labels[priority] || priority.toUpperCase() : '';
+      };
+
+      const getStatusLabel = (status?: string) => {
+        const labels: Record<string, string> = {
+          completed: 'COMPLETED',
+          cancelled: 'CANCELLED',
+          tentative: 'TENTATIVE',
+          scheduled: 'SCHEDULED',
+        };
+        return status ? labels[status] || status.toUpperCase() : '';
+      };
+
+      return `
+        <div class="event-card" style="border-left-color: ${borderColor}">
+          <div class="event-header">
+            <div class="event-title">${event.name}</div>
+            <div class="event-badges">
+              ${event.category ? `<span class="badge category-${event.category}">${getCategoryLabel(event.category)}</span>` : ''}
+              ${event.priority ? `<span class="badge priority-${event.priority}">${getPriorityLabel(event.priority)}</span>` : ''}
+              ${event.status && event.status !== 'scheduled' ? `<span class="badge status-${event.status}">${getStatusLabel(event.status)}</span>` : ''}
+            </div>
+          </div>
+          
+          ${
+            timeRange
+              ? `
+          <div class="event-time">
+            <span class="event-time-label">Time:</span>
+            <span class="event-time-value">${timeRange}</span>
+          </div>
+          `
+              : ''
+          }
+          
+          ${
+            event.description
+              ? `
+          <div class="event-description">${event.description}</div>
+          `
+              : ''
+          }
+          
+          ${
+            event.location
+              ? `
+          <div class="event-time">
+            <span class="event-time-label">Location:</span>
+            <span class="event-time-value">${event.location}</span>
+          </div>
+          `
+              : ''
+          }
+          
+          ${
+            attendeesList
+              ? `
+          <div class="event-time">
+            <span class="event-time-label">Attendees:</span>
+            <span class="event-time-value">${attendeesList}</span>
+          </div>
+          `
+              : ''
+          }
+          
+          ${
+            event.organizer
+              ? `
+          <div class="event-time">
+            <span class="event-time-label">Organizer:</span>
+            <span class="event-time-value">${event.organizer}</span>
+          </div>
+          `
+              : ''
+          }
+          
+          ${
+            event.notes
+              ? `
+          <div class="event-time">
+            <span class="event-time-label">Notes:</span>
+            <span class="event-time-value">${event.notes}</span>
+          </div>
+          `
+              : ''
+          }
+          
+          ${
+            event.url
+              ? `
+          <div class="event-time">
+            <a href="${event.url}" target="_blank" rel="noopener noreferrer" class="event-link">
+              View Details →
+            </a>
+          </div>
+          `
+              : ''
+          }
+          
+          ${
+            event.tags && event.tags.length > 0
+              ? `
+          <div class="event-tags">
+            ${event.tags.map((tag: string) => `<span class="event-tag">${tag}</span>`).join('')}
+          </div>
+          `
+              : ''
+          }
+        </div>
+      `;
+    };
+
     const defaultRenderNoEvents = () =>
       '<div class="no-events-message">No events scheduled for this day.</div>';
 
     const renderEvent = this.props.renderEvent || defaultRenderEvent;
     const renderNoEvents = this.props.renderNoEvents || defaultRenderNoEvents;
+
+    const showScrollHint = viewModel.tasks.length > 3;
 
     const html = `
       ${
@@ -88,7 +228,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
             <tbody data-calendar-body>
               ${viewModel.calendarDates
                 .map(
-                  (week, weekIndex) => `
+                  week => `
                 <tr>
                   ${week
                     .map((calendarDate, dayIndex) => {
@@ -119,19 +259,26 @@ export class VanillaCalendar implements VanillaCalendarInstance {
             viewModel.selectedDate
               ? `
             <div class="date-popup ${viewModel.popupPositionClass}">
-              <button type="button" class="popup-close" data-action="close-popup" aria-label="Close">✕</button>
-              <div class="schedule--wrapper">
-                <div class="schedule--block">
-                  <h2 class="schedule--day">${viewModel.scheduleDay}</h2>
-                </div>
+              <div class="popup-header">
+                <h2>${viewModel.scheduleDay}</h2>
+                <button type="button" class="popup-close" data-action="close-popup" aria-label="Close">✕</button>
+              </div>
+              
+              ${
+                showScrollHint
+                  ? `
+              <div class="scroll-hint">
+                ↓ Scroll to see more events ↓
+              </div>
+              `
+                  : ''
+              }
+              
+              <div class="events-container">
                 ${
                   viewModel.tasks.length > 0
                     ? `
-                  <div class="event--wrapper">
-                    <ul>
-                      ${viewModel.tasks.map(event => renderEvent(event)).join('')}
-                    </ul>
-                  </div>
+                  ${viewModel.tasks.map(event => renderEvent(event)).join('')}
                 `
                     : renderNoEvents()
                 }
@@ -192,7 +339,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
   }
 
   private attachEventListeners(): void {
-    // Date cell clicks
     const tableBody = this.container.querySelector('[data-calendar-body]');
     if (tableBody) {
       tableBody.addEventListener('click', e => {
@@ -204,7 +350,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
           const dayIndex = parseInt(cell.dataset.dayIndex || '0');
           this.engine.handleDateClick(date, dayIndex);
 
-          // Trigger custom event
           this.container.dispatchEvent(
             new CustomEvent('dateSelect', {
               detail: { date, dayIndex },
@@ -214,7 +359,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       });
     }
 
-    // Navigation buttons
     const prevBtn = this.container.querySelector('[data-action="previous"]');
     const nextBtn = this.container.querySelector('[data-action="next"]');
 
@@ -246,7 +390,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       });
     }
 
-    // Month/Year selects
     const monthSelect = this.container.querySelector(
       '[data-month-select]'
     ) as HTMLSelectElement;
@@ -284,7 +427,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       });
     }
 
-    // Close popup button
     const closeBtn = this.container.querySelector(
       '[data-action="close-popup"]'
     );
@@ -295,7 +437,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       });
     }
 
-    // Close popup on outside click
     document.addEventListener('click', e => {
       const target = e.target as HTMLElement;
       const popup = this.container.querySelector('.date-popup');
@@ -310,7 +451,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
     });
   }
 
-  // Public API methods
   public updateEvents(events: import('../core').CalendarEvent[]): void {
     this.engine.updateEvents(events);
   }
@@ -343,7 +483,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
   }
 }
 
-// Factory function for easier usage
 export function createCalendar(
   props: VanillaCalendarProps
 ): VanillaCalendarInstance {

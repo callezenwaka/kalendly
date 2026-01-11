@@ -229,8 +229,8 @@ describe('DatePopup Component', () => {
         />
       );
 
-      const eventItems = container.querySelectorAll('.event--item');
-      expect(eventItems[0]).toHaveClass('clickable');
+      const eventCards = container.querySelectorAll('.event-card');
+      expect(eventCards[0]).toHaveClass('clickable');
     });
 
     it('should not add clickable class when onEventClick is not provided', () => {
@@ -245,8 +245,8 @@ describe('DatePopup Component', () => {
         />
       );
 
-      const eventItems = container.querySelectorAll('.event--item');
-      expect(eventItems[0]).not.toHaveClass('clickable');
+      const eventCards = container.querySelectorAll('.event-card');
+      expect(eventCards[0]).not.toHaveClass('clickable');
     });
   });
 });

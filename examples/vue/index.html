@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vue Calendar Example</title>
+    <title>Vue Calendar Example - Enhanced</title>
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
     <link rel="stylesheet" href="../../dist/styles/calendar.css">
     <script type="importmap">
     {
@@ -15,12 +16,13 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
         }
-        .test-header {
+        
+        .demo-header {
             background: white;
             padding: 20px;
             border-radius: 8px;
@@ -28,21 +30,74 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             text-align: center;
         }
-        .test-header h2 {
+        
+        .demo-header h1 {
             margin-top: 0;
             color: #333;
         }
-        .add-event-btn {
-            background: #42b883;
+        
+        .demo-header p {
+            color: #6b7280;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            background: #fc8917;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 10px;
             border-radius: 4px;
             cursor: pointer;
-            margin: 10px;
+            font-size: 14px;
+            transition: background 0.2s;
         }
-        .add-event-btn:hover {
-            background: #33a06f;
+        
+        .btn:hover {
+            background: #e67612;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .event-log {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .event-log h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #f9fafb;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-left: 3px solid #42b883;
+        }
+        
+        .log-entry .timestamp {
+            color: #6b7280;
+            margin-right: 10px;
         }
     </style>
 </head>
@@ -58,87 +113,225 @@
                 const events = ref([
                     {
                         id: 1,
-                        name: 'Vue Test Event',
+                        name: 'Team Standup',
                         date: new Date(2025, 0, 15),
-                        description: 'Testing Vue calendar'
+                        startTime: '09:00',
+                        endTime: '09:30',
+                        description: 'Daily team sync to discuss progress',
+                        location: 'Conference Room A',
+                        category: 'meeting',
+                        color: '#10b981',
+                        priority: 'high',
+                        attendees: ['John', 'Sarah', 'Mike'],
+                        tags: ['daily', 'team', 'agile']
                     },
                     {
                         id: 2,
-                        name: 'Today Event',
+                        name: 'Project Deadline',
+                        date: new Date(2025, 0, 20),
+                        startTime: '17:00',
+                        description: 'Final submission for Q1 deliverables',
+                        category: 'deadline',
+                        color: '#ef4444',
+                        priority: 'high',
+                        location: 'Submit via Portal',
+                        notes: 'Double-check all requirements',
+                        tags: ['deadline', 'important', 'Q1']
+                    },
+                    {
+                        id: 3,
+                        name: 'Code Review',
                         date: new Date(),
-                        description: 'Something today'
+                        startTime: '14:00',
+                        endTime: '15:00',
+                        description: 'Review PR #234',
+                        location: 'Virtual - Zoom',
+                        category: 'work',
+                        color: '#3b82f6',
+                        status: 'completed',
+                        priority: 'medium',
+                        tags: ['development', 'review']
                     }
                 ]);
 
-                const lastSelected = ref(null);
+                const logs = ref([]);
+
+                const addLog = (message) => {
+                    const timestamp = new Date().toLocaleTimeString();
+                    logs.value.unshift({ timestamp, message });
+                    if (logs.value.length > 20) {
+                        logs.value = logs.value.slice(0, 20);
+                    }
+                };
 
                 const handleDateSelect = (date) => {
-                    console.log('Vue: Date selected', date);
-                    lastSelected.value = date;
+                    addLog(`Date selected: ${date.toDateString()}`);
+                };
+
+                const handleEventClick = (event) => {
+                    addLog(`Event clicked: ${event.name}`);
                 };
 
                 const handleMonthChange = (year, month) => {
-                    console.log('Vue: Month changed', year, month + 1);
+                    addLog(`Month changed: ${year}-${month + 1}`);
                 };
 
-                const addEvent = () => {
+                const addRandomEvent = () => {
+                    const eventTemplates = [
+                        { name: 'Client Meeting', category: 'meeting', color: '#10b981' },
+                        { name: 'Code Review', category: 'work', color: '#3b82f6' },
+                        { name: 'Training Session', category: 'work', color: '#8b5cf6' },
+                        { name: 'Lunch Break', category: 'personal', color: '#ec4899' },
+                        { name: 'Project Deadline', category: 'deadline', color: '#ef4444' }
+                    ];
+
+                    const template = eventTemplates[Math.floor(Math.random() * eventTemplates.length)];
+                    const randomDate = new Date();
+                    randomDate.setDate(randomDate.getDate() + Math.floor(Math.random() * 30));
+
                     const newEvent = {
                         id: Date.now(),
-                        name: `Vue Event ${Math.floor(Math.random() * 100)}`,
-                        date: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000),
-                        description: 'Added from Vue'
+                        name: `${template.name} ${Math.floor(Math.random() * 100)}`,
+                        date: randomDate,
+                        startTime: `${9 + Math.floor(Math.random() * 8)}:00`,
+                        endTime: `${10 + Math.floor(Math.random() * 8)}:00`,
+                        description: 'Auto-generated test event',
+                        category: template.category,
+                        color: template.color,
+                        priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+                        tags: ['test', 'demo']
                     };
+
                     events.value.push(newEvent);
+                    addLog(`Added event: ${newEvent.name} on ${randomDate.toDateString()}`);
                 };
 
-                return () => h('div', { style: { fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '20px', backgroundColor: '#f5f5f5' } }, [
-                    h('div', {
-                        class: 'test-header',
-                        style: {
-                            background: 'white',
-                            padding: '20px',
-                            borderRadius: '8px',
-                            marginBottom: '20px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                            textAlign: 'center'
+                const addEnhancedEvent = () => {
+                    const now = new Date();
+                    const newEvent = {
+                        id: Date.now(),
+                        name: 'Enhanced Event',
+                        date: now,
+                        startTime: '10:00',
+                        endTime: '11:00',
+                        description: 'Event with all enhanced fields',
+                        location: 'Conference Room B',
+                        category: 'meeting',
+                        color: '#06b6d4',
+                        status: 'scheduled',
+                        priority: 'high',
+                        attendees: ['Alice', 'Bob', 'Charlie'],
+                        organizer: 'Project Manager',
+                        url: 'https://example.com/meeting',
+                        notes: 'Bring laptop and notes',
+                        tags: ['important', 'planning', 'Q1']
+                    };
+
+                    events.value.push(newEvent);
+                    addLog('Added enhanced event with all fields');
+                };
+
+                const loadSampleData = () => {
+                    const sampleEvents = [
+                        {
+                            id: Date.now() + 1,
+                            name: 'Sprint Planning',
+                            date: new Date(2025, 0, 17),
+                            startTime: '13:00',
+                            endTime: '15:00',
+                            description: 'Plan tasks for upcoming sprint',
+                            location: 'Zoom',
+                            category: 'meeting',
+                            priority: 'high',
+                            attendees: ['Dev Team', 'Product Owner'],
+                            tags: ['agile', 'planning']
+                        },
+                        {
+                            id: Date.now() + 2,
+                            name: 'Doctor Appointment',
+                            date: new Date(2025, 0, 18),
+                            startTime: '14:00',
+                            endTime: '15:00',
+                            description: 'Annual checkup',
+                            location: 'City Medical Center',
+                            category: 'personal',
+                            priority: 'medium',
+                            notes: 'Bring insurance card',
+                            tags: ['health', 'personal']
+                        },
+                        {
+                            id: Date.now() + 3,
+                            name: 'Team Building',
+                            date: new Date(2025, 0, 22),
+                            allDay: true,
+                            description: 'Annual team building event',
+                            location: 'Recreation Center',
+                            category: 'other',
+                            priority: 'low',
+                            tags: ['social', 'team']
                         }
-                    }, [
-                        h('h1', null, 'kalendly Universal Calendar Scheduler - Vue Demo'),
-                        h('h2', { style: { marginTop: '0', color: '#333' } }, 'Demo Controls'),
-                        h('button', {
-                            onClick: addEvent,
-                            class: 'add-event-btn',
-                            style: {
-                                background: '#fc8917',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                margin: '10px'
-                            }
-                        }, 'Add Random Event'),
-                        lastSelected.value ? h('p', null, `Last selected: ${lastSelected.value.toDateString()}`) : null
+                    ];
+
+                    events.value.push(...sampleEvents);
+                    addLog(`Loaded ${sampleEvents.length} sample events`);
+                };
+
+                const clearEvents = () => {
+                    events.value = [];
+                    addLog('Cleared all events');
+                };
+
+                // Initial log
+                addLog('Calendar initialized with enhanced features');
+
+                return () => h('div', null, [
+                    h('div', { class: 'demo-header' }, [
+                        h('h1', null, '📅 kalendly - Vue Demo (Enhanced)'),
+                        h('p', null, 'Testing all enhanced event fields: badges, time ranges, locations, attendees, and more!'),
+                        h('div', { class: 'controls' }, [
+                            h('button', {
+                                class: 'btn',
+                                onClick: addRandomEvent
+                            }, '➕ Add Random Event'),
+                            h('button', {
+                                class: 'btn',
+                                onClick: addEnhancedEvent
+                            }, '✨ Add Enhanced Event'),
+                            h('button', {
+                                class: 'btn',
+                                onClick: loadSampleData
+                            }, '📦 Load Sample Data'),
+                            h('button', {
+                                class: 'btn btn-secondary',
+                                onClick: clearEvents
+                            }, '🗑️ Clear All')
+                        ])
                     ]),
                     h(Calendar, {
                         events: events.value,
                         onDateSelect: handleDateSelect,
+                        onEventClick: handleEventClick,
                         onMonthChange: handleMonthChange,
-                        title: 'My Event Calendar'
-                    }, {
-                        event: ({ event }) => [
-                            h('strong', null, event.name),
-                            h('br'),
-                            h('small', { style: { color: '#666' } }, event.description)
-                        ]
-                    })
+                        title: 'My Enhanced Calendar'
+                    }),
+                    h('div', { class: 'event-log' }, [
+                        h('h3', null, '📋 Event Log'),
+                        logs.value.length === 0
+                            ? h('p', { style: { color: '#6b7280', textAlign: 'center' } }, 'No events logged yet. Interact with the calendar!')
+                            : logs.value.map((log, index) =>
+                                h('div', { key: index, class: 'log-entry' }, [
+                                    h('span', { class: 'timestamp' }, `[${log.timestamp}]`),
+                                    h('span', null, ` ${log.message}`)
+                                ])
+                            )
+                    ])
                 ]);
             }
         });
         
         app.mount('#app');
         
-        console.log('✅ Vue calendar loaded successfully!');
+        console.log('Vue calendar with enhanced features loaded successfully!');
     </script>
 </body>
 </html>
