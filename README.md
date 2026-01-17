@@ -1,18 +1,17 @@
-# kalendly Universal Calendar Scheduler
+# kalendly Universal Calendar
 
-A universal calendar scheduler component that works seamlessly across React, Vue, and React Native with full TypeScript support.
+A universal calendar component that works seamlessly across React, Vue, and React Native with full TypeScript support.
 
 ## Features
 
 - 🚀 **Universal**: Works with React, Vue, React Native, and Vanilla JavaScript
-- 📱 **Responsive**: Mobile-friendly design that matches your existing Vue implementation
+- 📱 **Responsive**: Mobile-friendly design that matches your existing UI implementation
 - 🎨 **Customizable**: Easy to theme and customize with CSS variables
 - 🔒 **Type Safe**: Full TypeScript support
 - 📅 **Event Management**: Add, display, and manage events with rich metadata
 - 🔔 **Advanced Features**: Recurring events, reminders, categories, priorities, and collaboration
 - 🌐 **Accessible**: Built with accessibility in mind
 - 📦 **Tree Shakeable**: Import only what you need
-- 🎯 **Design Consistent**: Matches the original Vue calendar design and feel
 
 ## 🎯 Live Demo
 
