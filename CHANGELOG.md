@@ -5,7 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.7] - 2026-01-18
+
+### Changed
+
+- **Vanilla Calendar Performance Optimization**
+  - Replaced individual event listeners with event delegation pattern
+  - Single delegated click handler routes actions via `data-action` attributes
+  - Listeners attached once and persist across re-renders (previously ~15 listeners recreated on every render)
+  - Added `updatePickerYear()` method for targeted DOM updates on year navigation
+  - Year picker arrows now update only input value and button states instead of full DOM rebuild
+
+### Fixed
+
+- **Vanilla Calendar Event Handling**
+  - Fixed popup closing immediately after date selection due to document click handler interference
+  - Added `stopPropagation` on date cell clicks to prevent selection clearing after render
+
+## [0.1.6] - 2026-01-18
 
 ### Added
 
@@ -19,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Calendar Grid Improvements**
   - Calendar now displays previous/next month days in greyed-out cells instead of empty cells
   - Added `other-month` CSS class for styling non-current month days
+- **Optional Title Prop**
+  - Made `title` prop optional across all frameworks (React, Vue, Vanilla, React Native)
 - **Test Coverage**
   - Added unit tests for `goToToday()` method (4 tests)
   - Added unit tests for `isCurrentMonth()` method (5 tests)
@@ -202,7 +221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DOM event system
 - Imperative API
 
-[Unreleased]: https://github.com/callezenwaka/kalendly/compare/v0.1.5...HEAD
+[0.1.7]: https://github.com/callezenwaka/kalendly/compare/v0.1.6...v0.1.7
+[0.1.6]: https://github.com/callezenwaka/kalendly/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/callezenwaka/kalendly/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/callezenwaka/kalendly/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/callezenwaka/kalendly/compare/v0.1.2...v0.1.3

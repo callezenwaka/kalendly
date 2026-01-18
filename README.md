@@ -17,7 +17,7 @@ A universal calendar component that works seamlessly across React, Vue, and Reac
 
 <div align="center">
 
-[![Kalendly Calendar Demo](./docs/images/calendar-demo.png)](https://kalendly-example.netlify.app/)
+[![Kalendly Calendar Demo](./docs/images/calendar-demo.gif)](https://kalendly-example.netlify.app/)
 
 **[🚀 Try the Interactive Demo →](https://kalendly-example.netlify.app/)**
 
@@ -296,6 +296,7 @@ export default App;
 | `useShortMonthNames` | `boolean`                               | `false`            | Use abbreviated month names (Jan, Feb)  |
 | `categoryColors`     | `CategoryColorMap`                      | `{}`               | Custom colors for event categories      |
 | `theme`              | `CalendarTheme`                         | `undefined`        | Custom theme colors for the calendar    |
+| `title`              | `string`                                | `undefined`        | Optional calendar title displayed above |
 | `onDateSelect`       | `(date: Date) => void`                  | -                  | Callback when date is selected          |
 | `onEventClick`       | `(event: CalendarEvent) => void`        | -                  | Callback when event is clicked          |
 | `onMonthChange`      | `(year: number, month: number) => void` | -                  | Callback when month changes             |
@@ -848,7 +849,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed release notes and version history.
 
 ### Recent Updates
 
-- **v0.1.6** (Upcoming): Navigation enhancements with Today button, month/year picker dropdown, calendar grid improvements showing previous/next month days, and browser compatibility fixes
+- **v0.1.7**: Vanilla calendar performance optimization with event delegation, targeted DOM updates for picker navigation
+- **v0.1.6**: Navigation enhancements with Today button, month/year picker dropdown, optional `title` prop, calendar grid improvements showing previous/next month days, and browser compatibility fixes
 - **v0.1.5**: Universal theming system, TypeScript support improvements, integration test enhancements
 - **v0.1.4**: Netlify configuration updates
 - **v0.1.3**: Vue types generation improvements

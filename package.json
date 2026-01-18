@@ -1,6 +1,6 @@
 {
   "name": "kalendly",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A kalendly universal calendar scheduler component for React, Vue, and React Native",
   "scripts": {
     "build": "npm run build:tsup && npm run build:vue && npm run copy:styles",
