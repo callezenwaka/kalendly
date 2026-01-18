@@ -3,6 +3,8 @@ import {
   getCellClasses,
   formatTimeRange,
   formatAttendees,
+  MONTHS_FULL,
+  MONTHS,
 } from '../core';
 import { VanillaCalendarProps, VanillaCalendarInstance } from './types';
 
@@ -12,6 +14,10 @@ export class VanillaCalendar implements VanillaCalendarInstance {
   private unsubscribe: (() => void) | null = null;
   private props: VanillaCalendarProps;
   private actions: ReturnType<CalendarEngine['getActions']>;
+  private pickerOpen: boolean = false;
+  private yearInput: string = '';
+  private yearInputValid: boolean = true;
+  private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
 
   constructor(props: VanillaCalendarProps) {
     this.props = props;
@@ -237,6 +243,15 @@ export class VanillaCalendar implements VanillaCalendarInstance {
 
     const showScrollHint = viewModel.tasks.length > 3;
 
+    const today = new Date();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+    const minYear = this.props.minYear ?? todayYear - 30;
+    const maxYear = this.props.maxYear ?? todayYear + 10;
+    const isCurrentMonth =
+      viewModel.currentYear === todayYear &&
+      viewModel.currentMonth === todayMonth;
+
     const html = `
       ${
         this.props.title
@@ -247,11 +262,95 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       `
           : ''
       }
-      
+
       <div class="calendar--content">
         <div class="calendar--card">
-          <h3 class="calendar--card--header">${viewModel.monthAndYearText}</h3>
-          
+          <!-- Navigation Header -->
+          <div class="calendar--nav-header">
+            <button type="button" class="calendar--nav-arrow" data-action="previous" aria-label="Previous month">
+              &#8249;
+            </button>
+
+            <div class="calendar--picker-container" data-picker-container>
+              <button
+                type="button"
+                class="calendar--picker-btn"
+                data-action="toggle-picker"
+                aria-expanded="${this.pickerOpen ? 'true' : 'false'}"
+                aria-haspopup="true"
+              >
+                ${
+                  this.props.useShortMonthNames
+                    ? `${MONTHS[viewModel.currentMonth]} ${viewModel.currentYear}`
+                    : viewModel.monthAndYearText
+                }
+                <span class="calendar--picker-chevron">&#9662;</span>
+              </button>
+
+              ${
+                this.pickerOpen
+                  ? `
+                <div class="calendar--picker-dropdown">
+                  <div class="calendar--picker-year-row">
+                    <button
+                      type="button"
+                      class="calendar--picker-year-arrow"
+                      data-action="year-prev"
+                      ${viewModel.currentYear <= minYear ? 'disabled' : ''}
+                      aria-label="Previous year"
+                    >&#8249;</button>
+                    <input
+                      type="text"
+                      class="calendar--picker-year-input${!this.yearInputValid ? ' invalid' : ''}"
+                      value="${this.yearInput || viewModel.currentYear}"
+                      data-year-input
+                      aria-label="Year"
+                    />
+                    <button
+                      type="button"
+                      class="calendar--picker-year-arrow"
+                      data-action="year-next"
+                      ${viewModel.currentYear >= maxYear ? 'disabled' : ''}
+                      aria-label="Next year"
+                    >&#8250;</button>
+                  </div>
+
+                  <div class="calendar--picker-months">
+                    ${(this.props.useShortMonthNames ? MONTHS : MONTHS_FULL)
+                      .map((month, index) => {
+                        const isSelected = index === viewModel.currentMonth;
+                        const isCurrent =
+                          index === todayMonth &&
+                          viewModel.currentYear === todayYear;
+                        return `
+                        <button
+                          type="button"
+                          class="calendar--picker-month${isSelected ? ' selected' : ''}${isCurrent ? ' current-month' : ''}"
+                          data-action="select-month"
+                          data-month="${index}"
+                        >${month}</button>
+                      `;
+                      })
+                      .join('')}
+                  </div>
+                </div>
+              `
+                  : ''
+              }
+            </div>
+
+            <button
+              type="button"
+              class="calendar--today-btn"
+              data-action="today"
+              ${isCurrentMonth ? 'disabled' : ''}
+            >Today</button>
+
+            <button type="button" class="calendar--nav-arrow" data-action="next" aria-label="Next month">
+              &#8250;
+            </button>
+          </div>
+
           <table class="calendar--table calendar--table--bordered">
             <thead>
               <tr>
@@ -266,17 +365,15 @@ export class VanillaCalendar implements VanillaCalendarInstance {
                   ${week
                     .map((calendarDate, dayIndex) => {
                       const classes = getCellClasses(calendarDate);
-                      const dateString = calendarDate
-                        ? calendarDate.date.toISOString()
-                        : '';
+                      const dateString = calendarDate.date.toISOString();
                       return `
-                      <td 
-                        class="${classes.join(' ')}" 
+                      <td
+                        class="${classes.join(' ')}"
                         data-date="${dateString}"
                         data-day-index="${dayIndex}"
-                        ${calendarDate ? 'data-clickable="true"' : ''}
+                        data-clickable="true"
                       >
-                        ${calendarDate?.date.getDate() || ''}
+                        ${calendarDate.date.getDate()}
                       </td>
                     `;
                     })
@@ -296,7 +393,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
                 <h2>${viewModel.scheduleDay}</h2>
                 <button type="button" class="popup-close" data-action="close-popup" aria-label="Close">✕</button>
               </div>
-              
+
               ${
                 showScrollHint
                   ? `
@@ -306,7 +403,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
               `
                   : ''
               }
-              
+
               <div class="events-container">
                 ${
                   viewModel.tasks.length > 0
@@ -320,49 +417,6 @@ export class VanillaCalendar implements VanillaCalendarInstance {
           `
               : ''
           }
-
-          <div class="calendar--navigation--buttons">
-            <button class="calendar--navigation--btn" data-action="previous">
-              Previous
-            </button>
-            <button class="calendar--navigation--btn" data-action="next">
-              Next
-            </button>
-          </div>
-
-          <form class="calendar--form--jump">
-            <div class="calendar--lead">Jump To:</div>
-            <div>
-              <label class="calendar--form--jump--item">
-                <select data-month-select>
-                  ${viewModel.months
-                    .map(
-                      (month, index) => `
-                    <option value="${index}" ${index === viewModel.currentMonth ? 'selected' : ''}>
-                      ${month}
-                    </option>
-                  `
-                    )
-                    .join('')}
-                </select>
-              </label>
-            </div>
-            <div>
-              <label class="calendar--form--jump--item">
-                <select data-year-select>
-                  ${viewModel.years
-                    .map(
-                      year => `
-                    <option value="${year}" ${year === viewModel.currentYear ? 'selected' : ''}>
-                      ${year}
-                    </option>
-                  `
-                    )
-                    .join('')}
-                </select>
-              </label>
-            </div>
-          </form>
         </div>
       </div>
     `;
@@ -372,6 +426,13 @@ export class VanillaCalendar implements VanillaCalendarInstance {
   }
 
   private attachEventListeners(): void {
+    const today = new Date();
+    const todayYear = today.getFullYear();
+    const todayMonth = today.getMonth();
+    const minYear = this.props.minYear ?? todayYear - 30;
+    const maxYear = this.props.maxYear ?? todayYear + 10;
+
+    // Calendar body click handler
     const tableBody = this.container.querySelector('[data-calendar-body]');
     if (tableBody) {
       tableBody.addEventListener('click', e => {
@@ -392,74 +453,139 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       });
     }
 
+    // Previous/Next navigation
     const prevBtn = this.container.querySelector('[data-action="previous"]');
     const nextBtn = this.container.querySelector('[data-action="next"]');
 
     if (prevBtn) {
       prevBtn.addEventListener('click', () => {
         this.actions.previous();
-        this.container.dispatchEvent(
-          new CustomEvent('monthChange', {
-            detail: {
-              year: this.engine.getViewModel().currentYear,
-              month: this.engine.getViewModel().currentMonth,
-            },
-          })
-        );
+        this.dispatchMonthChange();
       });
     }
 
     if (nextBtn) {
       nextBtn.addEventListener('click', () => {
         this.actions.next();
+        this.dispatchMonthChange();
+      });
+    }
+
+    // Today button
+    const todayBtn = this.container.querySelector('[data-action="today"]');
+    if (todayBtn) {
+      todayBtn.addEventListener('click', () => {
+        this.actions.goToToday();
+        this.pickerOpen = false;
         this.container.dispatchEvent(
           new CustomEvent('monthChange', {
-            detail: {
-              year: this.engine.getViewModel().currentYear,
-              month: this.engine.getViewModel().currentMonth,
-            },
+            detail: { year: todayYear, month: todayMonth },
           })
         );
       });
     }
 
-    const monthSelect = this.container.querySelector(
-      '[data-month-select]'
-    ) as HTMLSelectElement;
-    const yearSelect = this.container.querySelector(
-      '[data-year-select]'
-    ) as HTMLSelectElement;
-
-    if (monthSelect) {
-      monthSelect.addEventListener('change', e => {
-        const target = e.target as HTMLSelectElement;
-        const month = parseInt(target.value);
-        const year = this.engine.getViewModel().currentYear;
-        this.actions.jump(year, month);
-
-        this.container.dispatchEvent(
-          new CustomEvent('monthChange', {
-            detail: { year, month },
-          })
-        );
+    // Picker toggle
+    const pickerBtn = this.container.querySelector(
+      '[data-action="toggle-picker"]'
+    );
+    if (pickerBtn) {
+      pickerBtn.addEventListener('click', e => {
+        e.stopPropagation(); // Prevent document click handler from immediately closing picker
+        this.pickerOpen = !this.pickerOpen;
+        if (this.pickerOpen) {
+          this.yearInput = String(this.engine.getViewModel().currentYear);
+          this.yearInputValid = true;
+        }
+        this.render();
       });
     }
 
-    if (yearSelect) {
-      yearSelect.addEventListener('change', e => {
-        const target = e.target as HTMLSelectElement;
-        const year = parseInt(target.value);
-        const month = this.engine.getViewModel().currentMonth;
-        this.actions.jump(year, month);
+    // Year navigation in picker
+    const yearPrevBtn = this.container.querySelector(
+      '[data-action="year-prev"]'
+    );
+    const yearNextBtn = this.container.querySelector(
+      '[data-action="year-next"]'
+    );
 
-        this.container.dispatchEvent(
-          new CustomEvent('monthChange', {
-            detail: { year, month },
-          })
-        );
+    if (yearPrevBtn) {
+      yearPrevBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const vm = this.engine.getViewModel();
+        if (vm.currentYear > minYear) {
+          this.actions.jump(vm.currentYear - 1, vm.currentMonth);
+          this.yearInput = String(vm.currentYear - 1);
+          this.dispatchMonthChange();
+        }
       });
     }
 
+    if (yearNextBtn) {
+      yearNextBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const vm = this.engine.getViewModel();
+        if (vm.currentYear < maxYear) {
+          this.actions.jump(vm.currentYear + 1, vm.currentMonth);
+          this.yearInput = String(vm.currentYear + 1);
+          this.dispatchMonthChange();
+        }
+      });
+    }
+
+    // Year input in picker
+    const yearInputEl = this.container.querySelector(
+      '[data-year-input]'
+    ) as HTMLInputElement;
+    if (yearInputEl) {
+      yearInputEl.addEventListener('input', e => {
+        e.stopPropagation();
+        const value = (e.target as HTMLInputElement).value;
+        if (value === '' || /^\d+$/.test(value)) {
+          this.yearInput = value;
+          const year = parseInt(value, 10);
+          this.yearInputValid =
+            value === '' || (year >= minYear && year <= maxYear);
+          this.render();
+        }
+      });
+
+      yearInputEl.addEventListener('blur', e => {
+        e.stopPropagation();
+        const year = parseInt(this.yearInput, 10);
+        const vm = this.engine.getViewModel();
+        if (isNaN(year) || year < minYear || year > maxYear) {
+          this.yearInput = String(vm.currentYear);
+          this.yearInputValid = true;
+        } else {
+          this.actions.jump(year, vm.currentMonth);
+          this.dispatchMonthChange();
+        }
+        this.render();
+      });
+
+      yearInputEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          yearInputEl.blur();
+        }
+      });
+    }
+
+    // Month selection in picker
+    const monthBtns = this.container.querySelectorAll(
+      '[data-action="select-month"]'
+    );
+    monthBtns.forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const month = parseInt((btn as HTMLElement).dataset.month || '0', 10);
+        this.actions.jump(this.engine.getViewModel().currentYear, month);
+        this.pickerOpen = false;
+        this.dispatchMonthChange();
+      });
+    });
+
+    // Close popup button
     const closeBtn = this.container.querySelector(
       '[data-action="close-popup"]'
     );
@@ -470,10 +596,35 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       });
     }
 
-    document.addEventListener('click', e => {
-      const target = e.target as HTMLElement;
-      const popup = this.container.querySelector('.date-popup');
+    // Click outside handler for picker and popup
+    if (this.clickOutsideHandler) {
+      document.removeEventListener('click', this.clickOutsideHandler);
+    }
 
+    this.clickOutsideHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Prevent closing picker if click is on the picker button
+      const pickerBtn = this.container.querySelector(
+        '[data-action="toggle-picker"]'
+      );
+      if (pickerBtn && (target === pickerBtn || pickerBtn.contains(target))) {
+        return;
+      }
+      // Close picker on outside click
+      const pickerContainer = this.container.querySelector(
+        '[data-picker-container]'
+      );
+      if (
+        this.pickerOpen &&
+        pickerContainer &&
+        !pickerContainer.contains(target)
+      ) {
+        this.pickerOpen = false;
+        this.render();
+        return;
+      }
+      // Close popup on outside click
+      const popup = this.container.querySelector('.date-popup');
       if (
         popup &&
         !popup.contains(target) &&
@@ -481,7 +632,18 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       ) {
         this.engine.clearSelection();
       }
-    });
+    };
+
+    document.addEventListener('click', this.clickOutsideHandler);
+  }
+
+  private dispatchMonthChange(): void {
+    const vm = this.engine.getViewModel();
+    this.container.dispatchEvent(
+      new CustomEvent('monthChange', {
+        detail: { year: vm.currentYear, month: vm.currentMonth },
+      })
+    );
   }
 
   public updateEvents(events: import('../core').CalendarEvent[]): void {
@@ -509,6 +671,11 @@ export class VanillaCalendar implements VanillaCalendarInstance {
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
+    }
+
+    if (this.clickOutsideHandler) {
+      document.removeEventListener('click', this.clickOutsideHandler);
+      this.clickOutsideHandler = null;
     }
 
     this.engine.destroy();

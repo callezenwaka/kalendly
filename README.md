@@ -1,18 +1,17 @@
-# kalendly Universal Calendar Scheduler
+# kalendly Universal Calendar
 
-A universal calendar scheduler component that works seamlessly across React, Vue, and React Native with full TypeScript support.
+A universal calendar component that works seamlessly across React, Vue, and React Native with full TypeScript support.
 
 ## Features
 
 - 🚀 **Universal**: Works with React, Vue, React Native, and Vanilla JavaScript
-- 📱 **Responsive**: Mobile-friendly design that matches your existing Vue implementation
+- 📱 **Responsive**: Mobile-friendly design that matches your existing UI implementation
 - 🎨 **Customizable**: Easy to theme and customize with CSS variables
 - 🔒 **Type Safe**: Full TypeScript support
 - 📅 **Event Management**: Add, display, and manage events with rich metadata
 - 🔔 **Advanced Features**: Recurring events, reminders, categories, priorities, and collaboration
 - 🌐 **Accessible**: Built with accessibility in mind
 - 📦 **Tree Shakeable**: Import only what you need
-- 🎯 **Design Consistent**: Matches the original Vue calendar design and feel
 
 ## 🎯 Live Demo
 
@@ -287,18 +286,19 @@ export default App;
 
 ### Props
 
-| Prop             | Type                                    | Default            | Description                             |
-| ---------------- | --------------------------------------- | ------------------ | --------------------------------------- |
-| `events`         | `CalendarEvent[]`                       | `[]`               | Array of events to display              |
-| `initialDate`    | `Date`                                  | `new Date()`       | Initial date to display                 |
-| `minYear`        | `number`                                | `currentYear - 30` | Minimum selectable year                 |
-| `maxYear`        | `number`                                | `currentYear + 10` | Maximum selectable year                 |
-| `weekStartsOn`   | `0 \| 1`                                | `0`                | Week start day (0 = Sunday, 1 = Monday) |
-| `categoryColors` | `CategoryColorMap`                      | `{}`               | Custom colors for event categories      |
-| `theme`          | `CalendarTheme`                         | `undefined`        | Custom theme colors for the calendar    |
-| `onDateSelect`   | `(date: Date) => void`                  | -                  | Callback when date is selected          |
-| `onEventClick`   | `(event: CalendarEvent) => void`        | -                  | Callback when event is clicked          |
-| `onMonthChange`  | `(year: number, month: number) => void` | -                  | Callback when month changes             |
+| Prop                 | Type                                    | Default            | Description                             |
+| -------------------- | --------------------------------------- | ------------------ | --------------------------------------- |
+| `events`             | `CalendarEvent[]`                       | `[]`               | Array of events to display              |
+| `initialDate`        | `Date`                                  | `new Date()`       | Initial date to display                 |
+| `minYear`            | `number`                                | `currentYear - 30` | Minimum selectable year                 |
+| `maxYear`            | `number`                                | `currentYear + 10` | Maximum selectable year                 |
+| `weekStartsOn`       | `0 \| 1`                                | `0`                | Week start day (0 = Sunday, 1 = Monday) |
+| `useShortMonthNames` | `boolean`                               | `false`            | Use abbreviated month names (Jan, Feb)  |
+| `categoryColors`     | `CategoryColorMap`                      | `{}`               | Custom colors for event categories      |
+| `theme`              | `CalendarTheme`                         | `undefined`        | Custom theme colors for the calendar    |
+| `onDateSelect`       | `(date: Date) => void`                  | -                  | Callback when date is selected          |
+| `onEventClick`       | `(event: CalendarEvent) => void`        | -                  | Callback when event is clicked          |
+| `onMonthChange`      | `(year: number, month: number) => void` | -                  | Callback when month changes             |
 
 ### CalendarEvent Interface
 
@@ -735,7 +735,9 @@ Always include the CSS file:
 ```css
 :root {
   --calendar-primary-color: #fc8917;
+  --calendar-primary-color-rgb: 252, 137, 23;
   --calendar-secondary-color: #fca045;
+  --calendar-secondary-color-rgb: 252, 160, 69;
   --calendar-tertiary-color: #fdb873;
   --calendar-text-color: #2c3e50;
   --calendar-border-color: #dee2e6;
@@ -744,6 +746,8 @@ Always include the CSS file:
   --calendar-background: #fff;
 }
 ```
+
+> **Note:** The `-rgb` variables are used for semi-transparent backgrounds (e.g., hover states) and provide compatibility with older browsers (Chrome < 111, Safari iOS < 16.2).
 
 ### React Native Theming
 
@@ -785,6 +789,10 @@ const actions = engine.getActions();
 actions.next();
 actions.previous();
 actions.jump(2025, 5); // June 2025
+actions.goToToday(); // Navigate to current month
+
+// Check current view
+const isCurrentMonth = actions.isCurrentMonth(); // true if viewing today's month
 
 // Clean up
 unsubscribe();
@@ -840,6 +848,10 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed release notes and version history.
 
 ### Recent Updates
 
-- **v0.1.2** (Upcoming): Enhanced event parameters with structured metadata, categories, recurrence, collaboration features, and Netlify deployment
+- **v0.1.6** (Upcoming): Navigation enhancements with Today button, month/year picker dropdown, calendar grid improvements showing previous/next month days, and browser compatibility fixes
+- **v0.1.5**: Universal theming system, TypeScript support improvements, integration test enhancements
+- **v0.1.4**: Netlify configuration updates
+- **v0.1.3**: Vue types generation improvements
+- **v0.1.2**: Enhanced event parameters with structured metadata, categories, recurrence, collaboration features
 - **v0.1.1**: Pre-commit hooks and trusted publishing with OIDC
 - **v0.1.0**: Initial release with React, Vue, React Native, and Vanilla JavaScript support

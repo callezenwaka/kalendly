@@ -251,34 +251,34 @@ describe('Calendar Grid Generation', () => {
     it('should handle February leap year (29 days)', () => {
       const dates = generateCalendarDates(2024, 1, []); // February 2024
 
-      const allDates = dates.flat().filter(d => d !== null);
-      expect(allDates.length).toBe(29);
+      const currentMonthDates = dates.flat().filter(d => d.isCurrentMonth);
+      expect(currentMonthDates.length).toBe(29);
     });
 
     it('should handle February non-leap year (28 days)', () => {
       const dates = generateCalendarDates(2023, 1, []); // February 2023
 
-      const allDates = dates.flat().filter(d => d !== null);
-      expect(allDates.length).toBe(28);
+      const currentMonthDates = dates.flat().filter(d => d.isCurrentMonth);
+      expect(currentMonthDates.length).toBe(28);
     });
 
     it('should handle months starting on Sunday', () => {
       const dates = generateCalendarDates(2024, 8, [], 0); // September 2024 starts on Sunday
 
-      expect(dates[0][0]).not.toBeNull(); // First cell should not be null
+      expect(dates[0][0].isCurrentMonth).toBe(true); // First cell should be current month
     });
 
     it('should handle months starting on Monday', () => {
       const dates = generateCalendarDates(2024, 0, [], 0); // January 2024 starts on Monday
 
-      expect(dates[0][0]).toBeNull(); // First cell (Sunday) should be null
-      expect(dates[0][1]).not.toBeNull(); // Second cell (Monday) should have date
+      expect(dates[0][0].isCurrentMonth).toBe(false); // First cell (Sunday) should be previous month
+      expect(dates[0][1].isCurrentMonth).toBe(true); // Second cell (Monday) should be current month
     });
 
     it('should handle months starting on Saturday', () => {
       const dates = generateCalendarDates(2024, 5, [], 0); // June 2024 starts on Saturday
 
-      expect(dates[0][6]).not.toBeNull(); // Saturday cell should have date
+      expect(dates[0][6].isCurrentMonth).toBe(true); // Saturday cell should be current month
     });
 
     it('should respect weekStartsOn Sunday (0)', () => {
@@ -297,11 +297,11 @@ describe('Calendar Grid Generation', () => {
       expect(dates[0].length).toBe(7);
     });
 
-    it('should include correct null padding', () => {
+    it('should include correct padding from previous month', () => {
       const dates = generateCalendarDates(2024, 0, [], 0); // January 2024
 
-      // January 1, 2024 is a Monday, so first cell (Sunday) should be null
-      expect(dates[0][0]).toBeNull();
+      // January 1, 2024 is a Monday, so first cell (Sunday) should be from previous month
+      expect(dates[0][0].isCurrentMonth).toBe(false);
     });
 
     it('should attach events to correct dates', () => {
@@ -351,8 +351,8 @@ describe('Calendar Grid Generation', () => {
       const decemberDates = generateCalendarDates(2024, 11, []); // December
       const januaryDates = generateCalendarDates(2025, 0, []); // January
 
-      const decDates = decemberDates.flat().filter(d => d !== null);
-      const janDates = januaryDates.flat().filter(d => d !== null);
+      const decDates = decemberDates.flat().filter(d => d.isCurrentMonth);
+      const janDates = januaryDates.flat().filter(d => d.isCurrentMonth);
 
       expect(decDates.length).toBe(31);
       expect(janDates.length).toBe(31);
@@ -364,12 +364,20 @@ describe('Calendar Grid Generation', () => {
       expect(dates.length).toBeLessThanOrEqual(6);
     });
 
-    it('should have isCurrentMonth property set to true', () => {
+    it('should have isCurrentMonth property set correctly', () => {
       const dates = generateCalendarDates(2024, 0, []);
 
-      const allDates = dates.flat().filter(d => d !== null);
-      allDates.forEach(date => {
-        expect(date?.isCurrentMonth).toBe(true);
+      const currentMonthDates = dates.flat().filter(d => d.isCurrentMonth);
+      const otherMonthDates = dates.flat().filter(d => !d.isCurrentMonth);
+
+      // All current month dates should have the flag
+      currentMonthDates.forEach(date => {
+        expect(date.isCurrentMonth).toBe(true);
+      });
+
+      // Other dates should not have the flag
+      otherMonthDates.forEach(date => {
+        expect(date.isCurrentMonth).toBe(false);
       });
     });
   });
@@ -413,10 +421,6 @@ describe('Popup Positioning', () => {
 
 describe('CSS Class Generation', () => {
   describe('getCellClasses', () => {
-    it('should return empty array for null', () => {
-      expect(getCellClasses(null)).toEqual([]);
-    });
-
     it('should include schedule--current--exam for today', () => {
       const today = new Date();
       const cellDate = {
@@ -516,23 +520,23 @@ describe('Formatting Functions', () => {
   describe('getMonthYearText', () => {
     it('should format month and year', () => {
       const text = getMonthYearText(2024, 0); // January 2024
-      expect(text).toBe('Jan 2024');
+      expect(text).toBe('January 2024');
     });
 
     it('should handle all 12 months', () => {
       const expectedMonths = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
+        'January',
+        'February',
+        'March',
+        'April',
         'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
       ];
 
       expectedMonths.forEach((month, index) => {
@@ -542,9 +546,9 @@ describe('Formatting Functions', () => {
     });
 
     it('should handle different years', () => {
-      expect(getMonthYearText(2023, 5)).toBe('Jun 2023');
-      expect(getMonthYearText(2024, 5)).toBe('Jun 2024');
-      expect(getMonthYearText(2025, 5)).toBe('Jun 2025');
+      expect(getMonthYearText(2023, 5)).toBe('June 2023');
+      expect(getMonthYearText(2024, 5)).toBe('June 2024');
+      expect(getMonthYearText(2025, 5)).toBe('June 2025');
     });
   });
 });

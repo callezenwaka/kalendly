@@ -98,6 +98,8 @@ export class CalendarEngine {
       next: this.next.bind(this),
       previous: this.previous.bind(this),
       jump: this.jump.bind(this),
+      goToToday: this.goToToday.bind(this),
+      isCurrentMonth: this.isCurrentMonth.bind(this),
       selectDate: this.selectDate.bind(this),
       updateTasks: this.updateTasks.bind(this),
     };
@@ -147,6 +149,30 @@ export class CalendarEngine {
     this.state.selectedDayIndex = null;
     this.updateTasks();
     this.notify();
+  }
+
+  /**
+   * Navigate to current month (today)
+   */
+  private goToToday(): void {
+    const today = new Date();
+    this.state.currentYear = today.getFullYear();
+    this.state.currentMonth = today.getMonth();
+    this.state.selectedDate = null;
+    this.state.selectedDayIndex = null;
+    this.updateTasks();
+    this.notify();
+  }
+
+  /**
+   * Check if currently viewing today's month
+   */
+  private isCurrentMonth(): boolean {
+    const today = new Date();
+    return (
+      this.state.currentYear === today.getFullYear() &&
+      this.state.currentMonth === today.getMonth()
+    );
   }
 
   /**

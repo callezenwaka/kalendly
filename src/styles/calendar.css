@@ -1,6 +1,8 @@
 :root {
   --calendar-primary-color: #fc8917;
+  --calendar-primary-color-rgb: 252, 137, 23;
   --calendar-secondary-color: #fca045;
+  --calendar-secondary-color-rgb: 252, 160, 69;
   --calendar-tertiary-color: #fdb873;
   --calendar-text-color: #2c3e50;
   --calendar-border-color: #dee2e6;
@@ -9,6 +11,10 @@
   --calendar-background: #fff;
   --calendar-card-shadow:
     0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --calendar-picker-bg: #ffffff;
+  --calendar-picker-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  --calendar-btn-disabled-opacity: 0.5;
+  --calendar-input-invalid: #ef4444;
 
   --primary-color: #fc8917;
   --secondary-color: #fca045;
@@ -55,6 +61,7 @@
   box-shadow: none;
   max-width: 1200px;
   margin: 0 auto;
+  overflow: visible;
 }
 
 .calendar--card--header {
@@ -65,6 +72,223 @@
   font-size: 1.5rem;
   font-weight: 600;
   text-align: center;
+}
+
+/* New Navigation Header */
+.calendar--nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid var(--calendar-border-color);
+}
+
+.calendar--nav-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--calendar-border-color);
+  border-radius: 6px;
+  background: var(--calendar-background);
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--calendar-text-color);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.calendar--nav-arrow:hover {
+  background-color: var(--calendar-primary-color);
+  border-color: var(--calendar-primary-color);
+  color: #fff;
+}
+
+.calendar--picker-container {
+  position: relative;
+}
+
+.calendar--picker-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  min-width: 160px;
+  height: 36px;
+  border: 1px solid var(--calendar-border-color);
+  border-radius: 6px;
+  background: var(--calendar-background);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--calendar-text-color);
+  transition: all 0.2s ease;
+}
+
+.calendar--picker-btn:hover {
+  border-color: var(--calendar-primary-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.calendar--picker-btn[aria-expanded='true'] {
+  border-color: var(--calendar-primary-color);
+  box-shadow: 0 2px 8px rgba(252, 137, 23, 0.2);
+}
+
+.calendar--picker-chevron {
+  display: inline-block;
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.calendar--picker-btn[aria-expanded='true'] .calendar--picker-chevron {
+  transform: rotate(180deg);
+}
+
+.calendar--today-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  height: 36px;
+  border: 1px solid var(--calendar-border-color);
+  border-radius: 6px;
+  background: var(--calendar-background);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--calendar-text-color);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.calendar--today-btn:hover:not(:disabled) {
+  background-color: var(--calendar-primary-color);
+  border-color: var(--calendar-primary-color);
+  color: #fff;
+}
+
+.calendar--today-btn:disabled {
+  opacity: var(--calendar-btn-disabled-opacity);
+  cursor: not-allowed;
+}
+
+/* Month/Year Picker Dropdown */
+.calendar--picker-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: var(--calendar-picker-bg);
+  border: 1px solid var(--calendar-border-color);
+  border-radius: 12px;
+  box-shadow: var(--calendar-picker-shadow);
+  padding: 16px;
+  min-width: 280px;
+}
+
+.calendar--picker-year-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--calendar-border-color);
+}
+
+.calendar--picker-year-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: #f3f4f6;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--calendar-text-color);
+  transition: all 0.2s ease;
+}
+
+.calendar--picker-year-arrow:hover:not(:disabled) {
+  background-color: var(--calendar-primary-color);
+  color: #fff;
+}
+
+.calendar--picker-year-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.calendar--picker-year-input {
+  width: 80px;
+  padding: 6px 8px;
+  border: 1px solid var(--calendar-border-color);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--calendar-text-color);
+  background: var(--calendar-background);
+  transition: border-color 0.2s ease;
+}
+
+.calendar--picker-year-input:focus {
+  outline: none;
+  border-color: var(--calendar-primary-color);
+}
+
+.calendar--picker-year-input.invalid {
+  border-color: var(--calendar-input-invalid);
+  background-color: #fef2f2;
+}
+
+.calendar--picker-months {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.calendar--picker-month {
+  padding: 10px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--calendar-text-color);
+  transition: all 0.15s ease;
+}
+
+.calendar--picker-month:hover {
+  background-color: var(--calendar-tertiary-color);
+}
+
+.calendar--picker-month.selected {
+  background-color: var(--calendar-primary-color);
+  color: #fff;
+  font-weight: 600;
+}
+
+.calendar--picker-month.current-month {
+  border-color: var(--calendar-primary-color);
+}
+
+/* Picker overlay for click-outside */
+.calendar--picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
 }
 
 .calendar--table {
@@ -96,19 +320,20 @@
 }
 
 .calendar--table td:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--calendar-primary-color) 10%,
-    transparent
-  );
+  background-color: rgba(var(--calendar-primary-color-rgb), 0.1);
+}
+
+.calendar--table td.other-month {
+  color: #9ca3af;
+  background-color: #f9fafb;
+}
+
+.calendar--table td.other-month:hover {
+  background-color: #f3f4f6;
 }
 
 .calendar--table td.has--event {
-  background-color: color-mix(
-    in srgb,
-    var(--calendar-secondary-color) 30%,
-    transparent
-  );
+  background-color: rgba(var(--calendar-secondary-color-rgb), 0.3);
   position: relative;
 }
 
@@ -212,7 +437,7 @@
 
 /* RESPONSIVE POPUP DESIGN */
 .date-popup {
-  position: fixed;
+  position: absolute;
   z-index: 1000;
   background-color: white;
   width: 500px;
@@ -507,6 +732,35 @@
     font-size: 0.9rem;
   }
 
+  .calendar--nav-header {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .calendar--nav-arrow {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .calendar--picker-btn {
+    padding: 6px 12px;
+    min-width: 140px;
+    height: 32px;
+    font-size: 0.875rem;
+  }
+
+  .calendar--today-btn {
+    padding: 6px 12px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
+
+  .calendar--picker-dropdown {
+    min-width: 260px;
+    padding: 12px;
+  }
+
   .calendar--navigation--buttons {
     flex-direction: column;
     gap: 0.5rem;
@@ -586,6 +840,60 @@
   .calendar--card--header {
     font-size: 1rem;
     padding: 0.5rem 1rem;
+  }
+
+  .calendar--nav-header {
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .calendar--nav-arrow {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .calendar--picker-btn {
+    padding: 4px 8px;
+    min-width: 110px;
+    height: 28px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
+
+  .calendar--picker-chevron {
+    font-size: 8px;
+  }
+
+  .calendar--today-btn {
+    padding: 4px 8px;
+    height: 28px;
+    font-size: 0.7rem;
+  }
+
+  .calendar--picker-dropdown {
+    min-width: 240px;
+    padding: 10px;
+  }
+
+  .calendar--picker-year-row {
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .calendar--picker-year-input {
+    width: 70px;
+    font-size: 1rem;
+  }
+
+  .calendar--picker-months {
+    gap: 6px;
+  }
+
+  .calendar--picker-month {
+    padding: 8px 6px;
+    font-size: 0.75rem;
   }
 
   .date-popup {

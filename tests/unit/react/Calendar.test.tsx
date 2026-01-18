@@ -35,7 +35,7 @@ describe('React Calendar Component', () => {
     it('should render month and year header', () => {
       render(<Calendar events={[]} initialDate={new Date('2024-01-15')} />);
 
-      expect(screen.getByText('Jan 2024')).toBeInTheDocument();
+      expect(screen.getByText('January 2024')).toBeInTheDocument();
     });
 
     it('should render day headers', () => {
@@ -57,18 +57,16 @@ describe('React Calendar Component', () => {
       expect(table).toBeInTheDocument();
     });
 
-    it('should render navigation buttons', () => {
+    it('should render navigation arrows', () => {
       render(<Calendar events={[]} />);
 
-      expect(screen.getByText('Previous')).toBeInTheDocument();
-      expect(screen.getByText('Next')).toBeInTheDocument();
+      expect(screen.getByLabelText('Previous month')).toBeInTheDocument();
+      expect(screen.getByLabelText('Next month')).toBeInTheDocument();
     });
 
-    it('should render month and year selectors', () => {
-      render(<Calendar events={[]} />);
-
-      const selects = screen.getAllByRole('combobox');
-      expect(selects.length).toBe(2); // Month and year selectors
+    it('should render month/year picker button', () => {
+      render(<Calendar events={[]} initialDate={new Date('2024-01-15')} />);
+      expect(screen.getByText('January 2024')).toBeInTheDocument();
     });
 
     it('should apply custom className', () => {
@@ -119,7 +117,7 @@ describe('React Calendar Component', () => {
         />
       );
 
-      const nextButton = screen.getByText('Next');
+      const nextButton = screen.getByLabelText('Next month');
       fireEvent.click(nextButton);
 
       // onMonthChange callback is called when navigation happens
@@ -181,41 +179,43 @@ describe('React Calendar Component', () => {
     it('should navigate to next month', () => {
       render(<Calendar events={[]} initialDate={new Date('2024-01-15')} />);
 
-      expect(screen.getByText('Jan 2024')).toBeInTheDocument();
+      expect(screen.getByText('January 2024')).toBeInTheDocument();
 
-      const nextButton = screen.getByText('Next');
+      const nextButton = screen.getByLabelText('Next month');
       fireEvent.click(nextButton);
 
-      expect(screen.getByText('Feb 2024')).toBeInTheDocument();
+      expect(screen.getByText('February 2024')).toBeInTheDocument();
     });
 
     it('should navigate to previous month', () => {
       render(<Calendar events={[]} initialDate={new Date('2024-03-15')} />);
 
-      expect(screen.getByText('Mar 2024')).toBeInTheDocument();
+      expect(screen.getByText('March 2024')).toBeInTheDocument();
 
-      const prevButton = screen.getByText('Previous');
+      const prevButton = screen.getByLabelText('Previous month');
       fireEvent.click(prevButton);
 
-      expect(screen.getByText('Feb 2024')).toBeInTheDocument();
+      expect(screen.getByText('February 2024')).toBeInTheDocument();
     });
 
-    it('should jump to selected month', () => {
+    it('should jump to selected month', async () => {
       render(<Calendar events={[]} initialDate={new Date('2024-01-15')} />);
-
-      const monthSelect = screen.getByLabelText('Select month');
-      fireEvent.change(monthSelect, { target: { value: '5' } }); // June
-
-      expect(screen.getByText('Jun 2024')).toBeInTheDocument();
+      // Open picker and select June
+      fireEvent.click(screen.getByText('January 2024'));
+      await waitFor(() => expect(screen.getByText('June')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('June'));
+      expect(screen.getByText('June 2024')).toBeInTheDocument();
     });
 
     it('should jump to selected year', () => {
       render(<Calendar events={[]} initialDate={new Date('2024-01-15')} />);
-
-      const yearSelect = screen.getByLabelText('Select year');
-      fireEvent.change(yearSelect, { target: { value: '2025' } });
-
-      expect(screen.getByText('Jan 2025')).toBeInTheDocument();
+      // Open picker and enter year
+      const pickerBtn = screen.getByText('January 2024');
+      fireEvent.click(pickerBtn);
+      const yearInput = screen.getByLabelText('Year');
+      fireEvent.change(yearInput, { target: { value: '2025' } });
+      fireEvent.blur(yearInput);
+      expect(screen.getByText('January 2025')).toBeInTheDocument();
     });
   });
 
@@ -223,7 +223,45 @@ describe('React Calendar Component', () => {
     it('should respect initialDate', () => {
       render(<Calendar events={[]} initialDate={new Date('2025-06-15')} />);
 
-      expect(screen.getByText('Jun 2025')).toBeInTheDocument();
+      expect(screen.getByText('June 2025')).toBeInTheDocument();
+    });
+
+    it('should use long month names by default', async () => {
+      render(<Calendar events={[]} initialDate={new Date('2024-01-15')} />);
+
+      // Picker button should show long format
+      expect(screen.getByText('January 2024')).toBeInTheDocument();
+
+      // Open picker dropdown
+      fireEvent.click(screen.getByText('January 2024'));
+      await waitFor(() => expect(screen.getByText('June')).toBeInTheDocument());
+
+      // Dropdown should show long month names
+      expect(screen.getByText('January')).toBeInTheDocument();
+      expect(screen.getByText('February')).toBeInTheDocument();
+      expect(screen.getByText('December')).toBeInTheDocument();
+    });
+
+    it('should use short month names when useShortMonthNames is true', async () => {
+      render(
+        <Calendar
+          events={[]}
+          initialDate={new Date('2024-01-15')}
+          useShortMonthNames={true}
+        />
+      );
+
+      // Picker button should show short format
+      expect(screen.getByText('Jan 2024')).toBeInTheDocument();
+
+      // Open picker dropdown
+      fireEvent.click(screen.getByText('Jan 2024'));
+      await waitFor(() => expect(screen.getByText('Jun')).toBeInTheDocument());
+
+      // Dropdown should show short month names
+      expect(screen.getByText('Jan')).toBeInTheDocument();
+      expect(screen.getByText('Feb')).toBeInTheDocument();
+      expect(screen.getByText('Dec')).toBeInTheDocument();
     });
 
     it('should respect weekStartsOn Sunday', () => {
@@ -370,9 +408,11 @@ describe('React Calendar Component', () => {
 
     it('should handle leap year February', () => {
       render(<Calendar events={[]} initialDate={new Date('2024-02-29')} />);
-
-      expect(screen.getByText('Feb 2024')).toBeInTheDocument();
-      expect(screen.getByText('29')).toBeInTheDocument();
+      expect(screen.getByText('February 2024')).toBeInTheDocument();
+      const cells29 = screen.getAllByText('29');
+      expect(
+        cells29.some(cell => !cell.classList.contains('other-month'))
+      ).toBe(true);
     });
   });
 

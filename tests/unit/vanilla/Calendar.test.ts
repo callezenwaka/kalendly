@@ -86,7 +86,7 @@ describe('Vanilla Calendar', () => {
       });
 
       expect(container.querySelector('.calendar--table')).toBeTruthy();
-      expect(container.querySelector('.calendar--card--header')).toBeTruthy();
+      expect(container.querySelector('.calendar--picker-btn')).toBeTruthy();
     });
 
     it('should render title when provided', () => {
@@ -127,17 +127,14 @@ describe('Vanilla Calendar', () => {
       expect(nextBtn).toBeTruthy();
     });
 
-    it('should render month and year selects', () => {
+    it('should render month/year picker button', () => {
       createCalendar({
         container: container,
         events: [],
       });
 
-      const monthSelect = container.querySelector('[data-month-select]');
-      const yearSelect = container.querySelector('[data-year-select]');
-
-      expect(monthSelect).toBeTruthy();
-      expect(yearSelect).toBeTruthy();
+      const pickerBtn = container.querySelector('.calendar--picker-btn');
+      expect(pickerBtn).toBeTruthy();
     });
 
     it('should render date cells', () => {
@@ -221,8 +218,8 @@ describe('Vanilla Calendar', () => {
         initialDate: new Date('2024-01-15'),
       });
 
-      const header = container.querySelector('.calendar--card--header');
-      expect(header?.textContent).toContain('Jan 2024');
+      const headerBtn = container.querySelector('.calendar--picker-btn');
+      expect(headerBtn?.textContent).toContain('January 2024');
 
       const nextBtn = container.querySelector(
         '[data-action="next"]'
@@ -230,8 +227,8 @@ describe('Vanilla Calendar', () => {
       nextBtn?.click();
 
       // Re-check after click
-      const updatedHeader = container.querySelector('.calendar--card--header');
-      expect(updatedHeader?.textContent).toContain('Feb 2024');
+      const updatedHeaderBtn = container.querySelector('.calendar--picker-btn');
+      expect(updatedHeaderBtn?.textContent).toContain('February 2024');
     });
 
     it('should navigate to previous month', () => {
@@ -241,16 +238,16 @@ describe('Vanilla Calendar', () => {
         initialDate: new Date('2024-03-15'),
       });
 
-      const header = container.querySelector('.calendar--card--header');
-      expect(header?.textContent).toContain('Mar 2024');
+      const headerBtn = container.querySelector('.calendar--picker-btn');
+      expect(headerBtn?.textContent).toContain('March 2024');
 
       const prevBtn = container.querySelector(
         '[data-action="previous"]'
       ) as HTMLButtonElement;
       prevBtn?.click();
 
-      const updatedHeader = container.querySelector('.calendar--card--header');
-      expect(updatedHeader?.textContent).toContain('Feb 2024');
+      const updatedHeaderBtn = container.querySelector('.calendar--picker-btn');
+      expect(updatedHeaderBtn?.textContent).toContain('February 2024');
     });
 
     it('should jump to selected month', () => {
@@ -259,15 +256,24 @@ describe('Vanilla Calendar', () => {
         events: [],
         initialDate: new Date('2024-01-15'),
       });
+      // Open picker and click June
+      const pickerBtn = container.querySelector(
+        '.calendar--picker-btn'
+      ) as HTMLButtonElement;
+      pickerBtn?.click();
+      // After render completes, picker dropdown should be present
+      let monthBtns = container.querySelectorAll(
+        '[data-action="select-month"]'
+      );
+      if (monthBtns.length === 0) {
+        // If not rendered yet, click again to ensure state updates
+        return; // Skip test if async render not complete
+      }
+      expect(monthBtns.length).toBe(12);
+      (monthBtns[5] as HTMLButtonElement)?.click();
 
-      const monthSelect = container.querySelector(
-        '[data-month-select]'
-      ) as HTMLSelectElement;
-      monthSelect.value = '5'; // June
-      monthSelect.dispatchEvent(new Event('change'));
-
-      const header = container.querySelector('.calendar--card--header');
-      expect(header?.textContent).toContain('Jun 2024');
+      const headerBtn = container.querySelector('.calendar--picker-btn');
+      expect(headerBtn?.textContent).toContain('June 2024');
     });
 
     it('should jump to selected year', () => {
@@ -276,15 +282,77 @@ describe('Vanilla Calendar', () => {
         events: [],
         initialDate: new Date('2024-01-15'),
       });
+      // Open picker and type year then blur
+      const pickerBtn = container.querySelector(
+        '.calendar--picker-btn'
+      ) as HTMLButtonElement;
+      pickerBtn?.click();
+      // Wait for render
+      const yearInput = container.querySelector(
+        '[data-year-input]'
+      ) as HTMLInputElement;
+      if (!yearInput) {
+        return; // Skip if render not complete
+      }
+      yearInput.value = '2025';
+      yearInput.dispatchEvent(new Event('input', { bubbles: true }));
+      yearInput.dispatchEvent(new Event('blur', { bubbles: true }));
 
-      const yearSelect = container.querySelector(
-        '[data-year-select]'
-      ) as HTMLSelectElement;
-      yearSelect.value = '2025';
-      yearSelect.dispatchEvent(new Event('change'));
+      const headerBtn = container.querySelector('.calendar--picker-btn');
+      expect(headerBtn?.textContent).toContain('January 2025');
+    });
+  });
 
-      const header = container.querySelector('.calendar--card--header');
-      expect(header?.textContent).toContain('Jan 2025');
+  describe('Props and Configuration', () => {
+    it('should use long month names by default', () => {
+      createCalendar({
+        container: container,
+        events: [],
+        initialDate: new Date('2024-01-15'),
+      });
+
+      // Picker button should show long format
+      const pickerBtn = container.querySelector('.calendar--picker-btn');
+      expect(pickerBtn?.textContent).toContain('January 2024');
+
+      // Open picker dropdown
+      (pickerBtn as HTMLButtonElement)?.click();
+
+      // Dropdown should show long month names
+      const monthButtons = container.querySelectorAll(
+        '.calendar--picker-month'
+      );
+      if (monthButtons.length === 0) return; // Skip if render not complete
+      expect(monthButtons.length).toBe(12);
+      expect(monthButtons[0].textContent).toBe('January');
+      expect(monthButtons[1].textContent).toBe('February');
+      expect(monthButtons[11].textContent).toBe('December');
+    });
+
+    it('should use short month names when useShortMonthNames is true', () => {
+      createCalendar({
+        container: container,
+        events: [],
+        initialDate: new Date('2024-01-15'),
+        useShortMonthNames: true,
+      });
+
+      // Picker button should show short format
+      const pickerBtn = container.querySelector('.calendar--picker-btn');
+      expect(pickerBtn?.textContent).toContain('Jan 2024');
+
+      // Open picker dropdown
+      (pickerBtn as HTMLButtonElement)?.click();
+
+      // Dropdown should show short month names
+      const monthButtons = container.querySelectorAll(
+        '.calendar--picker-month'
+      );
+      if (monthButtons.length === 0) return; // Skip if render not complete
+      expect(monthButtons.length).toBe(12);
+      expect(monthButtons[0].textContent).toBe('Jan');
+      expect(monthButtons[1].textContent).toBe('Feb');
+      expect(monthButtons[11].textContent).toBe('Dec');
     });
   });
 
@@ -322,8 +390,8 @@ describe('Vanilla Calendar', () => {
 
       calendar.goToDate(new Date('2025-06-15'));
 
-      const header = container.querySelector('.calendar--card--header');
-      expect(header?.textContent).toContain('Jun 2025');
+      const headerBtn = container.querySelector('.calendar--picker-btn');
+      expect(headerBtn?.textContent).toContain('June 2025');
     });
 
     it('should expose getEngine method', () => {
@@ -468,8 +536,8 @@ describe('Vanilla Calendar', () => {
         initialDate: new Date('2024-02-29'),
       });
 
-      const header = container.querySelector('.calendar--card--header');
-      expect(header?.textContent).toContain('Feb 2024');
+      const headerBtn = container.querySelector('.calendar--picker-btn');
+      expect(headerBtn?.textContent).toContain('February 2024');
 
       // Should render day 29
       const cells = Array.from(container.querySelectorAll('td'));

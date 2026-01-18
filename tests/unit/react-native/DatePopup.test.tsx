@@ -286,6 +286,41 @@ describe.skip('React Native DatePopup Component', () => {
       // Modal's onRequestClose should trigger onClose
       expect(onClose).toBeDefined();
     });
+
+    it('should call onEventClick when event is pressed', () => {
+      const onEventClick = vi.fn();
+
+      render(
+        <DatePopup
+          visible={true}
+          selectedDate={new Date('2024-01-15')}
+          events={MOCK_EVENTS}
+          scheduleDay="Monday 15"
+          onClose={vi.fn()}
+          onEventClick={onEventClick}
+        />
+      );
+
+      const eventElement = screen.getByText('Team Meeting');
+      fireEvent.press(eventElement);
+
+      expect(onEventClick).toHaveBeenCalledWith(MOCK_EVENTS[0]);
+    });
+
+    it('should not call onEventClick when not provided', () => {
+      render(
+        <DatePopup
+          visible={true}
+          selectedDate={new Date('2024-01-15')}
+          events={MOCK_EVENTS}
+          scheduleDay="Monday 15"
+          onClose={vi.fn()}
+        />
+      );
+
+      // Event should still render, just not be clickable
+      expect(screen.getByText('Team Meeting')).toBeTruthy();
+    });
   });
 
   describe('Custom Renderers', () => {

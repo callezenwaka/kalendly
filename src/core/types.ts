@@ -82,6 +82,8 @@ export interface CalendarActions {
   next: () => void;
   previous: () => void;
   jump: (year: number, month: number) => void;
+  goToToday: () => void;
+  isCurrentMonth: () => boolean;
   selectDate: (date: Date) => void;
   updateTasks: () => void;
 }
@@ -101,7 +103,7 @@ export interface CalendarViewModel extends CalendarState {
   years: number[];
   monthAndYearText: string;
   scheduleDay: string;
-  calendarDates: (CalendarDate | null)[][];
+  calendarDates: CalendarDate[][];
   popupPositionClass: string;
 }
 
@@ -113,6 +115,7 @@ export interface CalendarProps {
   minYear?: number;
   maxYear?: number;
   weekStartsOn?: 0 | 1;
+  useShortMonthNames?: boolean;
   onDateSelect?: (date: Date) => void;
   onEventClick?: CalendarEventHandler;
   onMonthChange?: (year: number, month: number) => void;

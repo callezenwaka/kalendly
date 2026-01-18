@@ -62,9 +62,7 @@ describe('Vue Calendar Component', () => {
         },
       });
 
-      expect(wrapper.find('.calendar--navigation--buttons').exists()).toBe(
-        true
-      );
+      expect(wrapper.find('.calendar--nav-header').exists()).toBe(true);
       expect(wrapper.findAll('button').length).toBeGreaterThan(0);
     });
 
@@ -87,8 +85,10 @@ describe('Vue Calendar Component', () => {
         },
       });
 
-      expect(wrapper.find('.calendar--card--header').text()).toContain('Jan');
-      expect(wrapper.find('.calendar--card--header').text()).toContain('2024');
+      const pickerBtn = wrapper.find('.calendar--picker-btn');
+      expect(pickerBtn.exists()).toBe(true);
+      expect(pickerBtn.text()).toContain('January');
+      expect(pickerBtn.text()).toContain('2024');
     });
 
     it('should apply custom class', () => {
@@ -128,9 +128,7 @@ describe('Vue Calendar Component', () => {
         },
       });
 
-      const nextButton = wrapper
-        .findAll('button')
-        .find(btn => btn.text() === 'Next');
+      const nextButton = wrapper.find('button[aria-label="Next month"]');
       await nextButton?.trigger('click');
 
       expect(wrapper.emitted('month-change')).toBeTruthy();
@@ -206,18 +204,16 @@ describe('Vue Calendar Component', () => {
         },
       });
 
-      expect(wrapper.find('.calendar--card--header').text()).toContain(
-        'Jan 2024'
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'January 2024'
       );
 
-      const nextButton = wrapper
-        .findAll('button')
-        .find(btn => btn.text() === 'Next');
+      const nextButton = wrapper.find('button[aria-label="Next month"]');
       await nextButton?.trigger('click');
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.calendar--card--header').text()).toContain(
-        'Feb 2024'
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'February 2024'
       );
     });
 
@@ -229,18 +225,16 @@ describe('Vue Calendar Component', () => {
         },
       });
 
-      expect(wrapper.find('.calendar--card--header').text()).toContain(
-        'Mar 2024'
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'March 2024'
       );
 
-      const prevButton = wrapper
-        .findAll('button')
-        .find(btn => btn.text() === 'Previous');
+      const prevButton = wrapper.find('button[aria-label="Previous month"]');
       await prevButton?.trigger('click');
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.calendar--card--header').text()).toContain(
-        'Feb 2024'
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'February 2024'
       );
     });
 
@@ -252,14 +246,16 @@ describe('Vue Calendar Component', () => {
         },
       });
 
-      const selects = wrapper.findAll('select');
-      const monthSelect = selects[0];
-
-      await monthSelect.setValue(5); // June
+      // Open picker and select June
+      await wrapper.find('.calendar--picker-btn').trigger('click');
+      const juneBtn = wrapper.find(
+        '.calendar--picker-months button:nth-child(6)'
+      );
+      await juneBtn.trigger('click');
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.calendar--card--header').text()).toContain(
-        'Jun 2024'
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'June 2024'
       );
     });
 
@@ -271,14 +267,15 @@ describe('Vue Calendar Component', () => {
         },
       });
 
-      const selects = wrapper.findAll('select');
-      const yearSelect = selects[1];
-
-      await yearSelect.setValue(2025);
+      // Open picker and type year
+      await wrapper.find('.calendar--picker-btn').trigger('click');
+      const yearInput = wrapper.find('input[aria-label="Year"]');
+      await yearInput.setValue('2025');
+      await yearInput.trigger('blur');
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.calendar--card--header').text()).toContain(
-        'Jan 2025'
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'January 2025'
       );
     });
   });
@@ -300,6 +297,55 @@ describe('Vue Calendar Component', () => {
       expect(wrapper.find('h1').text()).toBe('Test Calendar');
     });
 
+    it('should use long month names by default', async () => {
+      const wrapper = mount(Calendar, {
+        props: {
+          events: [],
+          initialDate: new Date('2024-01-15'),
+        },
+      });
+
+      // Picker button should show long format
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'January 2024'
+      );
+
+      // Open picker dropdown
+      await wrapper.find('.calendar--picker-btn').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      // Dropdown should show long month names
+      const monthButtons = wrapper.findAll('.calendar--picker-month');
+      expect(monthButtons[0].text()).toBe('January');
+      expect(monthButtons[1].text()).toBe('February');
+      expect(monthButtons[11].text()).toBe('December');
+    });
+
+    it('should use short month names when useShortMonthNames is true', async () => {
+      const wrapper = mount(Calendar, {
+        props: {
+          events: [],
+          initialDate: new Date('2024-01-15'),
+          useShortMonthNames: true,
+        },
+      });
+
+      // Picker button should show short format
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'Jan 2024'
+      );
+
+      // Open picker dropdown
+      await wrapper.find('.calendar--picker-btn').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      // Dropdown should show short month names
+      const monthButtons = wrapper.findAll('.calendar--picker-month');
+      expect(monthButtons[0].text()).toBe('Jan');
+      expect(monthButtons[1].text()).toBe('Feb');
+      expect(monthButtons[11].text()).toBe('Dec');
+    });
+
     it('should respect initialDate', () => {
       const wrapper = mount(Calendar, {
         props: {
@@ -308,8 +354,8 @@ describe('Vue Calendar Component', () => {
         },
       });
 
-      expect(wrapper.find('.calendar--card--header').text()).toContain(
-        'Jun 2025'
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'June 2025'
       );
     });
 
@@ -438,8 +484,8 @@ describe('Vue Calendar Component', () => {
         },
       });
 
-      expect(wrapper.find('.calendar--card--header').text()).toContain(
-        'Feb 2024'
+      expect(wrapper.find('.calendar--picker-btn').text()).toContain(
+        'February 2024'
       );
       // Should render day 29
       expect(wrapper.findAll('td').some(td => td.text() === '29')).toBe(true);
