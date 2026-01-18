@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Navigation Enhancements**
+  - Added `goToToday()` method to navigate directly to current month
+  - Added `isCurrentMonth()` method to check if viewing current month
+  - Added Today button in navigation header (disabled when already on current month)
+  - Added month/year picker dropdown for quick navigation
+  - Added `MONTHS_FULL` array for complete month names
+  - Added `useShortMonthNames` prop to toggle between short/full month names
+- **Calendar Grid Improvements**
+  - Calendar now displays previous/next month days in greyed-out cells instead of empty cells
+  - Added `other-month` CSS class for styling non-current month days
+- **Test Coverage**
+  - Added unit tests for `goToToday()` method (4 tests)
+  - Added unit tests for `isCurrentMonth()` method (5 tests)
+
+### Changed
+
+- **Navigation UI Refactor**
+  - Replaced static header with interactive month/year picker button
+  - Updated all framework implementations (React, Vue, Vanilla, React Native)
+- **Calendar Date Type**
+  - Changed `calendarDates` return type from `(CalendarDate | null)[][]` to `CalendarDate[][]`
+  - Updated tests to use `isCurrentMonth` property instead of null checks
+
+### Fixed
+
+- **Browser Compatibility**
+  - Replaced `color-mix()` CSS function with `rgba()` using CSS variables
+  - Added `--calendar-primary-color-rgb` and `--calendar-secondary-color-rgb` variables
+  - Fixes compatibility with Chrome < 111 and Safari on iOS < 16.2
+- **React Native Sync**
+  - Added `onEventClick` callback support to React Native DatePopup (now matches React implementation)
+  - Added engine cleanup (`destroy()`) on Calendar component unmount
+  - Added Calendar component test suite for React Native
+
+## [0.1.5] - 2026-01-18
+
+### Added
+
 - **Theme Support** - Universal theming system across all frameworks
   - Added `CalendarTheme` interface with 11 customizable color properties
   - Added `theme` prop to React, Vue, Vanilla, and React Native Calendar components
@@ -164,7 +202,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DOM event system
 - Imperative API
 
-[Unreleased]: https://github.com/callezenwaka/kalendly/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/callezenwaka/kalendly/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/callezenwaka/kalendly/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/callezenwaka/kalendly/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/callezenwaka/kalendly/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/callezenwaka/kalendly/compare/v0.1.1...v0.1.2

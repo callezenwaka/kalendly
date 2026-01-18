@@ -1,5 +1,16 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { CalendarEngine, getCellClasses } from '../../core';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
+import {
+  CalendarEngine,
+  getCellClasses,
+  MONTHS_FULL,
+  MONTHS,
+} from '../../core';
 import { CalendarComponentProps } from '../types';
 import { DatePopup } from './DatePopup';
 
@@ -9,6 +20,7 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
   minYear,
   maxYear,
   weekStartsOn = 0,
+  useShortMonthNames = false,
   onDateSelect,
   onEventClick,
   onMonthChange,
@@ -16,7 +28,7 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
   style,
   renderEvent,
   renderNoEvents,
-  title = 'Event Schedule',
+  title,
   theme,
 }) => {
   const engine = useMemo(
@@ -33,6 +45,12 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
 
   const [, forceUpdate] = useState({});
   const rerender = useCallback(() => forceUpdate({}), []);
+
+  // Picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [yearInput, setYearInput] = useState('');
+  const [yearInputValid, setYearInputValid] = useState(true);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribe = engine.subscribe(rerender);
@@ -90,40 +108,22 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
     const td = (event.target as HTMLElement).closest('td');
     if (!td) return;
 
-    const cellContent = td.textContent?.trim();
-    if (!cellContent) return;
+    const tr = td.parentElement as HTMLTableRowElement | null;
+    if (!tr) return;
 
-    const clickedDate = new Date(
-      viewModel.currentYear,
-      viewModel.currentMonth,
-      parseInt(cellContent)
-    );
+    const weekIndex = tr.rowIndex - 1; // -1 because of thead
+    const dayIndex = Array.from(tr.children).indexOf(td);
 
-    const dayIndex = td.parentNode
-      ? Array.from(td.parentNode.children).indexOf(td)
-      : 0;
-    engine.handleDateClick(clickedDate, dayIndex);
+    const calendarDate = viewModel.calendarDates[weekIndex]?.[dayIndex];
+    if (!calendarDate) return;
 
-    onDateSelect?.(clickedDate);
+    engine.handleDateClick(calendarDate.date, dayIndex);
+    onDateSelect?.(calendarDate.date);
   };
 
-  const handleMonthChange = () => {
+  const handleMonthChange = useCallback(() => {
     onMonthChange?.(viewModel.currentYear, viewModel.currentMonth);
-  };
-
-  const handleYearChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const year = parseInt(event.target.value);
-    actions.jump(year, viewModel.currentMonth);
-    handleMonthChange();
-  };
-
-  const handleMonthSelectChange = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const month = parseInt(event.target.value);
-    actions.jump(viewModel.currentYear, month);
-    handleMonthChange();
-  };
+  }, [onMonthChange, viewModel.currentYear, viewModel.currentMonth]);
 
   const handleNext = () => {
     actions.next();
@@ -135,6 +135,89 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
     handleMonthChange();
   };
 
+  const handleGoToToday = () => {
+    actions.goToToday();
+    setPickerOpen(false);
+    const today = new Date();
+    onMonthChange?.(today.getFullYear(), today.getMonth());
+  };
+
+  const togglePicker = () => {
+    const newOpen = !pickerOpen;
+    setPickerOpen(newOpen);
+    if (newOpen) {
+      setYearInput(String(viewModel.currentYear));
+      setYearInputValid(true);
+    }
+  };
+
+  const today = new Date();
+  const computedMinYear = minYear ?? today.getFullYear() - 30;
+  const computedMaxYear = maxYear ?? today.getFullYear() + 10;
+
+  const handleYearInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '' || /^\d+$/.test(value)) {
+      setYearInput(value);
+      const year = parseInt(value, 10);
+      setYearInputValid(
+        value === '' || (year >= computedMinYear && year <= computedMaxYear)
+      );
+    }
+  };
+
+  const handleYearInputBlur = () => {
+    const year = parseInt(yearInput, 10);
+    if (isNaN(year) || year < computedMinYear || year > computedMaxYear) {
+      setYearInput(String(viewModel.currentYear));
+      setYearInputValid(true);
+    } else {
+      actions.jump(year, viewModel.currentMonth);
+      handleMonthChange();
+    }
+  };
+
+  const handleYearPrev = () => {
+    const newYear = viewModel.currentYear - 1;
+    if (newYear >= computedMinYear) {
+      actions.jump(newYear, viewModel.currentMonth);
+      setYearInput(String(newYear));
+      handleMonthChange();
+    }
+  };
+
+  const handleYearNext = () => {
+    const newYear = viewModel.currentYear + 1;
+    if (newYear <= computedMaxYear) {
+      actions.jump(newYear, viewModel.currentMonth);
+      setYearInput(String(newYear));
+      handleMonthChange();
+    }
+  };
+
+  const handleMonthSelect = (month: number) => {
+    actions.jump(viewModel.currentYear, month);
+    setPickerOpen(false);
+    handleMonthChange();
+  };
+
+  // Close picker on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node)
+      ) {
+        setPickerOpen(false);
+      }
+    };
+
+    if (pickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [pickerOpen]);
+
   return (
     <div className={`kalendly-calendar ${className}`} style={style}>
       {title && (
@@ -145,9 +228,108 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
 
       <div className="calendar--content">
         <div className="calendar--card">
-          <h3 className="calendar--card--header">
-            {viewModel.monthAndYearText}
-          </h3>
+          {/* Navigation Header */}
+          <div className="calendar--nav-header">
+            <button
+              type="button"
+              className="calendar--nav-arrow"
+              onClick={handlePrevious}
+              aria-label="Previous month"
+            >
+              &#8249;
+            </button>
+
+            <div className="calendar--picker-container" ref={pickerRef}>
+              <button
+                type="button"
+                className="calendar--picker-btn"
+                onClick={togglePicker}
+                // aria-expanded={pickerOpen ? "true" : "false"}
+                {...{ 'aria-expanded': pickerOpen }}
+                aria-haspopup="true"
+              >
+                {useShortMonthNames
+                  ? `${MONTHS[viewModel.currentMonth]} ${viewModel.currentYear}`
+                  : viewModel.monthAndYearText}
+                <span className="calendar--picker-chevron">&#9662;</span>
+              </button>
+
+              {pickerOpen && (
+                <div className="calendar--picker-dropdown">
+                  <div className="calendar--picker-year-row">
+                    <button
+                      type="button"
+                      className="calendar--picker-year-arrow"
+                      onClick={handleYearPrev}
+                      disabled={viewModel.currentYear <= computedMinYear}
+                      aria-label="Previous year"
+                    >
+                      &#8249;
+                    </button>
+                    <input
+                      type="text"
+                      className={`calendar--picker-year-input${!yearInputValid ? ' invalid' : ''}`}
+                      value={yearInput}
+                      onChange={handleYearInputChange}
+                      onBlur={handleYearInputBlur}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleYearInputBlur();
+                      }}
+                      aria-label="Year"
+                    />
+                    <button
+                      type="button"
+                      className="calendar--picker-year-arrow"
+                      onClick={handleYearNext}
+                      disabled={viewModel.currentYear >= computedMaxYear}
+                      aria-label="Next year"
+                    >
+                      &#8250;
+                    </button>
+                  </div>
+
+                  <div className="calendar--picker-months">
+                    {(useShortMonthNames ? MONTHS : MONTHS_FULL).map(
+                      (month, index) => {
+                        const isSelected = index === viewModel.currentMonth;
+                        const isCurrentMonth =
+                          index === today.getMonth() &&
+                          viewModel.currentYear === today.getFullYear();
+                        return (
+                          <button
+                            key={month}
+                            type="button"
+                            className={`calendar--picker-month${isSelected ? ' selected' : ''}${isCurrentMonth ? ' current-month' : ''}`}
+                            onClick={() => handleMonthSelect(index)}
+                          >
+                            {month}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="calendar--today-btn"
+              onClick={handleGoToToday}
+              disabled={actions.isCurrentMonth()}
+            >
+              Today
+            </button>
+
+            <button
+              type="button"
+              className="calendar--nav-arrow"
+              onClick={handleNext}
+              aria-label="Next month"
+            >
+              &#8250;
+            </button>
+          </div>
 
           <table className="calendar--table calendar--table--bordered">
             <thead>
@@ -167,7 +349,7 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
                         key={`${weekIndex}-${dayIndex}`}
                         className={cellClasses.join(' ')}
                       >
-                        {calendarDate?.date.getDate() || ''}
+                        {calendarDate.date.getDate()}
                       </td>
                     );
                   })}
@@ -175,52 +357,6 @@ export const Calendar: React.FC<CalendarComponentProps> = ({
               ))}
             </tbody>
           </table>
-
-          <div className="calendar--navigation--buttons">
-            <button
-              className="calendar--navigation--btn"
-              onClick={handlePrevious}
-            >
-              Previous
-            </button>
-            <button className="calendar--navigation--btn" onClick={handleNext}>
-              Next
-            </button>
-          </div>
-
-          <form className="calendar--form--jump">
-            <div className="calendar--lead">Jump To:</div>
-            <div>
-              <label className="calendar--form--jump--item">
-                <select
-                  value={viewModel.currentMonth}
-                  onChange={handleMonthSelectChange}
-                  aria-label="Select month"
-                >
-                  {viewModel.months.map((month, index) => (
-                    <option key={index} value={index}>
-                      {month}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div>
-              <label className="calendar--form--jump--item">
-                <select
-                  value={viewModel.currentYear}
-                  onChange={handleYearChange}
-                  aria-label="Select year"
-                >
-                  {viewModel.years.map(year => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </form>
 
           <DatePopup
             isVisible={!!selectedDate}

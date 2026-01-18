@@ -5,6 +5,7 @@ export { CalendarEngine } from './calendar-engine';
 // Re-export commonly used utilities
 export {
   MONTHS,
+  MONTHS_FULL,
   DAYS,
   normalizeDate,
   isSameDay,

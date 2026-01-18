@@ -15,6 +15,21 @@ export const MONTHS = [
   'Dec',
 ];
 
+export const MONTHS_FULL = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
 export const DAYS = [
   'Sunday',
   'Monday',
@@ -66,31 +81,53 @@ export function generateCalendarDates(
   month: number,
   events: CalendarEvent[] = [],
   weekStartsOn: 0 | 1 = 0
-): (CalendarDate | null)[][] {
+): CalendarDate[][] {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
+  const prevMonthLastDay = new Date(year, month, 0).getDate();
 
   let firstDayOfWeek = firstDay.getDay();
   if (weekStartsOn === 1) {
     firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
   }
 
-  const dates: (CalendarDate | null)[][] = [];
+  const dates: CalendarDate[][] = [];
   let day = 1;
+  let nextMonthDay = 1;
 
   for (let week = 0; week < 6; week++) {
-    const weekDates: (CalendarDate | null)[] = [];
+    const weekDates: CalendarDate[] = [];
 
     for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
       if (week === 0 && dayOfWeek < firstDayOfWeek) {
-        weekDates.push(null);
+        // Previous month days
+        const prevDay = prevMonthLastDay - firstDayOfWeek + dayOfWeek + 1;
+        const prevDate = new Date(year, month - 1, prevDay);
+        const dateEvents = getEventsForDate(events, prevDate);
+        weekDates.push({
+          date: prevDate,
+          isCurrentMonth: false,
+          isToday: isToday(prevDate),
+          hasEvents: dateEvents.length > 0,
+          events: dateEvents,
+        });
       } else if (day > daysInMonth) {
-        weekDates.push(null);
+        // Next month days
+        const nextDate = new Date(year, month + 1, nextMonthDay);
+        const dateEvents = getEventsForDate(events, nextDate);
+        weekDates.push({
+          date: nextDate,
+          isCurrentMonth: false,
+          isToday: isToday(nextDate),
+          hasEvents: dateEvents.length > 0,
+          events: dateEvents,
+        });
+        nextMonthDay++;
       } else {
+        // Current month days
         const currentDate = new Date(year, month, day);
         const dateEvents = getEventsForDate(events, currentDate);
-
         weekDates.push({
           date: currentDate,
           isCurrentMonth: true,
@@ -103,10 +140,6 @@ export function generateCalendarDates(
     }
 
     dates.push(weekDates);
-
-    if (day > daysInMonth && weekDates.every(date => date === null)) {
-      break;
-    }
   }
 
   return dates;
@@ -124,10 +157,12 @@ export function getPopupPositionClass(selectedDayIndex: number | null): string {
   }
 }
 
-export function getCellClasses(calendarDate: CalendarDate | null): string[] {
-  if (!calendarDate) return [];
-
+export function getCellClasses(calendarDate: CalendarDate): string[] {
   const classes: string[] = [];
+
+  if (!calendarDate.isCurrentMonth) {
+    classes.push('other-month');
+  }
 
   if (calendarDate.isToday) {
     classes.push('schedule--current--exam');
@@ -145,7 +180,7 @@ export function formatDateForDisplay(date: Date): string {
 }
 
 export function getMonthYearText(year: number, month: number): string {
-  return `${MONTHS[month]} ${year}`;
+  return `${MONTHS_FULL[month]} ${year}`;
 }
 
 export function formatTimeRange(event: CalendarEvent): string {

@@ -28,6 +28,7 @@ export interface DatePopupProps {
   events: CalendarEvent[];
   scheduleDay: string;
   onClose: () => void;
+  onEventClick?: (event: CalendarEvent) => void;
   renderEvent?: (event: CalendarEvent) => ReactNode;
   renderNoEvents?: () => ReactNode;
   showCloseButton?: boolean;

@@ -8,9 +8,109 @@
 
     <div class="calendar--content">
       <div class="calendar--card">
-        <h3 class="calendar--card--header">
-          {{ viewModel.monthAndYearText }}
-        </h3>
+        <!-- Navigation Header -->
+        <div class="calendar--nav-header">
+          <button
+            type="button"
+            class="calendar--nav-arrow"
+            aria-label="Previous month"
+            @click="handlePrevious"
+          >
+            &#8249;
+          </button>
+
+          <div ref="pickerRef" class="calendar--picker-container">
+            <button
+              type="button"
+              class="calendar--picker-btn"
+              :aria-expanded="pickerOpen ? 'true' : 'false'"
+              aria-haspopup="true"
+              @click="togglePicker"
+            >
+              {{
+                props.useShortMonthNames
+                  ? `${MONTHS[viewModel.currentMonth]} ${viewModel.currentYear}`
+                  : viewModel.monthAndYearText
+              }}
+              <span class="calendar--picker-chevron">&#9662;</span>
+            </button>
+
+            <div v-if="pickerOpen" class="calendar--picker-dropdown">
+              <div class="calendar--picker-year-row">
+                <button
+                  type="button"
+                  class="calendar--picker-year-arrow"
+                  :disabled="viewModel.currentYear <= computedMinYear"
+                  aria-label="Previous year"
+                  @click="handleYearPrev"
+                >
+                  &#8249;
+                </button>
+                <input
+                  type="text"
+                  :class="[
+                    'calendar--picker-year-input',
+                    { invalid: !yearInputValid },
+                  ]"
+                  :value="yearInput"
+                  aria-label="Year"
+                  @input="handleYearInputChange"
+                  @blur="handleYearInputBlur"
+                  @keydown.enter="handleYearInputBlur"
+                />
+                <button
+                  type="button"
+                  class="calendar--picker-year-arrow"
+                  :disabled="viewModel.currentYear >= computedMaxYear"
+                  aria-label="Next year"
+                  @click="handleYearNext"
+                >
+                  &#8250;
+                </button>
+              </div>
+
+              <div class="calendar--picker-months">
+                <button
+                  v-for="(month, index) in props.useShortMonthNames
+                    ? MONTHS
+                    : MONTHS_FULL"
+                  :key="month"
+                  type="button"
+                  :class="[
+                    'calendar--picker-month',
+                    { selected: index === viewModel.currentMonth },
+                    {
+                      'current-month':
+                        index === todayMonth &&
+                        viewModel.currentYear === todayYear,
+                    },
+                  ]"
+                  @click="handleMonthSelect(index)"
+                >
+                  {{ month }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="calendar--today-btn"
+            :disabled="isCurrentMonth"
+            @click="handleGoToToday"
+          >
+            Today
+          </button>
+
+          <button
+            type="button"
+            class="calendar--nav-arrow"
+            aria-label="Next month"
+            @click="handleNext"
+          >
+            &#8250;
+          </button>
+        </div>
 
         <table class="calendar--table calendar--table--bordered">
           <thead>
@@ -30,7 +130,7 @@
                 :key="`${weekIndex}-${dayIndex}`"
                 :class="getCellClasses(calendarDate)"
               >
-                {{ calendarDate?.date.getDate() || '' }}
+                {{ calendarDate.date.getDate() }}
               </td>
             </tr>
           </tbody>
@@ -160,48 +260,6 @@
             </div>
           </div>
         </div>
-
-        <div class="calendar--navigation--buttons">
-          <button class="calendar--navigation--btn" @click="handlePrevious">
-            Previous
-          </button>
-          <button class="calendar--navigation--btn" @click="handleNext">
-            Next
-          </button>
-        </div>
-
-        <form class="calendar--form--jump">
-          <div class="calendar--lead">Jump To:</div>
-          <div>
-            <label class="calendar--form--jump--item">
-              <select
-                :value="viewModel.currentMonth"
-                @change="handleMonthChange"
-              >
-                <option
-                  v-for="(month, index) in viewModel.months"
-                  :key="index"
-                  :value="index"
-                >
-                  {{ month }}
-                </option>
-              </select>
-            </label>
-          </div>
-          <div>
-            <label class="calendar--form--jump--item">
-              <select :value="viewModel.currentYear" @change="handleYearChange">
-                <option
-                  v-for="year in viewModel.years"
-                  :key="year"
-                  :value="year"
-                >
-                  {{ year }}
-                </option>
-              </select>
-            </label>
-          </div>
-        </form>
       </div>
     </div>
   </div>
@@ -214,6 +272,8 @@ import {
   getCellClasses as getCoreCellClasses,
   formatTimeRange,
   formatAttendees,
+  MONTHS_FULL,
+  MONTHS,
 } from '../../core';
 import type { VueCalendarProps } from '../types';
 import type { CalendarEvent, CalendarDate } from '../../core/types';
@@ -221,7 +281,7 @@ import type { CalendarEvent, CalendarDate } from '../../core/types';
 const props = withDefaults(defineProps<VueCalendarProps>(), {
   events: () => [],
   weekStartsOn: 0,
-  title: 'Event Schedule',
+  useShortMonthNames: false,
   class: '',
   style: () => ({}),
 });
@@ -249,6 +309,25 @@ const viewModel = computed(() => {
 const showScrollHint = computed(() => viewModel.value.tasks.length > 3);
 
 const actions = engine.getActions();
+
+// Picker state
+const pickerOpen = ref(false);
+const yearInput = ref('');
+const yearInputValid = ref(true);
+const pickerRef = ref<HTMLElement | null>(null);
+
+const today = new Date();
+const todayMonth = today.getMonth();
+const todayYear = today.getFullYear();
+const computedMinYear = computed(() => props.minYear ?? todayYear - 30);
+const computedMaxYear = computed(() => props.maxYear ?? todayYear + 10);
+
+const isCurrentMonth = computed(() => {
+  return (
+    viewModel.value.currentYear === todayYear &&
+    viewModel.value.currentMonth === todayMonth
+  );
+});
 
 const getCellClasses = (calendarDate: CalendarDate | null) => {
   if (!calendarDate) return '';
@@ -298,21 +377,17 @@ const handleDateClick = (event: Event) => {
   const td = (event.target as HTMLElement).closest('td');
   if (!td) return;
 
-  const cellContent = td.textContent?.trim();
-  if (!cellContent) return;
+  const tr = td.parentElement as HTMLTableRowElement | null;
+  if (!tr) return;
 
-  const clickedDate = new Date(
-    viewModel.value.currentYear,
-    viewModel.value.currentMonth,
-    parseInt(cellContent)
-  );
+  const weekIndex = tr.rowIndex - 1;
+  const dayIndex = Array.from(tr.children).indexOf(td);
 
-  const dayIndex = td.parentNode
-    ? Array.from(td.parentNode.children).indexOf(td)
-    : 0;
-  engine.handleDateClick(clickedDate, dayIndex);
+  const calendarDate = viewModel.value.calendarDates[weekIndex]?.[dayIndex];
+  if (!calendarDate) return;
 
-  emit('date-select', clickedDate);
+  engine.handleDateClick(calendarDate.date, dayIndex);
+  emit('date-select', calendarDate.date);
 };
 
 const handleNext = () => {
@@ -333,22 +408,78 @@ const handlePrevious = () => {
   );
 };
 
-const handleMonthChange = (event: Event) => {
-  const select = event.target as HTMLSelectElement;
-  const month = parseInt(select.value);
+const handleClosePopup = () => {
+  engine.clearSelection();
+};
+
+const togglePicker = () => {
+  pickerOpen.value = !pickerOpen.value;
+  if (pickerOpen.value) {
+    yearInput.value = String(viewModel.value.currentYear);
+    yearInputValid.value = true;
+  }
+};
+
+const handleGoToToday = () => {
+  actions.goToToday();
+  pickerOpen.value = false;
+  emit('month-change', todayYear, todayMonth);
+};
+
+const handleYearInputChange = (event: Event) => {
+  const value = (event.target as HTMLInputElement).value;
+  if (value === '' || /^\d+$/.test(value)) {
+    yearInput.value = value;
+    const year = parseInt(value, 10);
+    yearInputValid.value =
+      value === '' ||
+      (year >= computedMinYear.value && year <= computedMaxYear.value);
+  }
+};
+
+const handleYearInputBlur = () => {
+  const year = parseInt(yearInput.value, 10);
+  if (
+    isNaN(year) ||
+    year < computedMinYear.value ||
+    year > computedMaxYear.value
+  ) {
+    yearInput.value = String(viewModel.value.currentYear);
+    yearInputValid.value = true;
+  } else {
+    actions.jump(year, viewModel.value.currentMonth);
+    emit('month-change', year, viewModel.value.currentMonth);
+  }
+};
+
+const handleYearPrev = () => {
+  const newYear = viewModel.value.currentYear - 1;
+  if (newYear >= computedMinYear.value) {
+    actions.jump(newYear, viewModel.value.currentMonth);
+    yearInput.value = String(newYear);
+    emit('month-change', newYear, viewModel.value.currentMonth);
+  }
+};
+
+const handleYearNext = () => {
+  const newYear = viewModel.value.currentYear + 1;
+  if (newYear <= computedMaxYear.value) {
+    actions.jump(newYear, viewModel.value.currentMonth);
+    yearInput.value = String(newYear);
+    emit('month-change', newYear, viewModel.value.currentMonth);
+  }
+};
+
+const handleMonthSelect = (month: number) => {
   actions.jump(viewModel.value.currentYear, month);
+  pickerOpen.value = false;
   emit('month-change', viewModel.value.currentYear, month);
 };
 
-const handleYearChange = (event: Event) => {
-  const select = event.target as HTMLSelectElement;
-  const year = parseInt(select.value);
-  actions.jump(year, viewModel.value.currentMonth);
-  emit('month-change', year, viewModel.value.currentMonth);
-};
-
-const handleClosePopup = () => {
-  engine.clearSelection();
+const handleClickOutside = (event: MouseEvent) => {
+  if (pickerRef.value && !pickerRef.value.contains(event.target as Node)) {
+    pickerOpen.value = false;
+  }
 };
 
 watch(
@@ -407,10 +538,12 @@ onMounted(() => {
   unsubscribe = engine.subscribe(() => {
     forceUpdate.value++;
   });
+  document.addEventListener('mousedown', handleClickOutside);
 });
 
 onUnmounted(() => {
   unsubscribe?.();
   engine.destroy();
+  document.removeEventListener('mousedown', handleClickOutside);
 });
 </script>

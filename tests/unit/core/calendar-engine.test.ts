@@ -373,6 +373,108 @@ describe('CalendarEngine', () => {
     });
   });
 
+  describe('Navigation - goToToday()', () => {
+    it('should navigate to current month and year', () => {
+      const engine = new CalendarEngine({
+        events: [],
+        initialDate: new Date('2020-06-15'),
+      });
+
+      const today = new Date();
+      engine.getActions().goToToday();
+      const state = engine.getState();
+
+      expect(state.currentYear).toBe(today.getFullYear());
+      expect(state.currentMonth).toBe(today.getMonth());
+    });
+
+    it('should clear selected date', () => {
+      const engine = new CalendarEngine({
+        events: [],
+        initialDate: new Date('2020-06-15'),
+      });
+
+      engine.handleDateClick(new Date('2020-06-15'), 3);
+      engine.getActions().goToToday();
+
+      const state = engine.getState();
+      expect(state.selectedDate).toBeNull();
+      expect(state.selectedDayIndex).toBeNull();
+    });
+
+    it('should notify listeners', () => {
+      const engine = new CalendarEngine({
+        events: [],
+        initialDate: new Date('2020-06-15'),
+      });
+      const listener = vi.fn();
+
+      engine.subscribe(listener);
+      engine.getActions().goToToday();
+
+      expect(listener).toHaveBeenCalled();
+    });
+
+    it('should work when already on current month', () => {
+      const engine = new CalendarEngine({ events: [] });
+      const today = new Date();
+
+      engine.getActions().goToToday();
+      const state = engine.getState();
+
+      expect(state.currentYear).toBe(today.getFullYear());
+      expect(state.currentMonth).toBe(today.getMonth());
+    });
+  });
+
+  describe('Navigation - isCurrentMonth()', () => {
+    it('should return true when viewing current month', () => {
+      const engine = new CalendarEngine({ events: [] });
+
+      expect(engine.getActions().isCurrentMonth()).toBe(true);
+    });
+
+    it('should return false when viewing different month', () => {
+      const engine = new CalendarEngine({
+        events: [],
+        initialDate: new Date('2020-06-15'),
+      });
+
+      expect(engine.getActions().isCurrentMonth()).toBe(false);
+    });
+
+    it('should return false after navigating away from current month', () => {
+      const engine = new CalendarEngine({ events: [] });
+
+      expect(engine.getActions().isCurrentMonth()).toBe(true);
+
+      engine.getActions().previous();
+      expect(engine.getActions().isCurrentMonth()).toBe(false);
+    });
+
+    it('should return true after using goToToday', () => {
+      const engine = new CalendarEngine({
+        events: [],
+        initialDate: new Date('2020-06-15'),
+      });
+
+      expect(engine.getActions().isCurrentMonth()).toBe(false);
+
+      engine.getActions().goToToday();
+      expect(engine.getActions().isCurrentMonth()).toBe(true);
+    });
+
+    it('should return false when same month but different year', () => {
+      const today = new Date();
+      const engine = new CalendarEngine({
+        events: [],
+        initialDate: new Date(today.getFullYear() - 1, today.getMonth(), 15),
+      });
+
+      expect(engine.getActions().isCurrentMonth()).toBe(false);
+    });
+  });
+
   describe('Date Selection', () => {
     it('should select a date with dayIndex', () => {
       const engine = new CalendarEngine({ events: [] });

@@ -109,6 +109,7 @@ export const DatePopup: React.FC<DatePopupProps> = ({
   events,
   scheduleDay,
   onClose,
+  onEventClick,
   renderEvent,
   renderNoEvents,
   showCloseButton = true,
@@ -119,6 +120,10 @@ export const DatePopup: React.FC<DatePopupProps> = ({
   if (!selectedDate) return null;
 
   const showScrollHint = events.length > 3;
+
+  const handleEventClick = (event: DatePopupProps['events'][number]) => {
+    onEventClick?.(event);
+  };
 
   const defaultRenderEvent = (event: DatePopupProps['events'][number]) => {
     const timeRange = formatTimeRange(event);
@@ -132,14 +137,8 @@ export const DatePopup: React.FC<DatePopupProps> = ({
       }
     };
 
-    return (
-      <View
-        key={event.id || event.name}
-        style={[
-          calendarStyles.eventCard,
-          event.color && { borderLeftColor: event.color },
-        ]}
-      >
+    const eventContent = (
+      <>
         <View style={calendarStyles.eventHeader}>
           <Text style={calendarStyles.eventTitle}>{event.name}</Text>
           <View style={calendarStyles.eventBadges}>
@@ -208,6 +207,34 @@ export const DatePopup: React.FC<DatePopupProps> = ({
             ))}
           </View>
         )}
+      </>
+    );
+
+    if (onEventClick) {
+      return (
+        <TouchableOpacity
+          key={event.id || event.name}
+          style={[
+            calendarStyles.eventCard,
+            event.color && { borderLeftColor: event.color },
+          ]}
+          onPress={() => handleEventClick(event)}
+          activeOpacity={0.7}
+        >
+          {eventContent}
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <View
+        key={event.id || event.name}
+        style={[
+          calendarStyles.eventCard,
+          event.color && { borderLeftColor: event.color },
+        ]}
+      >
+        {eventContent}
       </View>
     );
   };
