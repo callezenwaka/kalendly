@@ -18,6 +18,11 @@ export class VanillaCalendar implements VanillaCalendarInstance {
   private yearInput: string = '';
   private yearInputValid: boolean = true;
   private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
+  private delegatedClickHandler: ((e: MouseEvent) => void) | null = null;
+  private delegatedInputHandler: ((e: Event) => void) | null = null;
+  private delegatedBlurHandler: ((e: FocusEvent) => void) | null = null;
+  private delegatedKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  private listenersAttached: boolean = false;
 
   constructor(props: VanillaCalendarProps) {
     this.props = props;
@@ -426,215 +431,205 @@ export class VanillaCalendar implements VanillaCalendarInstance {
   }
 
   private attachEventListeners(): void {
+    // Only attach delegated listeners once
+    if (this.listenersAttached) return;
+    this.listenersAttached = true;
+
     const today = new Date();
     const todayYear = today.getFullYear();
     const todayMonth = today.getMonth();
     const minYear = this.props.minYear ?? todayYear - 30;
     const maxYear = this.props.maxYear ?? todayYear + 10;
 
-    // Calendar body click handler
-    const tableBody = this.container.querySelector('[data-calendar-body]');
-    if (tableBody) {
-      tableBody.addEventListener('click', e => {
-        const target = e.target as HTMLElement;
-        const cell = target.closest('td[data-clickable="true"]') as HTMLElement;
+    // Single delegated click handler for all actions
+    this.delegatedClickHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
 
-        if (cell && cell.dataset.date) {
-          const date = new Date(cell.dataset.date);
-          const dayIndex = parseInt(cell.dataset.dayIndex || '0');
-          this.engine.handleDateClick(date, dayIndex);
+      // Handle calendar date clicks
+      const cell = target.closest('td[data-clickable="true"]') as HTMLElement;
+      if (cell && cell.dataset.date) {
+        e.stopPropagation(); // Prevent document handler from clearing selection after render
+        const date = new Date(cell.dataset.date);
+        const dayIndex = parseInt(cell.dataset.dayIndex || '0');
+        this.engine.handleDateClick(date, dayIndex);
+        this.container.dispatchEvent(
+          new CustomEvent('dateSelect', { detail: { date, dayIndex } })
+        );
+        return;
+      }
 
+      // Handle button actions via data-action attribute
+      const actionEl = target.closest('[data-action]') as HTMLElement;
+      if (!actionEl) return;
+
+      const action = actionEl.dataset.action;
+      e.stopPropagation();
+
+      switch (action) {
+        case 'previous':
+          this.actions.previous();
+          this.dispatchMonthChange();
+          break;
+
+        case 'next':
+          this.actions.next();
+          this.dispatchMonthChange();
+          break;
+
+        case 'today':
+          this.actions.goToToday();
+          this.pickerOpen = false;
           this.container.dispatchEvent(
-            new CustomEvent('dateSelect', {
-              detail: { date, dayIndex },
+            new CustomEvent('monthChange', {
+              detail: { year: todayYear, month: todayMonth },
             })
           );
-        }
-      });
-    }
+          break;
 
-    // Previous/Next navigation
-    const prevBtn = this.container.querySelector('[data-action="previous"]');
-    const nextBtn = this.container.querySelector('[data-action="next"]');
-
-    if (prevBtn) {
-      prevBtn.addEventListener('click', () => {
-        this.actions.previous();
-        this.dispatchMonthChange();
-      });
-    }
-
-    if (nextBtn) {
-      nextBtn.addEventListener('click', () => {
-        this.actions.next();
-        this.dispatchMonthChange();
-      });
-    }
-
-    // Today button
-    const todayBtn = this.container.querySelector('[data-action="today"]');
-    if (todayBtn) {
-      todayBtn.addEventListener('click', () => {
-        this.actions.goToToday();
-        this.pickerOpen = false;
-        this.container.dispatchEvent(
-          new CustomEvent('monthChange', {
-            detail: { year: todayYear, month: todayMonth },
-          })
-        );
-      });
-    }
-
-    // Picker toggle
-    const pickerBtn = this.container.querySelector(
-      '[data-action="toggle-picker"]'
-    );
-    if (pickerBtn) {
-      pickerBtn.addEventListener('click', e => {
-        e.stopPropagation(); // Prevent document click handler from immediately closing picker
-        this.pickerOpen = !this.pickerOpen;
-        if (this.pickerOpen) {
-          this.yearInput = String(this.engine.getViewModel().currentYear);
-          this.yearInputValid = true;
-        }
-        this.render();
-      });
-    }
-
-    // Year navigation in picker
-    const yearPrevBtn = this.container.querySelector(
-      '[data-action="year-prev"]'
-    );
-    const yearNextBtn = this.container.querySelector(
-      '[data-action="year-next"]'
-    );
-
-    if (yearPrevBtn) {
-      yearPrevBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        const vm = this.engine.getViewModel();
-        if (vm.currentYear > minYear) {
-          this.actions.jump(vm.currentYear - 1, vm.currentMonth);
-          this.yearInput = String(vm.currentYear - 1);
-          this.dispatchMonthChange();
-        }
-      });
-    }
-
-    if (yearNextBtn) {
-      yearNextBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        const vm = this.engine.getViewModel();
-        if (vm.currentYear < maxYear) {
-          this.actions.jump(vm.currentYear + 1, vm.currentMonth);
-          this.yearInput = String(vm.currentYear + 1);
-          this.dispatchMonthChange();
-        }
-      });
-    }
-
-    // Year input in picker
-    const yearInputEl = this.container.querySelector(
-      '[data-year-input]'
-    ) as HTMLInputElement;
-    if (yearInputEl) {
-      yearInputEl.addEventListener('input', e => {
-        e.stopPropagation();
-        const value = (e.target as HTMLInputElement).value;
-        if (value === '' || /^\d+$/.test(value)) {
-          this.yearInput = value;
-          const year = parseInt(value, 10);
-          this.yearInputValid =
-            value === '' || (year >= minYear && year <= maxYear);
+        case 'toggle-picker':
+          this.pickerOpen = !this.pickerOpen;
+          if (this.pickerOpen) {
+            this.yearInput = String(this.engine.getViewModel().currentYear);
+            this.yearInputValid = true;
+          }
           this.render();
-        }
-      });
+          break;
 
-      yearInputEl.addEventListener('blur', e => {
-        e.stopPropagation();
-        const year = parseInt(this.yearInput, 10);
-        const vm = this.engine.getViewModel();
-        if (isNaN(year) || year < minYear || year > maxYear) {
-          this.yearInput = String(vm.currentYear);
-          this.yearInputValid = true;
-        } else {
-          this.actions.jump(year, vm.currentMonth);
+        case 'year-prev': {
+          const vm = this.engine.getViewModel();
+          if (vm.currentYear > minYear) {
+            const newYear = vm.currentYear - 1;
+            this.yearInput = String(newYear);
+            this.updatePickerYear(newYear);
+            this.actions.jump(newYear, vm.currentMonth);
+            this.dispatchMonthChange();
+          }
+          break;
+        }
+
+        case 'year-next': {
+          const vm = this.engine.getViewModel();
+          if (vm.currentYear < maxYear) {
+            const newYear = vm.currentYear + 1;
+            this.yearInput = String(newYear);
+            this.updatePickerYear(newYear);
+            this.actions.jump(newYear, vm.currentMonth);
+            this.dispatchMonthChange();
+          }
+          break;
+        }
+
+        case 'select-month': {
+          const month = parseInt(actionEl.dataset.month || '0', 10);
+          this.actions.jump(this.engine.getViewModel().currentYear, month);
+          this.pickerOpen = false;
           this.dispatchMonthChange();
+          break;
         }
-        this.render();
-      });
 
-      yearInputEl.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          yearInputEl.blur();
-        }
-      });
-    }
+        case 'close-popup':
+          this.engine.clearSelection();
+          break;
+      }
+    };
 
-    // Month selection in picker
-    const monthBtns = this.container.querySelectorAll(
-      '[data-action="select-month"]'
-    );
-    monthBtns.forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const month = parseInt((btn as HTMLElement).dataset.month || '0', 10);
-        this.actions.jump(this.engine.getViewModel().currentYear, month);
-        this.pickerOpen = false;
+    // Delegated input handler for year input
+    this.delegatedInputHandler = (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      if (!target.matches('[data-year-input]')) return;
+
+      const value = target.value;
+      if (value === '' || /^\d+$/.test(value)) {
+        this.yearInput = value;
+        const year = parseInt(value, 10);
+        this.yearInputValid =
+          value === '' || (year >= minYear && year <= maxYear);
+        // Update input styling without full re-render
+        target.classList.toggle('invalid', !this.yearInputValid);
+      }
+    };
+
+    // Delegated blur handler for year input
+    this.delegatedBlurHandler = (e: FocusEvent) => {
+      const target = e.target as HTMLInputElement;
+      if (!target.matches('[data-year-input]')) return;
+
+      const year = parseInt(this.yearInput, 10);
+      const vm = this.engine.getViewModel();
+      if (isNaN(year) || year < minYear || year > maxYear) {
+        this.yearInput = String(vm.currentYear);
+        this.yearInputValid = true;
+        target.value = this.yearInput;
+        target.classList.remove('invalid');
+      } else if (year !== vm.currentYear) {
+        this.actions.jump(year, vm.currentMonth);
         this.dispatchMonthChange();
-      });
-    });
+      }
+    };
 
-    // Close popup button
-    const closeBtn = this.container.querySelector(
-      '[data-action="close-popup"]'
-    );
-    if (closeBtn) {
-      closeBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        this.engine.clearSelection();
-      });
-    }
+    // Delegated keydown handler for year input
+    this.delegatedKeydownHandler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLInputElement;
+      if (!target.matches('[data-year-input]')) return;
+      if (e.key === 'Enter') {
+        target.blur();
+      }
+    };
+
+    // Attach delegated listeners to container
+    this.container.addEventListener('click', this.delegatedClickHandler);
+    this.container.addEventListener('input', this.delegatedInputHandler);
+    this.container.addEventListener('blur', this.delegatedBlurHandler, true);
+    this.container.addEventListener('keydown', this.delegatedKeydownHandler);
 
     // Click outside handler for picker and popup
-    if (this.clickOutsideHandler) {
-      document.removeEventListener('click', this.clickOutsideHandler);
-    }
-
     this.clickOutsideHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      // Prevent closing picker if click is on the picker button
-      const pickerBtn = this.container.querySelector(
-        '[data-action="toggle-picker"]'
-      );
-      if (pickerBtn && (target === pickerBtn || pickerBtn.contains(target))) {
-        return;
-      }
+
+      // Ignore clicks inside container (handled by delegated handler)
+      if (this.container.contains(target)) return;
+
       // Close picker on outside click
-      const pickerContainer = this.container.querySelector(
-        '[data-picker-container]'
-      );
-      if (
-        this.pickerOpen &&
-        pickerContainer &&
-        !pickerContainer.contains(target)
-      ) {
+      if (this.pickerOpen) {
         this.pickerOpen = false;
         this.render();
         return;
       }
+
       // Close popup on outside click
       const popup = this.container.querySelector('.date-popup');
-      if (
-        popup &&
-        !popup.contains(target) &&
-        !target.closest('[data-calendar-body]')
-      ) {
+      if (popup) {
         this.engine.clearSelection();
       }
     };
 
     document.addEventListener('click', this.clickOutsideHandler);
+  }
+
+  // Targeted update for picker year - avoids full DOM rebuild
+  private updatePickerYear(year: number): void {
+    const input = this.container.querySelector(
+      '[data-year-input]'
+    ) as HTMLInputElement;
+    if (input) {
+      input.value = String(year);
+    }
+
+    // Update year arrow disabled states
+    const today = new Date();
+    const todayYear = today.getFullYear();
+    const minYear = this.props.minYear ?? todayYear - 30;
+    const maxYear = this.props.maxYear ?? todayYear + 10;
+
+    const prevBtn = this.container.querySelector(
+      '[data-action="year-prev"]'
+    ) as HTMLButtonElement;
+    const nextBtn = this.container.querySelector(
+      '[data-action="year-next"]'
+    ) as HTMLButtonElement;
+
+    if (prevBtn) prevBtn.disabled = year <= minYear;
+    if (nextBtn) nextBtn.disabled = year >= maxYear;
   }
 
   private dispatchMonthChange(): void {
@@ -673,11 +668,36 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       this.unsubscribe = null;
     }
 
+    // Clean up delegated listeners
+    if (this.delegatedClickHandler) {
+      this.container.removeEventListener('click', this.delegatedClickHandler);
+      this.delegatedClickHandler = null;
+    }
+    if (this.delegatedInputHandler) {
+      this.container.removeEventListener('input', this.delegatedInputHandler);
+      this.delegatedInputHandler = null;
+    }
+    if (this.delegatedBlurHandler) {
+      this.container.removeEventListener(
+        'blur',
+        this.delegatedBlurHandler,
+        true
+      );
+      this.delegatedBlurHandler = null;
+    }
+    if (this.delegatedKeydownHandler) {
+      this.container.removeEventListener(
+        'keydown',
+        this.delegatedKeydownHandler
+      );
+      this.delegatedKeydownHandler = null;
+    }
     if (this.clickOutsideHandler) {
       document.removeEventListener('click', this.clickOutsideHandler);
       this.clickOutsideHandler = null;
     }
 
+    this.listenersAttached = false;
     this.engine.destroy();
     this.container.innerHTML = '';
     this.container.classList.remove('kalendly-calendar');
