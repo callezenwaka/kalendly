@@ -32,6 +32,15 @@ A universal calendar web component — works in React, Vue, Svelte, Angular, Sol
   <a href="https://kalendly-example.netlify.app/vue">
     <img src="https://img.shields.io/badge/Vue-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white" alt="Vue Demo"/>
   </a>
+  <a href="https://kalendly-example.netlify.app/angular">
+    <img src="https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white" alt="Angular Demo"/>
+  </a>
+  <a href="https://kalendly-example.netlify.app/svelte">
+    <img src="https://img.shields.io/badge/Svelte-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" alt="Svelte Demo"/>
+  </a>
+  <a href="https://kalendly-example.netlify.app/solid">
+    <img src="https://img.shields.io/badge/Solid.js-2C4F7C?style=for-the-badge&logo=solid&logoColor=white" alt="Solid.js Demo"/>
+  </a>
 </p>
 
 ## Installation
