@@ -7,7 +7,6 @@ pnpm-debug.log*
 
 # Production build
 dist/
-dist-examples/
 build/
 *.tgz
 
@@ -92,3 +91,8 @@ jspm_packages/
 # Temporary folders
 tmp/
 temp/
+
+# Spec files
+spec-v*.md
+docs/dist/
+dist-examples/

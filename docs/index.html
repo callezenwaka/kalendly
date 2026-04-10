@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>kalendly — Universal Calendar Web Component</title>
+  <link rel="icon" type="image/x-icon" href="examples/assets/favicon.ico">
+  <link rel="stylesheet" href="/dist/styles/calendar.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+      color: white;
+      padding: 64px 20px 48px;
+      text-align: center;
+    }
+
+    .hero img {
+      height: 48px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .hero h1 span { color: #fc8917; }
+
+    .hero p {
+      margin: 0 auto 28px;
+      max-width: 520px;
+      font-size: 17px;
+      color: #9ca3af;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: #fc8917;
+      color: white;
+      padding: 12px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      transition: background 0.2s;
+    }
+
+    .btn-primary:hover { background: #e67612; }
+
+    .btn-secondary {
+      background: transparent;
+      color: white;
+      padding: 12px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      border: 1.5px solid #374151;
+      transition: border-color 0.2s;
+    }
+
+    .btn-secondary:hover { border-color: #9ca3af; }
+
+    /* Install */
+    .install-bar {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      text-align: center;
+      padding: 16px 20px;
+      font-family: monospace;
+      font-size: 15px;
+      letter-spacing: 0.3px;
+    }
+
+    .install-bar span { color: #9ca3af; margin-right: 8px; }
+
+    /* Features */
+    .section {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 56px 20px;
+    }
+
+    .section h2 {
+      text-align: center;
+      font-size: 26px;
+      margin: 0 0 40px;
+      color: #111827;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .feature {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .feature h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      color: #111827;
+    }
+
+    .feature p {
+      margin: 0;
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    /* Live preview */
+    .preview-section {
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .preview-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 56px 20px;
+    }
+
+    .preview-inner h2 {
+      text-align: center;
+      font-size: 26px;
+      margin: 0 0 32px;
+    }
+
+    .preview-inner kal-calendar {
+      display: block;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Framework cards */
+    .frameworks {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .fw-card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .fw-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .fw-header {
+      padding: 16px 20px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .fw-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .fw-dot--vanilla  { background: #fc8917; }
+    .fw-dot--react    { background: #61dafb; }
+    .fw-dot--vue      { background: #42b883; }
+    .fw-dot--svelte   { background: #ff3e00; }
+    .fw-dot--angular  { background: #dd0031; }
+    .fw-dot--solid    { background: #2c4f7c; }
+
+    .fw-header h3 { margin: 0; font-size: 15px; }
+    .fw-header span { margin-left: auto; font-size: 12px; color: #6b7280; }
+
+    .fw-code {
+      margin: 0;
+      padding: 14px 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    .fw-code .kw  { color: #569cd6; }
+    .fw-code .str { color: #ce9178; }
+    .fw-code .tag { color: #4ec9b0; }
+
+    .fw-footer {
+      padding: 12px 20px;
+      font-size: 13px;
+      color: #fc8917;
+      font-weight: 600;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 32px 20px;
+      font-size: 13px;
+      color: #9ca3af;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    footer a { color: #6b7280; text-decoration: none; }
+    footer a:hover { color: #111827; }
+    footer .sep { margin: 0 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <header class="hero">
+    <!-- <img src="examples/assets/kalendly.png" alt="kalendly logo"> -->
+    <h1>One component. <span>Every framework.</span></h1>
+    <p>A universal calendar web component that works natively in React, Vue, Angular, and plain HTML — with no framework dependency.</p>
+    <div class="hero-actions">
+      <a href="/examples/vanilla/index.html" class="btn-primary">View Live Demos</a>
+      <a href="https://github.com/callezenwaka/kalendly" class="btn-secondary">GitHub</a>
+    </div>
+  </header>
+
+  <!-- Install -->
+  <div class="install-bar">
+    <span>$</span>npm install kalendly
+  </div>
+
+  <!-- Features -->
+  <section class="section">
+    <h2>Why kalendly?</h2>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🧩</div>
+        <h3>Framework-agnostic</h3>
+        <p>Single <code>&lt;kal-calendar&gt;</code> custom element. No React, Vue, or Angular required.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h3>Type Safe</h3>
+        <p>Written in TypeScript with full type definitions included.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎨</div>
+        <h3>Themeable</h3>
+        <p>CSS variables + JS property API for complete visual customisation.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📅</div>
+        <h3>Event-rich</h3>
+        <p>Categories, priorities, time ranges, attendees, locations, and more.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📦</div>
+        <h3>Lightweight</h3>
+        <p>Zero runtime dependencies. Tree-shakeable ESM + CJS + UMD builds.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">♿</div>
+        <h3>Accessible</h3>
+        <p>Semantic HTML, keyboard navigation, and screen-reader friendly markup.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live preview -->
+  <div class="preview-section">
+    <div class="preview-inner">
+      <h2>Live Preview</h2>
+      <kal-calendar id="preview-cal" title="kalendly Preview"></kal-calendar>
+    </div>
+  </div>
+
+  <!-- Framework cards -->
+  <section class="section">
+    <h2>Works everywhere</h2>
+    <div class="frameworks">
+
+      <a href="/examples/vanilla/index.html" class="fw-card">
+        <div class="fw-header">
+          <div class="fw-dot fw-dot--vanilla"></div>
+          <h3>Vanilla JS</h3>
+          <span>No bundler needed</span>
+        </div>
+        <pre class="fw-code">&lt;<span class="tag">kal-calendar</span>
+  title=<span class="str">"My Calendar"</span>
+&gt;&lt;/<span class="tag">kal-calendar</span>&gt;
+
+&lt;<span class="tag">script</span>&gt;
+  cal.events = myEvents;
+&lt;/<span class="tag">script</span>&gt;</pre>
+        <div class="fw-footer">View demo →</div>
+      </a>
+
+      <a href="/examples/react/index.html" class="fw-card">
+        <div class="fw-header">
+          <div class="fw-dot fw-dot--react"></div>
+          <h3>React 19</h3>
+          <span>Native support</span>
+        </div>
+        <pre class="fw-code"><span class="kw">import</span> <span class="str">'kalendly'</span>;
+
+&lt;<span class="tag">kal-calendar</span>
+  events={events}
+  oncal-date-select={
+    e => onSelect(e)
+  }
+/&gt;</pre>
+        <div class="fw-footer">View demo →</div>
+      </a>
+
+      <a href="/examples/vue/index.html" class="fw-card">
+        <div class="fw-header">
+          <div class="fw-dot fw-dot--vue"></div>
+          <h3>Vue 3</h3>
+          <span>Native support</span>
+        </div>
+        <pre class="fw-code"><span class="kw">import</span> <span class="str">'kalendly'</span>;
+
+&lt;<span class="tag">kal-calendar</span>
+  :events=<span class="str">"events"</span>
+  @cal-date-select=
+    <span class="str">"onSelect"</span>
+/&gt;</pre>
+        <div class="fw-footer">View demo →</div>
+      </a>
+
+      <a href="/examples/svelte/index.html" class="fw-card">
+        <div class="fw-header">
+          <div class="fw-dot fw-dot--svelte"></div>
+          <h3>Svelte 5</h3>
+          <span>Runes syntax</span>
+        </div>
+        <pre class="fw-code"><span class="kw">import</span> <span class="str">'kalendly'</span>;
+
+&lt;<span class="tag">kal-calendar</span>
+  {events}
+  oncal-date-select={
+    handleSelect
+  }
+/&gt;</pre>
+        <div class="fw-footer">View demo →</div>
+      </a>
+
+      <a href="/examples/angular/index.html" class="fw-card">
+        <div class="fw-header">
+          <div class="fw-dot fw-dot--angular"></div>
+          <h3>Angular</h3>
+          <span>schemas config</span>
+        </div>
+        <pre class="fw-code"><span class="kw">import</span> <span class="str">'kalendly'</span>;
+
+&lt;<span class="tag">kal-calendar</span>
+  [events]=<span class="str">"events"</span>
+  (cal-date-select)=
+    <span class="str">"onSelect($event)"</span>
+&gt;&lt;/<span class="tag">kal-calendar</span>&gt;</pre>
+        <div class="fw-footer">View demo →</div>
+      </a>
+
+      <a href="/examples/solid/index.html" class="fw-card">
+        <div class="fw-header">
+          <div class="fw-dot fw-dot--solid"></div>
+          <h3>Solid.js</h3>
+          <span>prop:events syntax</span>
+        </div>
+        <pre class="fw-code"><span class="kw">import</span> <span class="str">'kalendly'</span>;
+
+&lt;<span class="tag">kal-calendar</span>
+  prop:events={events}
+  on:cal-date-select={
+    handleSelect
+  }
+/&gt;</pre>
+        <div class="fw-footer">View demo →</div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <a href="https://github.com/callezenwaka/kalendly">GitHub</a>
+    <span class="sep">·</span>
+    <a href="https://www.npmjs.com/package/kalendly">npm</a>
+    <span class="sep">·</span>
+    <a href="https://github.com/callezenwaka/kalendly#readme">API Docs</a>
+    <span class="sep">·</span>
+    MIT © Callis Ezenwaka
+  </footer>
+
+  <script src="/dist/index.umd.js"></script>
+  <script>
+    const cal = document.getElementById('preview-cal');
+    const now = new Date();
+    cal.events = [
+      { id: 1, name: 'Team Standup', date: new Date(now.getFullYear(), now.getMonth(), 8), startTime: '09:00', endTime: '09:30', category: 'meeting', color: '#10b981' },
+      { id: 2, name: 'Project Deadline', date: new Date(now.getFullYear(), now.getMonth(), 15), category: 'deadline', color: '#ef4444', priority: 'high' },
+      { id: 3, name: 'Code Review', date: new Date(now.getFullYear(), now.getMonth(), 15), startTime: '14:00', category: 'work', color: '#3b82f6' },
+      { id: 4, name: 'Sprint Planning', date: new Date(now.getFullYear(), now.getMonth(), 21), startTime: '13:00', endTime: '15:00', category: 'meeting', color: '#8b5cf6' },
+      { id: 5, name: 'Team Building', date: new Date(now.getFullYear(), now.getMonth(), 25), category: 'other', color: '#f59e0b' },
+    ];
+  </script>
+</body>
+</html>

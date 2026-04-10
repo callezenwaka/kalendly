@@ -1,36 +1,67 @@
 name: Publish to npm
 
+# Triggers on any v* tag — push the tag manually or via a release.
+# The workflow reads the tag, bumps package.json to match, commits it
+# back to main, then builds and publishes to npm.
+#
+# Required secrets:
+#   AUTOMATION_TOKEN — fine-grained PAT with Contents: Read & write
+#                      + Workflows: Read & write on this repo
+#                      (used to push the version-bump commit back to main)
+#   NODE_AUTH_TOKEN  — npm access token for publishing (set in repo settings
+#                      as NPM_TOKEN, referenced below)
+
 on:
   push:
     tags:
       - 'v*'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
       id-token: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AUTOMATION_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Upgrade npm for trusted publishing
-        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Type check
+        run: npm run type-check
+
       - name: Run tests
-        run: npm test
+        run: npm run test:run
+
+      - name: Set version from tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          npm version "$VERSION" --no-git-tag-version
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npm install --package-lock-only
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to ${{ github.ref_name }}"
+          git push origin HEAD:main
 
       - name: Build package
         run: npm run build
@@ -39,4 +70,4 @@ jobs:
         run: npm run test:package
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: npm publish --access public --provenance

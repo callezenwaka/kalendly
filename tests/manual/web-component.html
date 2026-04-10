@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalendly — Web Component Manual Test</title>
+
+  <!-- 1. Load the stylesheet -->
+  <link rel="stylesheet" href="../../dist/styles/calendar.css">
+
+  <!-- 2. Load UMD bundle — auto-registers <kal-calendar> and exposes window.Kalendly -->
+  <script src="../../dist/index.umd.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 20px;
+      color: #1e293b;
+    }
+
+    .page-header {
+      background: linear-gradient(135deg, #fc8917 0%, #fca045 100%);
+      color: white;
+      padding: 28px 32px;
+      margin: -20px -20px 24px;
+      box-shadow: 0 4px 12px rgba(252,137,23,.3);
+    }
+
+    .page-header h1 { margin: 0; font-size: 28px; }
+    .page-header p  { margin: 6px 0 0; opacity: .9; font-size: 14px; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .panel h2 {
+      margin: 0 0 16px;
+      font-size: 16px;
+      color: #374151;
+      border-bottom: 2px solid #fc8917;
+      padding-bottom: 8px;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      background: #fc8917;
+      color: white;
+      border: none;
+      padding: 9px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background .15s, transform .1s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    button:hover  { background: #e07810; transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button.danger { background: #ef4444; }
+    button.danger:hover { background: #dc2626; }
+    button.green  { background: #10b981; }
+    button.green:hover  { background: #059669; }
+    button.blue   { background: #3b82f6; }
+    button.blue:hover   { background: #2563eb; }
+
+    .log {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      height: 240px;
+      overflow-y: auto;
+    }
+
+    .log-line { padding: 2px 0; border-bottom: 1px solid #1e293b; }
+    .log-line:last-child { border: none; }
+    .log-line .ts   { color: #64748b; }
+    .log-line.ok    { color: #86efac; }
+    .log-line.err   { color: #fca5a5; }
+    .log-line.info  { color: #93c5fd; }
+    .log-line.warn  { color: #fde68a; }
+
+    .badge-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .badge .dot.green  { background: #10b981; }
+    .badge .dot.orange { background: #fc8917; }
+    .badge .dot.red    { background: #ef4444; }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Kalendly v2 — Web Component Test</h1>
+  <p>Manual smoke test: UMD script-tag loading &amp; <code>&lt;kal-calendar&gt;</code> custom element</p>
+</div>
+
+<div class="layout">
+
+  <!-- Left: controls -->
+  <div>
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Status</h2>
+      <div class="badge-row">
+        <div class="badge" id="badge-registered">
+          <span class="dot red" id="dot-registered"></span>
+          <span id="label-registered">Registering…</span>
+        </div>
+        <div class="badge" id="badge-global">
+          <span class="dot red" id="dot-global"></span>
+          <span id="label-global">window.Kalendly</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Events</h2>
+      <div class="btn-grid">
+        <button id="btn-add">Add Event</button>
+        <button id="btn-load" class="green">Load Sample Data</button>
+        <button id="btn-clear" class="danger">Clear Events</button>
+        <button id="btn-today" class="blue">Go to Today</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Theme</h2>
+      <div class="btn-grid">
+        <button id="btn-theme-default">Default (Orange)</button>
+        <button id="btn-theme-blue"   class="blue">Blue</button>
+        <button id="btn-theme-green"  class="green">Green</button>
+        <button id="btn-theme-purple">Purple</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>API / Diagnostics</h2>
+      <div class="btn-grid">
+        <button id="btn-get-date">getCurrentDate()</button>
+        <button id="btn-get-engine" class="green">getEngine()</button>
+        <button id="btn-run-all" class="green" style="grid-column:1/-1">Run All Checks</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Console</h2>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <!-- Right: the calendar element -->
+  <div class="panel">
+    <kal-calendar
+      id="calendar"
+      title="Web Component Test"
+      initial-date="2025-01-15"
+    ></kal-calendar>
+  </div>
+
+</div>
+
+<script>
+  // ─── helpers ────────────────────────────────────────────────────────────────
+  const logEl = document.getElementById('log');
+
+  function log(msg, type = 'info') {
+    const line = document.createElement('div');
+    line.className = `log-line ${type}`;
+    const ts = new Date().toLocaleTimeString();
+    line.innerHTML = `<span class="ts">[${ts}]</span> ${msg}`;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setBadge(id, ok, label) {
+    document.getElementById(`dot-${id}`).className = `dot ${ok ? 'green' : 'red'}`;
+    if (label) document.getElementById(`label-${id}`).textContent = label;
+  }
+
+  // ─── registration check ──────────────────────────────────────────────────────
+  // UMD auto-registers asynchronously; poll briefly
+  function checkRegistration() {
+    const defined = !!customElements.get('kal-calendar');
+    const global  = !!(window.Kalendly && window.Kalendly.CalendarElement);
+
+    setBadge('registered', defined, defined ? 'kal-calendar ✓' : 'Registering…');
+    setBadge('global',     global,  global  ? 'window.Kalendly ✓' : 'window.Kalendly missing');
+
+    if (!defined) setTimeout(checkRegistration, 100);
+    else log('&lt;kal-calendar&gt; registered in customElements registry', 'ok');
+
+    if (global) log('window.Kalendly.CalendarElement exposed', 'ok');
+  }
+
+  setTimeout(checkRegistration, 50);
+
+  // ─── the element ─────────────────────────────────────────────────────────────
+  const el = document.getElementById('calendar');
+
+  const SAMPLE_EVENTS = [
+    {
+      id: 1, name: 'Team Standup', date: '2025-01-15',
+      startTime: '09:00', endTime: '09:30',
+      category: 'meeting', priority: 'high',
+      attendees: ['Alice', 'Bob', 'Carol'],
+      location: 'Zoom', tags: ['daily'],
+    },
+    {
+      id: 2, name: 'Project Deadline', date: '2025-01-20',
+      category: 'deadline', priority: 'high',
+      description: 'Q1 deliverables due', tags: ['important'],
+    },
+    {
+      id: 3, name: 'Code Review', date: '2025-01-15',
+      startTime: '14:00', endTime: '15:00',
+      category: 'work', status: 'completed',
+      location: 'GitHub', tags: ['dev'],
+    },
+  ];
+
+  let events = [...SAMPLE_EVENTS];
+  el.events = events;
+
+  // ─── custom event listeners ───────────────────────────────────────────────────
+  el.addEventListener('cal-date-select', (e) => {
+    const { date, events: evts } = e.detail;
+    log(`cal-date-select → ${date.toDateString()} (${evts.length} event${evts.length !== 1 ? 's' : ''})`, 'ok');
+  });
+
+  el.addEventListener('cal-month-change', (e) => {
+    const { year, month } = e.detail;
+    log(`cal-month-change → ${year}-${String(month + 1).padStart(2, '0')}`, 'info');
+  });
+
+  // ─── buttons ─────────────────────────────────────────────────────────────────
+  document.getElementById('btn-add').addEventListener('click', () => {
+    const names = ['Sprint Planning', 'Design Review', 'Lunch', '1:1', 'Retro'];
+    const cats  = ['meeting', 'work', 'personal'];
+    const d = new Date();
+    d.setDate(d.getDate() + Math.floor(Math.random() * 28));
+
+    const ev = {
+      id: Date.now(),
+      name: names[Math.floor(Math.random() * names.length)],
+      date: d.toISOString().slice(0, 10),
+      category: cats[Math.floor(Math.random() * cats.length)],
+      priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+      tags: ['generated'],
+    };
+    events.push(ev);
+    el.events = [...events];
+    log(`Added: "${ev.name}" on ${ev.date}`, 'ok');
+  });
+
+  document.getElementById('btn-load').addEventListener('click', () => {
+    events = [...SAMPLE_EVENTS];
+    el.events = events;
+    log(`Loaded ${events.length} sample events`, 'ok');
+  });
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    events = [];
+    el.events = [];
+    log('Cleared all events', 'warn');
+  });
+
+  document.getElementById('btn-today').addEventListener('click', () => {
+    el.goToDate(new Date());
+    log(`Navigated to today (${new Date().toDateString()})`, 'info');
+  });
+
+  // themes
+  const THEMES = {
+    default: { primary: '#fc8917', secondary: '#fca045', tertiary: '#fdb873' },
+    blue:    { primary: '#3b82f6', secondary: '#60a5fa', tertiary: '#93c5fd' },
+    green:   { primary: '#10b981', secondary: '#34d399', tertiary: '#6ee7b7' },
+    purple:  { primary: '#8b5cf6', secondary: '#a78bfa', tertiary: '#c4b5fd' },
+  };
+
+  document.getElementById('btn-theme-default').addEventListener('click', () => { el.theme = THEMES.default; log('Theme → default (orange)', 'info'); });
+  document.getElementById('btn-theme-blue'   ).addEventListener('click', () => { el.theme = THEMES.blue;    log('Theme → blue',            'info'); });
+  document.getElementById('btn-theme-green'  ).addEventListener('click', () => { el.theme = THEMES.green;   log('Theme → green',           'info'); });
+  document.getElementById('btn-theme-purple' ).addEventListener('click', () => { el.theme = THEMES.purple;  log('Theme → purple',          'info'); });
+
+  document.getElementById('btn-get-date').addEventListener('click', () => {
+    const d = el.getCurrentDate();
+    log(`getCurrentDate() → ${d ? d.toDateString() : 'null (no selection)'}`, 'info');
+  });
+
+  document.getElementById('btn-get-engine').addEventListener('click', () => {
+    try {
+      const engine = el.getEngine();
+      const vm = engine.getViewModel();
+      log(`getEngine() → CalendarEngine  year=${vm.currentYear}  month=${vm.currentMonth}  events=${engine.getEventsForDate(vm.selectedDate || new Date()).length}`, 'ok');
+    } catch (e) {
+      log(`getEngine() error: ${e.message}`, 'err');
+    }
+  });
+
+  document.getElementById('btn-run-all').addEventListener('click', () => {
+    log('── Running all checks ──────────────────', 'info');
+
+    // 1. custom element registered
+    const registered = !!customElements.get('kal-calendar');
+    log(`[1] customElements.get("kal-calendar") → ${registered ? 'PASS' : 'FAIL'}`, registered ? 'ok' : 'err');
+
+    // 2. window.Kalendly global
+    const hasGlobal = !!(window.Kalendly && window.Kalendly.CalendarElement);
+    log(`[2] window.Kalendly.CalendarElement    → ${hasGlobal ? 'PASS' : 'FAIL'}`, hasGlobal ? 'ok' : 'err');
+
+    // 3. element is in DOM and connected
+    const connected = el.isConnected;
+    log(`[3] element.isConnected                → ${connected ? 'PASS' : 'FAIL'}`, connected ? 'ok' : 'err');
+
+    // 4. kalendly-calendar CSS class applied
+    const hasClass = el.classList.contains('kalendly-calendar');
+    log(`[4] klassList has "kalendly-calendar"  → ${hasClass ? 'PASS' : 'FAIL'}`, hasClass ? 'ok' : 'err');
+
+    // 5. calendar table rendered
+    const hasTable = !!el.querySelector('.calendar--table');
+    log(`[5] .calendar--table rendered          → ${hasTable ? 'PASS' : 'FAIL'}`, hasTable ? 'ok' : 'err');
+
+    // 6. events property set correctly
+    const eventsOk = Array.isArray(el.events);
+    log(`[6] el.events is Array                 → ${eventsOk ? 'PASS' : 'FAIL'}`, eventsOk ? 'ok' : 'err');
+
+    // 7. getEngine() returns engine with getViewModel
+    let engineOk = false;
+    try { engineOk = typeof el.getEngine().getViewModel === 'function'; } catch (_) {}
+    log(`[7] getEngine().getViewModel is fn     → ${engineOk ? 'PASS' : 'FAIL'}`, engineOk ? 'ok' : 'err');
+
+    // 8. cal-date-select bubbles to document
+    let bubbled = false;
+    const handler = () => { bubbled = true; };
+    document.addEventListener('cal-date-select', handler, { once: true });
+    el.dispatchEvent(new CustomEvent('cal-date-select', { bubbles: true, composed: true, detail: { date: new Date(), events: [] } }));
+    document.removeEventListener('cal-date-select', handler);
+    log(`[8] cal-date-select bubbles            → ${bubbled ? 'PASS' : 'FAIL'}`, bubbled ? 'ok' : 'err');
+
+    // 9. goToDate changes displayed month
+    el.goToDate(new Date('2030-07-01'));
+    const afterGoto = el.querySelector('.calendar--picker-btn')?.textContent || '';
+    const gotoOk = afterGoto.includes('July') && afterGoto.includes('2030');
+    log(`[9] goToDate(2030-07) → picker shows "July 2030"  → ${gotoOk ? 'PASS' : 'FAIL'}`, gotoOk ? 'ok' : 'err');
+    el.goToDate(new Date('2025-01-15')); // restore
+
+    // 10. attribute change triggers re-render
+    el.setAttribute('title', 'Updated Title');
+    const titleOk = !!el.querySelector('h1');
+    log(`[10] title attribute → h1 rendered     → ${titleOk ? 'PASS' : 'FAIL'}`, titleOk ? 'ok' : 'err');
+    el.setAttribute('title', 'Web Component Test'); // restore
+
+    const results = [registered, hasGlobal, connected, hasClass, hasTable, eventsOk, engineOk, bubbled, gotoOk, titleOk];
+    const passed  = results.filter(Boolean).length;
+    log(`── ${passed}/${results.length} checks passed ──────────────────`, passed === results.length ? 'ok' : 'warn');
+  });
+
+  // ─── init ─────────────────────────────────────────────────────────────────────
+  log('UMD bundle loaded. Running initial checks…', 'info');
+  setTimeout(() => document.getElementById('btn-run-all').click(), 200);
+</script>
+</body>
+</html>

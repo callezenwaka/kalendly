@@ -1,11 +1,6 @@
 [build]
-  publish = "dist-examples"
-  command = "npm run build:examples"
-
-[[redirects]]
-  from = "/"
-  to = "/examples/vanilla/index.html"
-  status = 200
+  publish = "docs"
+  command = "npm run build"
 
 [[redirects]]
   from = "/vanilla"
@@ -20,4 +15,19 @@
 [[redirects]]
   from = "/vue"
   to = "/examples/vue/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/svelte"
+  to = "/examples/svelte/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/angular"
+  to = "/examples/angular/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/solid"
+  to = "/examples/solid/index.html"
   status = 200

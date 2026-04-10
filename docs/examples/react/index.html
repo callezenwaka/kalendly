@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React — kalendly</title>
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <link rel="stylesheet" href="/dist/styles/calendar.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      background: #f5f5f5;
+    }
+
+    .page-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .page-nav a { color: #6b7280; text-decoration: none; font-size: 14px; }
+    .page-nav a:hover { color: #61dafb; }
+
+    .page-nav .current {
+      background: #61dafb;
+      color: #111827;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .controls h1 { margin: 0 0 4px; color: #111827; font-size: 20px; }
+    .controls p  { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+    }
+
+    button {
+      background: #61dafb;
+      color: #111827;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #38bdf8; }
+    button.secondary { background: #6b7280; color: white; }
+    button.secondary:hover { background: #4b5563; }
+
+    .event-log {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .event-log h3 { margin: 0 0 12px; color: #111827; font-size: 15px; }
+
+    .log-entry {
+      padding: 7px 10px;
+      margin-bottom: 6px;
+      background: #f9fafb;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      border-left: 3px solid #61dafb;
+    }
+
+    .log-entry .ts { color: #9ca3af; margin-right: 8px; }
+  </style>
+</head>
+<body>
+
+  <nav class="page-nav">
+    <a href="/">Home</a>
+    <a href="/examples/vanilla/index.html">Vanilla JS</a>
+    <span class="current">React</span>
+    <a href="/examples/vue/index.html">Vue</a>
+    <a href="/examples/svelte/index.html">Svelte</a>
+    <a href="/examples/angular/index.html">Angular</a>
+    <a href="/examples/solid/index.html">Solid</a>
+  </nav>
+
+  <div id="root"></div>
+
+  <script type="module" src="/dist/index.mjs"></script>
+  <script type="module">
+    import { useState, useRef, useEffect, createElement as h } from 'https://esm.sh/react@19.1.0';
+    import { createRoot } from 'https://esm.sh/react-dom@19.1.0/client';
+
+    function App() {
+      const [events, setEvents] = useState([
+        {
+          id: 1,
+          name: 'Team Standup',
+          date: new Date(new Date().getFullYear(), new Date().getMonth(), 10),
+          startTime: '09:00',
+          endTime: '09:30',
+          category: 'meeting',
+          color: '#10b981',
+          priority: 'high',
+          location: 'Conference Room A',
+        },
+        {
+          id: 2,
+          name: 'Project Deadline',
+          date: new Date(new Date().getFullYear(), new Date().getMonth(), 20),
+          category: 'deadline',
+          color: '#ef4444',
+          priority: 'high',
+        },
+        {
+          id: 3,
+          name: 'Code Review',
+          date: new Date(),
+          startTime: '14:00',
+          endTime: '15:00',
+          category: 'work',
+          color: '#3b82f6',
+          location: 'Virtual - Zoom',
+        },
+      ]);
+
+      const [logs, setLogs] = useState(['Calendar initialised']);
+
+      function addLog(msg) {
+        setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 19)]);
+      }
+
+      function addRandom() {
+        const names = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
+        const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444'];
+        const i = Math.floor(Math.random() * names.length);
+        const d = new Date();
+        d.setDate(d.getDate() + Math.floor(Math.random() * 28));
+        const ev = { id: Date.now(), name: names[i], date: d, color: colors[i] };
+        setEvents(prev => [...prev, ev]);
+        addLog(`Added: ${ev.name} on ${d.toDateString()}`);
+      }
+
+      function loadSample() {
+        const now = new Date();
+        const sample = [
+          { id: Date.now() + 1, name: 'Sprint Planning', date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting', color: '#10b981' },
+          { id: Date.now() + 2, name: 'Doctor Appointment', date: new Date(now.getFullYear(), now.getMonth(), 18), category: 'personal', color: '#8b5cf6' },
+          { id: Date.now() + 3, name: 'Team Building', date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other', color: '#f59e0b' },
+        ];
+        setEvents(prev => [...prev, ...sample]);
+        addLog(`Loaded ${sample.length} sample events`);
+      }
+
+      function clearAll() {
+        setEvents([]);
+        addLog('Cleared all events');
+      }
+
+      // React 19: pass events as a property via ref
+      const calRef = useRef(null);
+      useEffect(() => {
+        if (calRef.current) calRef.current.events = events;
+      }, [events]);
+
+      return h('div', null,
+        h('div', { className: 'controls' },
+          h('h1', null, 'React 19 Demo'),
+          h('p', null, 'Using ', h('code', null, '<kal-calendar>'), ' directly — React 19 supports custom elements natively.'),
+          h('div', { className: 'button-grid' },
+            h('button', { type: 'button', onClick: addRandom }, 'Add Random Event'),
+            h('button', { type: 'button', onClick: loadSample }, 'Load Sample Data'),
+            h('button', { type: 'button', className: 'secondary', onClick: clearAll }, 'Clear All Events'),
+          ),
+        ),
+        h('kal-calendar', {
+          ref: calRef,
+          title: 'My Calendar',
+          'oncal-date-select': e => addLog(`Date selected: ${e.detail.date.toDateString()}`),
+          'oncal-month-change': e => addLog(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`),
+        }),
+        h('div', { className: 'event-log' },
+          h('h3', null, 'Event Log'),
+          ...logs.map((msg, i) =>
+            h('div', { key: i, className: 'log-entry' }, msg)
+          ),
+        ),
+      );
+    }
+
+    createRoot(document.getElementById('root')).render(h(App));
+  </script>
+</body>
+</html>

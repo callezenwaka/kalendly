@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solid.js — kalendly</title>
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <link rel="stylesheet" href="/dist/styles/calendar.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      background: #f5f5f5;
+    }
+
+    .page-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .page-nav a { color: #6b7280; text-decoration: none; font-size: 14px; }
+    .page-nav a:hover { color: #2c4f7c; }
+
+    .page-nav .current {
+      background: #2c4f7c;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .controls h1 { margin: 0 0 4px; color: #111827; font-size: 20px; }
+    .controls p  { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+    }
+
+    button {
+      background: #2c4f7c;
+      color: white;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #1e3a5f; }
+    button.secondary { background: #6b7280; }
+    button.secondary:hover { background: #4b5563; }
+
+    .event-log {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .event-log h3 { margin: 0 0 12px; color: #111827; font-size: 15px; }
+
+    .log-entry {
+      padding: 7px 10px;
+      margin-bottom: 6px;
+      background: #f9fafb;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      border-left: 3px solid #2c4f7c;
+    }
+
+    /* Integration guide */
+    .integration {
+      background: white;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .integration-header {
+      background: #111827;
+      color: #f9fafb;
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .integration-tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .tab {
+      padding: 10px 18px;
+      font-size: 13px;
+      color: #6b7280;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      border-radius: 0;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+
+    .tab:hover { color: #2c4f7c; background: none; }
+    .tab.active { color: #2c4f7c; border-bottom-color: #2c4f7c; background: none; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    pre {
+      margin: 0;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+
+    .kw  { color: #569cd6; }
+    .str { color: #ce9178; }
+    .cm  { color: #6a9955; }
+    .fn  { color: #dcdcaa; }
+    .typ { color: #4ec9b0; }
+    .tag { color: #4ec9b0; }
+    .sl  { color: #9cdcfe; }
+  </style>
+</head>
+<body>
+
+  <nav class="page-nav">
+    <a href="/">Home</a>
+    <a href="/examples/vanilla/index.html">Vanilla JS</a>
+    <a href="/examples/react/index.html">React</a>
+    <a href="/examples/vue/index.html">Vue</a>
+    <a href="/examples/svelte/index.html">Svelte</a>
+    <a href="/examples/angular/index.html">Angular</a>
+    <span class="current">Solid</span>
+  </nav>
+
+  <div class="controls">
+    <h1>Solid.js Demo</h1>
+    <p>Live <code>&lt;kal-calendar&gt;</code> below — loaded via script tag. See the integration guide for Solid.js project setup.</p>
+    <div class="button-grid">
+      <button type="button" id="addRandomBtn">Add Random Event</button>
+      <button type="button" id="loadSampleBtn">Load Sample Data</button>
+      <button type="button" id="clearAllBtn" class="secondary">Clear All Events</button>
+      <button type="button" id="goToTodayBtn">Go to Today</button>
+    </div>
+  </div>
+
+  <kal-calendar id="cal" title="My Calendar"></kal-calendar>
+
+  <div class="event-log">
+    <h3>Event Log</h3>
+    <div id="log"></div>
+  </div>
+
+  <!-- Solid.js Integration Guide -->
+  <div class="integration">
+    <div class="integration-header">Solid.js Integration Guide</div>
+    <div class="integration-tabs">
+      <button type="button" class="tab active" data-tab="install">Install</button>
+      <button type="button" class="tab" data-tab="component">Component</button>
+      <button type="button" class="tab" data-tab="app">App</button>
+      <button type="button" class="tab" data-tab="typescript">TypeScript</button>
+    </div>
+
+    <div id="tab-install" class="tab-content active">
+      <pre><span class="cm"># Install the package</span>
+npm install kalendly
+
+<span class="cm"># Import styles in your root component or index.css</span>
+<span class="kw">import</span> <span class="str">'kalendly/styles'</span>;</pre>
+    </div>
+
+    <div id="tab-component" class="tab-content">
+      <pre><span class="cm">// Calendar.tsx</span>
+<span class="kw">import</span> <span class="str">'kalendly'</span>;
+
+<span class="kw">interface</span> <span class="typ">Props</span> {
+  events?: <span class="typ">CalendarEvent</span>[];
+  title?: <span class="typ">string</span>;
+  onDateSelect?: (e: <span class="typ">CustomEvent</span>) => <span class="kw">void</span>;
+  onMonthChange?: (e: <span class="typ">CustomEvent</span>) => <span class="kw">void</span>;
+}
+
+<span class="kw">export function</span> <span class="fn">Calendar</span>(props: <span class="typ">Props</span>) {
+  <span class="kw">return</span> (
+    &lt;<span class="tag">kal-calendar</span>
+      title={props.title}
+      <span class="sl">prop:events</span>={props.events ?? []}
+      <span class="sl">on:cal-date-select</span>={props.onDateSelect}
+      <span class="sl">on:cal-month-change</span>={props.onMonthChange}
+    /&gt;
+  );
+}</pre>
+    </div>
+
+    <div id="tab-app" class="tab-content">
+      <pre><span class="cm">// App.tsx</span>
+<span class="kw">import</span> { createSignal } <span class="kw">from</span> <span class="str">'solid-js'</span>;
+<span class="kw">import</span> { <span class="typ">Calendar</span> } <span class="kw">from</span> <span class="str">'./Calendar'</span>;
+<span class="kw">import type</span> { <span class="typ">CalendarEvent</span> } <span class="kw">from</span> <span class="str">'kalendly/core'</span>;
+
+<span class="kw">export function</span> <span class="fn">App</span>() {
+  <span class="kw">const</span> [events, setEvents] = <span class="fn">createSignal</span>&lt;<span class="typ">CalendarEvent</span>[]&gt;([
+    { id: <span class="str">1</span>, name: <span class="str">'Team Standup'</span>, date: <span class="kw">new</span> <span class="typ">Date</span>() },
+  ]);
+
+  <span class="kw">function</span> <span class="fn">onDateSelect</span>(e: <span class="typ">CustomEvent</span>) {
+    console.<span class="fn">log</span>(<span class="str">'Selected:'</span>, e.detail.date, e.detail.events);
+  }
+
+  <span class="kw">return</span> (
+    &lt;<span class="typ">Calendar</span>
+      events={<span class="fn">events</span>()}
+      title=<span class="str">"My Calendar"</span>
+      onDateSelect={onDateSelect}
+    /&gt;
+  );
+}</pre>
+    </div>
+
+    <div id="tab-typescript" class="tab-content">
+      <pre><span class="cm">// src/types/solid-ce.d.ts</span>
+<span class="cm">// Extend Solid's JSX namespace for kal-calendar</span>
+<span class="kw">import type</span> { <span class="typ">CalendarEvent</span> } <span class="kw">from</span> <span class="str">'kalendly/core'</span>;
+
+<span class="kw">declare module</span> <span class="str">'solid-js'</span> {
+  <span class="kw">namespace</span> <span class="typ">JSX</span> {
+    <span class="kw">interface</span> <span class="typ">IntrinsicElements</span> {
+      <span class="str">'kal-calendar'</span>: {
+        title?: <span class="typ">string</span>;
+        <span class="str">'initial-date'</span>?: <span class="typ">string</span>;
+        <span class="str">'week-starts-on'</span>?: <span class="str">'0'</span> | <span class="str">'1'</span>;
+        <span class="str">'prop:events'</span>?: <span class="typ">CalendarEvent</span>[];
+        <span class="str">'on:cal-date-select'</span>?: (e: <span class="typ">CustomEvent</span>) => <span class="kw">void</span>;
+        <span class="str">'on:cal-month-change'</span>?: (e: <span class="typ">CustomEvent</span>) => <span class="kw">void</span>;
+      };
+    }
+  }
+}</pre>
+    </div>
+  </div>
+
+  <script src="/dist/index.umd.js"></script>
+  <script>
+    const cal = document.getElementById('cal');
+
+    let events = [
+      {
+        id: 1,
+        name: 'Team Standup',
+        date: new Date(new Date().getFullYear(), new Date().getMonth(), 10),
+        startTime: '09:00',
+        endTime: '09:30',
+        category: 'meeting',
+        color: '#10b981',
+        priority: 'high',
+        location: 'Conference Room A',
+      },
+      {
+        id: 2,
+        name: 'Project Deadline',
+        date: new Date(new Date().getFullYear(), new Date().getMonth(), 20),
+        category: 'deadline',
+        color: '#ef4444',
+        priority: 'high',
+      },
+      {
+        id: 3,
+        name: 'Code Review',
+        date: new Date(),
+        startTime: '14:00',
+        endTime: '15:00',
+        category: 'work',
+        color: '#3b82f6',
+        location: 'Virtual - Zoom',
+      },
+    ];
+
+    cal.events = events;
+
+    cal.addEventListener('cal-date-select', e => {
+      log(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} events)`);
+    });
+
+    cal.addEventListener('cal-month-change', e => {
+      log(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`);
+    });
+
+    document.getElementById('addRandomBtn').addEventListener('click', () => {
+      const names = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
+      const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444'];
+      const i = Math.floor(Math.random() * names.length);
+      const d = new Date();
+      d.setDate(d.getDate() + Math.floor(Math.random() * 28));
+      const ev = { id: Date.now(), name: names[i], date: d, color: colors[i] };
+      events = [...events, ev];
+      cal.events = events;
+      log(`Added: ${ev.name} on ${d.toDateString()}`);
+    });
+
+    document.getElementById('loadSampleBtn').addEventListener('click', () => {
+      const now = new Date();
+      const sample = [
+        { id: Date.now() + 1, name: 'Sprint Planning', date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting', color: '#10b981' },
+        { id: Date.now() + 2, name: 'Doctor Appointment', date: new Date(now.getFullYear(), now.getMonth(), 18), category: 'personal', color: '#8b5cf6' },
+        { id: Date.now() + 3, name: 'Team Building', date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other', color: '#f59e0b' },
+      ];
+      events = [...events, ...sample];
+      cal.events = events;
+      log(`Loaded ${sample.length} sample events`);
+    });
+
+    document.getElementById('clearAllBtn').addEventListener('click', () => {
+      events = [];
+      cal.events = events;
+      log('Cleared all events');
+    });
+
+    document.getElementById('goToTodayBtn').addEventListener('click', () => {
+      cal.goToDate(new Date());
+      log('Navigated to today');
+    });
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${target}`).classList.add('active');
+      });
+    });
+
+    function log(msg) {
+      const container = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="ts">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+      container.prepend(entry);
+      while (container.children.length > 20) container.removeChild(container.lastChild);
+    }
+
+    log('Calendar initialised');
+  </script>
+</body>
+</html>

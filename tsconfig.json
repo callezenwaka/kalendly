@@ -20,10 +20,7 @@
     "outDir": "dist",
     "paths": {
       "@/*": ["./src/*"],
-      "@/core/*": ["./src/core/*"],
-      "@/react/*": ["./src/react/*"],
-      "@/vue/*": ["./src/vue/*"],
-      "@/react-native/*": ["./src/react-native/*"]
+      "@/core/*": ["./src/core/*"]
     }
   },
   "include": ["src/**/*"],

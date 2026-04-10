@@ -1,15 +1,13 @@
 {
   "name": "kalendly",
-  "version": "0.1.7",
-  "description": "A kalendly universal calendar scheduler component for React, Vue, and React Native",
+  "version": "0.1.8",
+  "description": "A universal calendar web component — works in React, Vue, Angular, svelte, and plain HTML with no framework dependency",
   "scripts": {
-    "build": "npm run build:tsup && npm run build:vue && npm run copy:styles",
-    "build:tsup": "tsup",
-    "build:vue": "vite build",
-    "build:examples": "npm run build && vite build --config vite.examples.config.ts",
+    "build": "tsup && npm run copy:styles && npm run copy:dist",
     "copy:styles": "mkdir -p dist/styles && cp src/styles/calendar.css dist/styles/",
+    "copy:dist": "rm -rf docs/dist && cp -r dist docs/dist",
     "dev": "tsup --watch",
-    "dev:examples": "vite --config vite.examples.config.ts",
+    "dev:examples": "npm run build && npx serve docs -p 5173",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
@@ -19,28 +17,16 @@
     "test:manual": "echo 'Open tests/manual/*.html in browser' && npx serve . -p 8080",
     "lint": "eslint src tests",
     "lint:fix": "eslint src tests --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,vue,js,jsx,json,css,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,vue,js,jsx,json,css,md}\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "type-check": "tsc --noEmit",
     "prepare": "husky",
     "prepublishOnly": "npm run test && npm run build",
     "prepack": "npm run test:package"
   },
-  "author": "Callis Ezenwaka <callisezenwaka@outlook.com>",
-  "license": "MIT",
-  "keywords": [
-    "calendar",
-    "scheduler",
-    "react",
-    "vue",
-    "react-native",
-    "typescript",
-    "events",
-    "datepicker"
-  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/callezenwaka/kalendly.git"
+    "url": "git+https://github.com/callezenwaka/kalendly.git"
   },
   "bugs": {
     "url": "https://github.com/callezenwaka/kalendly/issues"
@@ -64,24 +50,9 @@
       "require": "./dist/core/index.cjs"
     },
     "./react": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.mjs",
-      "require": "./dist/react/index.cjs"
-    },
-    "./vue": {
-      "types": "./dist/vue/index.d.ts",
-      "import": "./dist/vue/index.mjs",
-      "require": "./dist/vue/index.cjs"
-    },
-    "./react-native": {
-      "types": "./dist/react-native/index.d.ts",
-      "import": "./dist/react-native/index.mjs",
-      "require": "./dist/react-native/index.cjs"
-    },
-    "./vanilla": {
-      "types": "./dist/vanilla/index.d.ts",
-      "import": "./dist/vanilla/index.mjs",
-      "require": "./dist/vanilla/index.cjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
     },
     "./styles": {
       "types": "./styles.d.ts",
@@ -94,23 +65,8 @@
     "README.md",
     "LICENSE"
   ],
-  "peerDependencies": {
-    "react": ">=16.8.0",
-    "react-dom": ">=16.8.0",
-    "react-native": "^0.76.0",
-    "vue": ">=3.0.0"
-  },
   "peerDependenciesMeta": {
     "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    },
-    "vue": {
-      "optional": true
-    },
-    "react-native": {
       "optional": true
     }
   },
@@ -122,51 +78,45 @@
     "*.{ts,tsx,vue,js,jsx,json,css,md}": [
       "prettier --write"
     ],
-    "*.{ts,tsx,vue}": [
+    "*.{ts,tsx}": [
       "eslint --fix",
       "vitest related --run",
       "bash -c 'tsc --noEmit'"
     ]
   },
   "devDependencies": {
-    "@eslint/js": "^9.18.0",
+    "@eslint/js": "^10.0.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.1",
-    "@testing-library/react-native": "^13.3.3",
     "@testing-library/user-event": "^14.6.1",
-    "@testing-library/vue": "^8.1.0",
-    "@types/node": "^20.6.0",
-    "@types/react": "^18.2.21",
-    "@types/react-dom": "^18.2.7",
-    "@typescript-eslint/eslint-plugin": "^8.19.1",
-    "@typescript-eslint/parser": "^8.19.1",
-    "@vitejs/plugin-react": "^5.1.2",
-    "@vitejs/plugin-vue": "^6.0.2",
-    "@vitest/coverage-v8": "^4.0.16",
-    "@vitest/ui": "^4.0.16",
-    "@vue/compiler-sfc": "^3.5.25",
-    "@vue/eslint-config-typescript": "^14.1.3",
-    "esbuild-plugin-vue-next": "^0.1.4",
-    "eslint": "^9.18.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-react": "^7.37.2",
-    "eslint-plugin-react-hooks": "^5.1.0",
-    "eslint-plugin-vue": "^9.17.0",
-    "globals": "^15.14.0",
+    "@types/node": "^25.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.1",
+    "@typescript-eslint/parser": "^8.58.1",
+    "@vitest/coverage-v8": "^4.1.4",
+    "@vitest/ui": "^4.1.4",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
     "husky": "^9.1.7",
-    "jsdom": "^27.4.0",
-    "lint-staged": "^16.2.7",
-    "prettier": "^3.4.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-native": "^0.76.0",
-    "react-test-renderer": "^18.3.1",
+    "jsdom": "^29.0.2",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.2",
     "tsup": "^8.5.1",
-    "typescript": "^5.2.2",
-    "vite": "^7.2.6",
-    "vite-plugin-dts": "^4.5.4",
-    "vitest": "^4.0.16",
-    "vue": "^3.3.4"
-  }
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.4"
+  },
+  "keywords": [
+    "calendar",
+    "scheduler",
+    "web-components",
+    "custom-elements",
+    "typescript",
+    "react",
+    "vue",
+    "angular",
+    "events",
+    "datepicker"
+  ],
+  "author": "Callis Ezenwaka <callisezenwaka@outlook.com>",
+  "license": "MIT"
 }

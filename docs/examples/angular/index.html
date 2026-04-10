@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Angular — kalendly</title>
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <link rel="stylesheet" href="/dist/styles/calendar.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      background: #f5f5f5;
+    }
+
+    .page-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .page-nav a { color: #6b7280; text-decoration: none; font-size: 14px; }
+    .page-nav a:hover { color: #dd0031; }
+
+    .page-nav .current {
+      background: #dd0031;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .controls h1 { margin: 0 0 4px; color: #111827; font-size: 20px; }
+    .controls p  { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+    }
+
+    button {
+      background: #dd0031;
+      color: white;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #b8002a; }
+    button.secondary { background: #6b7280; }
+    button.secondary:hover { background: #4b5563; }
+
+    .event-log {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .event-log h3 { margin: 0 0 12px; color: #111827; font-size: 15px; }
+
+    .log-entry {
+      padding: 7px 10px;
+      margin-bottom: 6px;
+      background: #f9fafb;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      border-left: 3px solid #dd0031;
+    }
+
+    /* Integration guide */
+    .integration {
+      background: white;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .integration-header {
+      background: #111827;
+      color: #f9fafb;
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .integration-tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .tab {
+      padding: 10px 18px;
+      font-size: 13px;
+      color: #6b7280;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      border-radius: 0;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+
+    .tab:hover { color: #dd0031; background: none; }
+    .tab.active { color: #dd0031; border-bottom-color: #dd0031; background: none; }
+
+    .tab-content { display: none; padding: 0; }
+    .tab-content.active { display: block; }
+
+    pre {
+      margin: 0;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+
+    .kw  { color: #569cd6; }
+    .str { color: #ce9178; }
+    .cm  { color: #6a9955; }
+    .fn  { color: #dcdcaa; }
+    .typ { color: #4ec9b0; }
+    .dec { color: #c586c0; }
+  </style>
+</head>
+<body>
+
+  <nav class="page-nav">
+    <a href="/">Home</a>
+    <a href="/examples/vanilla/index.html">Vanilla JS</a>
+    <a href="/examples/react/index.html">React</a>
+    <a href="/examples/vue/index.html">Vue</a>
+    <a href="/examples/svelte/index.html">Svelte</a>
+    <span class="current">Angular</span>
+    <a href="/examples/solid/index.html">Solid</a>
+  </nav>
+
+  <div class="controls">
+    <h1>Angular Demo</h1>
+    <p>Live <code>&lt;kal-calendar&gt;</code> below — loaded via script tag. See the integration guide for Angular project setup.</p>
+    <div class="button-grid">
+      <button type="button" id="addRandomBtn">Add Random Event</button>
+      <button type="button" id="loadSampleBtn">Load Sample Data</button>
+      <button type="button" id="clearAllBtn" class="secondary">Clear All Events</button>
+      <button type="button" id="goToTodayBtn">Go to Today</button>
+    </div>
+  </div>
+
+  <kal-calendar id="cal" title="My Calendar"></kal-calendar>
+
+  <div class="event-log">
+    <h3>Event Log</h3>
+    <div id="log"></div>
+  </div>
+
+  <!-- Angular Integration Guide -->
+  <div class="integration">
+    <div class="integration-header">
+      Angular Integration Guide
+    </div>
+    <div class="integration-tabs">
+      <button type="button" class="tab active" data-tab="install">Install</button>
+      <button type="button" class="tab" data-tab="module">app.module.ts</button>
+      <button type="button" class="tab" data-tab="standalone">Standalone</button>
+      <button type="button" class="tab" data-tab="template">Template</button>
+      <button type="button" class="tab" data-tab="component">Component</button>
+    </div>
+
+    <div id="tab-install" class="tab-content active">
+      <pre><span class="cm"># Install the package</span>
+npm install kalendly
+
+<span class="cm"># Import styles in angular.json → projects → architect → build → styles</span>
+<span class="str">"node_modules/kalendly/dist/styles/calendar.css"</span></pre>
+    </div>
+
+    <div id="tab-module" class="tab-content">
+      <pre><span class="cm">// app.module.ts</span>
+<span class="kw">import</span> { NgModule, <span class="typ">CUSTOM_ELEMENTS_SCHEMA</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { BrowserModule } <span class="kw">from</span> <span class="str">'@angular/platform-browser'</span>;
+<span class="kw">import</span> { AppComponent } <span class="kw">from</span> <span class="str">'./app.component'</span>;
+<span class="kw">import</span> <span class="str">'kalendly'</span>;
+
+<span class="dec">@NgModule</span>({
+  declarations: [AppComponent],
+  imports: [BrowserModule],
+  schemas: [<span class="typ">CUSTOM_ELEMENTS_SCHEMA</span>],
+  bootstrap: [AppComponent],
+})
+<span class="kw">export class</span> <span class="typ">AppModule</span> {}</pre>
+    </div>
+
+    <div id="tab-standalone" class="tab-content">
+      <pre><span class="cm">// app.component.ts (standalone)</span>
+<span class="kw">import</span> { Component, <span class="typ">CUSTOM_ELEMENTS_SCHEMA</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> <span class="str">'kalendly'</span>;
+
+<span class="dec">@Component</span>({
+  selector: <span class="str">'app-root'</span>,
+  standalone: <span class="kw">true</span>,
+  schemas: [<span class="typ">CUSTOM_ELEMENTS_SCHEMA</span>],
+  templateUrl: <span class="str">'./app.component.html'</span>,
+})
+<span class="kw">export class</span> <span class="typ">AppComponent</span> {
+  events = [
+    { id: <span class="str">1</span>, name: <span class="str">'Team Standup'</span>, date: <span class="kw">new</span> <span class="typ">Date</span>() },
+  ];
+
+  <span class="fn">onDateSelect</span>(e: CustomEvent) {
+    console.<span class="fn">log</span>(<span class="str">'Selected:'</span>, e.detail.date);
+  }
+}</pre>
+    </div>
+
+    <div id="tab-template" class="tab-content">
+      <pre><span class="cm">&lt;!-- app.component.html --&gt;</span>
+&lt;<span class="kw">kal-calendar</span>
+  title=<span class="str">"My Calendar"</span>
+  [events]=<span class="str">"events"</span>
+  (cal-date-select)=<span class="str">"onDateSelect($event)"</span>
+  (cal-month-change)=<span class="str">"onMonthChange($event)"</span>
+&gt;&lt;/<span class="kw">kal-calendar</span>&gt;</pre>
+    </div>
+
+    <div id="tab-component" class="tab-content">
+      <pre><span class="cm">// app.component.ts</span>
+<span class="kw">import</span> { Component } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="typ">CalendarEvent</span> } <span class="kw">from</span> <span class="str">'kalendly/core'</span>;
+
+<span class="dec">@Component</span>({ ... })
+<span class="kw">export class</span> <span class="typ">AppComponent</span> {
+  events: <span class="typ">CalendarEvent</span>[] = [];
+
+  <span class="fn">onDateSelect</span>(e: CustomEvent) {
+    <span class="kw">const</span> { date, events } = e.detail;
+    console.<span class="fn">log</span>(<span class="str">'Selected:'</span>, date, events);
+  }
+
+  <span class="fn">onMonthChange</span>(e: CustomEvent) {
+    <span class="kw">const</span> { year, month } = e.detail;
+    console.<span class="fn">log</span>(<span class="str">'Month:'</span>, year, month);
+  }
+}</pre>
+    </div>
+  </div>
+
+  <script src="/dist/index.umd.js"></script>
+  <script>
+    const cal = document.getElementById('cal');
+
+    let events = [
+      {
+        id: 1,
+        name: 'Team Standup',
+        date: new Date(new Date().getFullYear(), new Date().getMonth(), 10),
+        startTime: '09:00',
+        endTime: '09:30',
+        category: 'meeting',
+        color: '#10b981',
+        priority: 'high',
+        location: 'Conference Room A',
+      },
+      {
+        id: 2,
+        name: 'Project Deadline',
+        date: new Date(new Date().getFullYear(), new Date().getMonth(), 20),
+        category: 'deadline',
+        color: '#ef4444',
+        priority: 'high',
+      },
+      {
+        id: 3,
+        name: 'Code Review',
+        date: new Date(),
+        startTime: '14:00',
+        endTime: '15:00',
+        category: 'work',
+        color: '#3b82f6',
+        location: 'Virtual - Zoom',
+      },
+    ];
+
+    cal.events = events;
+
+    cal.addEventListener('cal-date-select', e => {
+      log(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} events)`);
+    });
+
+    cal.addEventListener('cal-month-change', e => {
+      log(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`);
+    });
+
+    document.getElementById('addRandomBtn').addEventListener('click', () => {
+      const names = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
+      const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444'];
+      const i = Math.floor(Math.random() * names.length);
+      const d = new Date();
+      d.setDate(d.getDate() + Math.floor(Math.random() * 28));
+      const ev = { id: Date.now(), name: names[i], date: d, color: colors[i] };
+      events = [...events, ev];
+      cal.events = events;
+      log(`Added: ${ev.name} on ${d.toDateString()}`);
+    });
+
+    document.getElementById('loadSampleBtn').addEventListener('click', () => {
+      const now = new Date();
+      const sample = [
+        { id: Date.now() + 1, name: 'Sprint Planning', date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting', color: '#10b981' },
+        { id: Date.now() + 2, name: 'Doctor Appointment', date: new Date(now.getFullYear(), now.getMonth(), 18), category: 'personal', color: '#8b5cf6' },
+        { id: Date.now() + 3, name: 'Team Building', date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other', color: '#f59e0b' },
+      ];
+      events = [...events, ...sample];
+      cal.events = events;
+      log(`Loaded ${sample.length} sample events`);
+    });
+
+    document.getElementById('clearAllBtn').addEventListener('click', () => {
+      events = [];
+      cal.events = events;
+      log('Cleared all events');
+    });
+
+    document.getElementById('goToTodayBtn').addEventListener('click', () => {
+      cal.goToDate(new Date());
+      log('Navigated to today');
+    });
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${target}`).classList.add('active');
+      });
+    });
+
+    function log(msg) {
+      const container = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="ts">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+      container.prepend(entry);
+      while (container.children.length > 20) container.removeChild(container.lastChild);
+    }
+
+    log('Calendar initialised');
+  </script>
+</body>
+</html>

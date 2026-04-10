@@ -1,10 +1,10 @@
 import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react(), vue()],
+  esbuild: {
+    jsx: 'automatic'
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -30,7 +30,7 @@ export default defineConfig({
       }
     },
     include: ['tests/unit/**/*.test.{ts,tsx}'],
-    exclude: ['node_modules', 'dist', 'examples', 'tests/integration', 'tests/manual', 'tests/unit/react-native/**']
+    exclude: ['node_modules', 'dist', 'examples', 'tests/integration', 'tests/manual']
   },
   resolve: {
     alias: {
