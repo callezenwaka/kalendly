@@ -6,108 +6,223 @@ import {
   MONTHS_FULL,
   MONTHS,
 } from '../core';
-import { VanillaCalendarProps, VanillaCalendarInstance } from './types';
+import type { CalendarEvent, CalendarTheme, CategoryColorMap } from '../core';
 
-export class VanillaCalendar implements VanillaCalendarInstance {
-  private engine: CalendarEngine;
-  private container: HTMLElement;
+export class CalendarElement extends HTMLElement {
+  static observedAttributes = [
+    'initial-date',
+    'min-year',
+    'max-year',
+    'week-starts-on',
+    'title',
+    'use-short-month-names',
+  ];
+
+  private engine: CalendarEngine | null = null;
   private unsubscribe: (() => void) | null = null;
-  private props: VanillaCalendarProps;
-  private actions: ReturnType<CalendarEngine['getActions']>;
-  private pickerOpen: boolean = false;
-  private yearInput: string = '';
-  private yearInputValid: boolean = true;
+  private actions: ReturnType<CalendarEngine['getActions']> | null = null;
+  private pickerOpen = false;
+  private yearInput = '';
+  private yearInputValid = true;
+  private listenersAttached = false;
+
   private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
   private delegatedClickHandler: ((e: MouseEvent) => void) | null = null;
   private delegatedInputHandler: ((e: Event) => void) | null = null;
   private delegatedBlurHandler: ((e: FocusEvent) => void) | null = null;
   private delegatedKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
-  private listenersAttached: boolean = false;
 
-  constructor(props: VanillaCalendarProps) {
-    this.props = props;
+  // Rich property backing fields
+  private _events: CalendarEvent[] = [];
+  private _theme: CalendarTheme | null = null;
+  private _categoryColors: CategoryColorMap | null = null;
+  private _renderEvent: ((e: CalendarEvent) => string) | null = null;
+  private _renderNoEvents: (() => string) | null = null;
 
-    if (typeof props.container === 'string') {
-      const element = document.querySelector(props.container);
-      if (!element) {
-        throw new Error(`Container element "${props.container}" not found`);
-      }
-      this.container = element as HTMLElement;
-    } else {
-      this.container = props.container;
+  get events(): CalendarEvent[] {
+    return this._events;
+  }
+
+  set events(val: CalendarEvent[]) {
+    this._events = val;
+    if (this.engine) {
+      this.engine.updateEvents(val);
     }
+  }
+
+  set theme(val: CalendarTheme) {
+    this._theme = val;
+    this.applyTheme();
+  }
+
+  set categoryColors(val: CategoryColorMap) {
+    this._categoryColors = val;
+    if (this.engine) {
+      this.engine.updateCategoryColors(val);
+    }
+  }
+
+  set renderEvent(val: (e: CalendarEvent) => string) {
+    this._renderEvent = val;
+    if (this.engine) this.render();
+  }
+
+  set renderNoEvents(val: () => string) {
+    this._renderNoEvents = val;
+    if (this.engine) this.render();
+  }
+
+  connectedCallback(): void {
+    this.classList.add('kalendly-calendar');
+    this.initEngine();
+    this.render();
+  }
+
+  disconnectedCallback(): void {
+    this.cleanup();
+    this.classList.remove('kalendly-calendar');
+    this.innerHTML = '';
+  }
+
+  attributeChangedCallback(
+    _name: string,
+    oldVal: string | null,
+    newVal: string | null
+  ): void {
+    if (oldVal === newVal) return;
+    this.reinit();
+  }
+
+  private get minYear(): number {
+    const val = this.getAttribute('min-year');
+    return val ? parseInt(val, 10) : new Date().getFullYear() - 30;
+  }
+
+  private get maxYear(): number {
+    const val = this.getAttribute('max-year');
+    return val ? parseInt(val, 10) : new Date().getFullYear() + 10;
+  }
+
+  private initEngine(): void {
+    const initialDateAttr = this.getAttribute('initial-date');
+    const initialDate = initialDateAttr ? new Date(initialDateAttr) : undefined;
+    const weekStartsOnAttr = this.getAttribute('week-starts-on');
+    const weekStartsOn: 0 | 1 = weekStartsOnAttr === '1' ? 1 : 0;
 
     this.engine = new CalendarEngine({
-      events: props.events,
-      initialDate: props.initialDate,
-      minYear: props.minYear,
-      maxYear: props.maxYear,
-      weekStartsOn: props.weekStartsOn,
+      events: this._events,
+      initialDate,
+      minYear: this.minYear,
+      maxYear: this.maxYear,
+      weekStartsOn,
+      categoryColors: this._categoryColors ?? undefined,
     });
 
     this.actions = this.engine.getActions();
-
     this.applyTheme();
-    this.init();
-  }
-
-  private applyTheme(): void {
-    if (this.props.theme) {
-      const root = document.documentElement;
-      const theme = this.props.theme;
-      if (theme.primary)
-        root.style.setProperty('--calendar-primary-color', theme.primary);
-      if (theme.secondary)
-        root.style.setProperty('--calendar-secondary-color', theme.secondary);
-      if (theme.tertiary)
-        root.style.setProperty('--calendar-tertiary-color', theme.tertiary);
-      if (theme.textColor)
-        root.style.setProperty('--calendar-text-color', theme.textColor);
-      if (theme.textLight)
-        root.style.setProperty('--calendar-text-light', theme.textLight);
-      if (theme.background)
-        root.style.setProperty('--calendar-background', theme.background);
-      if (theme.cellHover)
-        root.style.setProperty('--calendar-cell-hover', theme.cellHover);
-      if (theme.borderColor)
-        root.style.setProperty('--calendar-border-color', theme.borderColor);
-      if (theme.todayOutline)
-        root.style.setProperty('--calendar-today-outline', theme.todayOutline);
-      if (theme.selectedBg)
-        root.style.setProperty('--calendar-selected-bg', theme.selectedBg);
-      if (theme.eventIndicator)
-        root.style.setProperty(
-          '--calendar-event-indicator',
-          theme.eventIndicator
-        );
-    }
-  }
-
-  private init(): void {
-    this.container.classList.add('kalendly-calendar');
-    if (this.props.className) {
-      this.container.classList.add(this.props.className);
-    }
 
     this.unsubscribe = this.engine.subscribe(() => {
       this.render();
     });
+  }
 
+  private reinit(): void {
+    if (!this.engine) return;
+    this.cleanup();
+    this.initEngine();
     this.render();
   }
 
-  private render(): void {
-    const viewModel = this.engine.getViewModel();
+  private cleanup(): void {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+    }
 
-    const defaultRenderEvent = (
-      event: VanillaCalendarProps['events'][number]
-    ) => {
+    if (this.delegatedClickHandler) {
+      this.removeEventListener('click', this.delegatedClickHandler);
+      this.delegatedClickHandler = null;
+    }
+    if (this.delegatedInputHandler) {
+      this.removeEventListener('input', this.delegatedInputHandler);
+      this.delegatedInputHandler = null;
+    }
+    if (this.delegatedBlurHandler) {
+      this.removeEventListener('blur', this.delegatedBlurHandler, true);
+      this.delegatedBlurHandler = null;
+    }
+    if (this.delegatedKeydownHandler) {
+      this.removeEventListener('keydown', this.delegatedKeydownHandler);
+      this.delegatedKeydownHandler = null;
+    }
+    if (this.clickOutsideHandler) {
+      document.removeEventListener('click', this.clickOutsideHandler);
+      this.clickOutsideHandler = null;
+    }
+
+    this.listenersAttached = false;
+
+    if (this.engine) {
+      this.engine.destroy();
+      this.engine = null;
+    }
+
+    this.actions = null;
+  }
+
+  private applyTheme(): void {
+    if (!this._theme) return;
+    const root = document.documentElement;
+    const t = this._theme;
+    if (t.primary)
+      root.style.setProperty('--calendar-primary-color', t.primary);
+    if (t.secondary)
+      root.style.setProperty('--calendar-secondary-color', t.secondary);
+    if (t.tertiary)
+      root.style.setProperty('--calendar-tertiary-color', t.tertiary);
+    if (t.textColor)
+      root.style.setProperty('--calendar-text-color', t.textColor);
+    if (t.textLight)
+      root.style.setProperty('--calendar-text-light', t.textLight);
+    if (t.background)
+      root.style.setProperty('--calendar-background', t.background);
+    if (t.cellHover)
+      root.style.setProperty('--calendar-cell-hover', t.cellHover);
+    if (t.borderColor)
+      root.style.setProperty('--calendar-border-color', t.borderColor);
+    if (t.todayOutline)
+      root.style.setProperty('--calendar-today-outline', t.todayOutline);
+    if (t.selectedBg)
+      root.style.setProperty('--calendar-selected-bg', t.selectedBg);
+    if (t.eventIndicator)
+      root.style.setProperty('--calendar-event-indicator', t.eventIndicator);
+  }
+
+  private render(): void {
+    if (!this.engine) return;
+
+    const viewModel = this.engine.getViewModel();
+    const useShortMonths = this.hasAttribute('use-short-month-names');
+    const title = this.getAttribute('title');
+    const minYear = this.minYear;
+    const maxYear = this.maxYear;
+
+    const today = new Date();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+    const isCurrentMonth =
+      viewModel.currentYear === todayYear &&
+      viewModel.currentMonth === todayMonth;
+
+    const showScrollHint = viewModel.tasks.length > 3;
+
+    const defaultRenderEvent = (event: CalendarEvent) => {
       const timeRange = formatTimeRange(event);
       const attendeesList = formatAttendees(event.attendees);
 
       let borderColor = event.color || '#3b82f6';
       if (event.category) {
-        borderColor = this.engine.getCategoryColor(event.category);
+        borderColor = this.engine!.getCategoryColor(event.category);
       }
 
       const getCategoryLabel = (category?: string) => {
@@ -151,7 +266,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
               ${event.status && event.status !== 'scheduled' ? `<span class="badge status-${event.status}">${getStatusLabel(event.status)}</span>` : ''}
             </div>
           </div>
-          
+
           ${
             timeRange
               ? `
@@ -162,7 +277,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
           `
               : ''
           }
-          
+
           ${
             event.description
               ? `
@@ -170,7 +285,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
           `
               : ''
           }
-          
+
           ${
             event.location
               ? `
@@ -181,7 +296,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
           `
               : ''
           }
-          
+
           ${
             attendeesList
               ? `
@@ -192,7 +307,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
           `
               : ''
           }
-          
+
           ${
             event.organizer
               ? `
@@ -203,7 +318,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
           `
               : ''
           }
-          
+
           ${
             event.notes
               ? `
@@ -214,7 +329,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
           `
               : ''
           }
-          
+
           ${
             event.url
               ? `
@@ -226,7 +341,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
           `
               : ''
           }
-          
+
           ${
             event.tags && event.tags.length > 0
               ? `
@@ -243,34 +358,22 @@ export class VanillaCalendar implements VanillaCalendarInstance {
     const defaultRenderNoEvents = () =>
       '<div class="no-events-message">No events scheduled for this day.</div>';
 
-    const renderEvent = this.props.renderEvent || defaultRenderEvent;
-    const renderNoEvents = this.props.renderNoEvents || defaultRenderNoEvents;
-
-    const showScrollHint = viewModel.tasks.length > 3;
-
-    const today = new Date();
-    const todayMonth = today.getMonth();
-    const todayYear = today.getFullYear();
-    const minYear = this.props.minYear ?? todayYear - 30;
-    const maxYear = this.props.maxYear ?? todayYear + 10;
-    const isCurrentMonth =
-      viewModel.currentYear === todayYear &&
-      viewModel.currentMonth === todayMonth;
+    const renderEvent = this._renderEvent || defaultRenderEvent;
+    const renderNoEvents = this._renderNoEvents || defaultRenderNoEvents;
 
     const html = `
       ${
-        this.props.title
+        title
           ? `
-        <div class="page--title">
-          <h1>${this.props.title}</h1>
-        </div>
+      <div class="page--title">
+        <h1>${title}</h1>
+      </div>
       `
           : ''
       }
 
       <div class="calendar--content">
         <div class="calendar--card">
-          <!-- Navigation Header -->
           <div class="calendar--nav-header">
             <button type="button" class="calendar--nav-arrow" data-action="previous" aria-label="Previous month">
               &#8249;
@@ -285,7 +388,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
                 aria-haspopup="true"
               >
                 ${
-                  this.props.useShortMonthNames
+                  useShortMonths
                     ? `${MONTHS[viewModel.currentMonth]} ${viewModel.currentYear}`
                     : viewModel.monthAndYearText
                 }
@@ -321,7 +424,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
                   </div>
 
                   <div class="calendar--picker-months">
-                    ${(this.props.useShortMonthNames ? MONTHS : MONTHS_FULL)
+                    ${(useShortMonths ? MONTHS : MONTHS_FULL)
                       .map((month, index) => {
                         const isSelected = index === viewModel.currentMonth;
                         const isCurrent =
@@ -412,9 +515,7 @@ export class VanillaCalendar implements VanillaCalendarInstance {
               <div class="events-container">
                 ${
                   viewModel.tasks.length > 0
-                    ? `
-                  ${viewModel.tasks.map(event => renderEvent(event)).join('')}
-                `
+                    ? viewModel.tasks.map(event => renderEvent(event)).join('')
                     : renderNoEvents()
                 }
               </div>
@@ -426,39 +527,36 @@ export class VanillaCalendar implements VanillaCalendarInstance {
       </div>
     `;
 
-    this.container.innerHTML = html;
+    this.innerHTML = html;
     this.attachEventListeners();
   }
 
   private attachEventListeners(): void {
-    // Only attach delegated listeners once
     if (this.listenersAttached) return;
     this.listenersAttached = true;
 
-    const today = new Date();
-    const todayYear = today.getFullYear();
-    const todayMonth = today.getMonth();
-    const minYear = this.props.minYear ?? todayYear - 30;
-    const maxYear = this.props.maxYear ?? todayYear + 10;
+    const minYear = this.minYear;
+    const maxYear = this.maxYear;
 
-    // Single delegated click handler for all actions
     this.delegatedClickHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
-      // Handle calendar date clicks
       const cell = target.closest('td[data-clickable="true"]') as HTMLElement;
       if (cell && cell.dataset.date) {
-        e.stopPropagation(); // Prevent document handler from clearing selection after render
+        e.stopPropagation();
         const date = new Date(cell.dataset.date);
         const dayIndex = parseInt(cell.dataset.dayIndex || '0');
-        this.engine.handleDateClick(date, dayIndex);
-        this.container.dispatchEvent(
-          new CustomEvent('dateSelect', { detail: { date, dayIndex } })
+        this.engine!.handleDateClick(date, dayIndex);
+        this.dispatchEvent(
+          new CustomEvent('cal-date-select', {
+            bubbles: true,
+            composed: true,
+            detail: { date, events: this.engine!.getEventsForDate(date) },
+          })
         );
         return;
       }
 
-      // Handle button actions via data-action attribute
       const actionEl = target.closest('[data-action]') as HTMLElement;
       if (!actionEl) return;
 
@@ -467,53 +565,49 @@ export class VanillaCalendar implements VanillaCalendarInstance {
 
       switch (action) {
         case 'previous':
-          this.actions.previous();
+          this.actions!.previous();
           this.dispatchMonthChange();
           break;
 
         case 'next':
-          this.actions.next();
+          this.actions!.next();
           this.dispatchMonthChange();
           break;
 
         case 'today':
-          this.actions.goToToday();
+          this.actions!.goToToday();
           this.pickerOpen = false;
-          this.container.dispatchEvent(
-            new CustomEvent('monthChange', {
-              detail: { year: todayYear, month: todayMonth },
-            })
-          );
+          this.dispatchMonthChange();
           break;
 
         case 'toggle-picker':
           this.pickerOpen = !this.pickerOpen;
           if (this.pickerOpen) {
-            this.yearInput = String(this.engine.getViewModel().currentYear);
+            this.yearInput = String(this.engine!.getViewModel().currentYear);
             this.yearInputValid = true;
           }
           this.render();
           break;
 
         case 'year-prev': {
-          const vm = this.engine.getViewModel();
+          const vm = this.engine!.getViewModel();
           if (vm.currentYear > minYear) {
             const newYear = vm.currentYear - 1;
             this.yearInput = String(newYear);
             this.updatePickerYear(newYear);
-            this.actions.jump(newYear, vm.currentMonth);
+            this.actions!.jump(newYear, vm.currentMonth);
             this.dispatchMonthChange();
           }
           break;
         }
 
         case 'year-next': {
-          const vm = this.engine.getViewModel();
+          const vm = this.engine!.getViewModel();
           if (vm.currentYear < maxYear) {
             const newYear = vm.currentYear + 1;
             this.yearInput = String(newYear);
             this.updatePickerYear(newYear);
-            this.actions.jump(newYear, vm.currentMonth);
+            this.actions!.jump(newYear, vm.currentMonth);
             this.dispatchMonthChange();
           }
           break;
@@ -521,19 +615,18 @@ export class VanillaCalendar implements VanillaCalendarInstance {
 
         case 'select-month': {
           const month = parseInt(actionEl.dataset.month || '0', 10);
-          this.actions.jump(this.engine.getViewModel().currentYear, month);
+          this.actions!.jump(this.engine!.getViewModel().currentYear, month);
           this.pickerOpen = false;
           this.dispatchMonthChange();
           break;
         }
 
         case 'close-popup':
-          this.engine.clearSelection();
+          this.engine!.clearSelection();
           break;
       }
     };
 
-    // Delegated input handler for year input
     this.delegatedInputHandler = (e: Event) => {
       const target = e.target as HTMLInputElement;
       if (!target.matches('[data-year-input]')) return;
@@ -544,172 +637,109 @@ export class VanillaCalendar implements VanillaCalendarInstance {
         const year = parseInt(value, 10);
         this.yearInputValid =
           value === '' || (year >= minYear && year <= maxYear);
-        // Update input styling without full re-render
         target.classList.toggle('invalid', !this.yearInputValid);
       }
     };
 
-    // Delegated blur handler for year input
     this.delegatedBlurHandler = (e: FocusEvent) => {
       const target = e.target as HTMLInputElement;
       if (!target.matches('[data-year-input]')) return;
 
       const year = parseInt(this.yearInput, 10);
-      const vm = this.engine.getViewModel();
+      const vm = this.engine!.getViewModel();
       if (isNaN(year) || year < minYear || year > maxYear) {
         this.yearInput = String(vm.currentYear);
         this.yearInputValid = true;
         target.value = this.yearInput;
         target.classList.remove('invalid');
       } else if (year !== vm.currentYear) {
-        this.actions.jump(year, vm.currentMonth);
+        this.actions!.jump(year, vm.currentMonth);
         this.dispatchMonthChange();
       }
     };
 
-    // Delegated keydown handler for year input
     this.delegatedKeydownHandler = (e: KeyboardEvent) => {
       const target = e.target as HTMLInputElement;
       if (!target.matches('[data-year-input]')) return;
-      if (e.key === 'Enter') {
-        target.blur();
-      }
+      if (e.key === 'Enter') target.blur();
     };
 
-    // Attach delegated listeners to container
-    this.container.addEventListener('click', this.delegatedClickHandler);
-    this.container.addEventListener('input', this.delegatedInputHandler);
-    this.container.addEventListener('blur', this.delegatedBlurHandler, true);
-    this.container.addEventListener('keydown', this.delegatedKeydownHandler);
+    this.addEventListener('click', this.delegatedClickHandler);
+    this.addEventListener('input', this.delegatedInputHandler);
+    this.addEventListener('blur', this.delegatedBlurHandler, true);
+    this.addEventListener('keydown', this.delegatedKeydownHandler);
 
-    // Click outside handler for picker and popup
     this.clickOutsideHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      if (this.contains(target)) return;
 
-      // Ignore clicks inside container (handled by delegated handler)
-      if (this.container.contains(target)) return;
-
-      // Close picker on outside click
       if (this.pickerOpen) {
         this.pickerOpen = false;
         this.render();
         return;
       }
 
-      // Close popup on outside click
-      const popup = this.container.querySelector('.date-popup');
+      const popup = this.querySelector('.date-popup');
       if (popup) {
-        this.engine.clearSelection();
+        this.engine!.clearSelection();
       }
     };
 
     document.addEventListener('click', this.clickOutsideHandler);
   }
 
-  // Targeted update for picker year - avoids full DOM rebuild
   private updatePickerYear(year: number): void {
-    const input = this.container.querySelector(
-      '[data-year-input]'
-    ) as HTMLInputElement;
-    if (input) {
-      input.value = String(year);
-    }
+    const input = this.querySelector('[data-year-input]') as HTMLInputElement;
+    if (input) input.value = String(year);
 
-    // Update year arrow disabled states
-    const today = new Date();
-    const todayYear = today.getFullYear();
-    const minYear = this.props.minYear ?? todayYear - 30;
-    const maxYear = this.props.maxYear ?? todayYear + 10;
-
-    const prevBtn = this.container.querySelector(
+    const prevBtn = this.querySelector(
       '[data-action="year-prev"]'
     ) as HTMLButtonElement;
-    const nextBtn = this.container.querySelector(
+    const nextBtn = this.querySelector(
       '[data-action="year-next"]'
     ) as HTMLButtonElement;
-
-    if (prevBtn) prevBtn.disabled = year <= minYear;
-    if (nextBtn) nextBtn.disabled = year >= maxYear;
+    if (prevBtn) prevBtn.disabled = year <= this.minYear;
+    if (nextBtn) nextBtn.disabled = year >= this.maxYear;
   }
 
   private dispatchMonthChange(): void {
+    if (!this.engine) return;
     const vm = this.engine.getViewModel();
-    this.container.dispatchEvent(
-      new CustomEvent('monthChange', {
+    this.dispatchEvent(
+      new CustomEvent('cal-month-change', {
+        bubbles: true,
+        composed: true,
         detail: { year: vm.currentYear, month: vm.currentMonth },
       })
     );
   }
 
-  public updateEvents(events: import('../core').CalendarEvent[]): void {
-    this.engine.updateEvents(events);
+  // Public API
+  updateEvents(events: CalendarEvent[]): void {
+    this.events = events;
   }
 
-  public updateTheme(theme: import('../core').CalendarTheme): void {
-    this.props.theme = theme;
-    this.applyTheme();
+  updateTheme(theme: CalendarTheme): void {
+    this.theme = theme;
   }
 
-  public getCurrentDate(): Date | null {
-    return this.engine.getViewModel().selectedDate;
+  getCurrentDate(): Date | null {
+    return this.engine?.getViewModel().selectedDate ?? null;
   }
 
-  public goToDate(date: Date): void {
-    this.actions.jump(date.getFullYear(), date.getMonth());
+  goToDate(date: Date): void {
+    this.actions?.jump(date.getFullYear(), date.getMonth());
   }
 
-  public getEngine(): CalendarEngine {
+  getEngine(): CalendarEngine {
+    if (!this.engine)
+      throw new Error('CalendarElement is not connected to the DOM');
     return this.engine;
-  }
-
-  public destroy(): void {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
-    }
-
-    // Clean up delegated listeners
-    if (this.delegatedClickHandler) {
-      this.container.removeEventListener('click', this.delegatedClickHandler);
-      this.delegatedClickHandler = null;
-    }
-    if (this.delegatedInputHandler) {
-      this.container.removeEventListener('input', this.delegatedInputHandler);
-      this.delegatedInputHandler = null;
-    }
-    if (this.delegatedBlurHandler) {
-      this.container.removeEventListener(
-        'blur',
-        this.delegatedBlurHandler,
-        true
-      );
-      this.delegatedBlurHandler = null;
-    }
-    if (this.delegatedKeydownHandler) {
-      this.container.removeEventListener(
-        'keydown',
-        this.delegatedKeydownHandler
-      );
-      this.delegatedKeydownHandler = null;
-    }
-    if (this.clickOutsideHandler) {
-      document.removeEventListener('click', this.clickOutsideHandler);
-      this.clickOutsideHandler = null;
-    }
-
-    this.listenersAttached = false;
-    this.engine.destroy();
-    this.container.innerHTML = '';
-    this.container.classList.remove('kalendly-calendar');
-
-    if (this.props.className) {
-      this.container.classList.remove(this.props.className);
-    }
   }
 }
 
-export function createCalendar(
-  props: VanillaCalendarProps
-): VanillaCalendarInstance {
-  return new VanillaCalendar(props);
+export function defineCalendarElement(tagName = 'kal-calendar'): void {
+  if (typeof customElements !== 'undefined' && !customElements.get(tagName)) {
+    customElements.define(tagName, CalendarElement);
+  }
 }

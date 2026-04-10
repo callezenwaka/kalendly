@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vanilla JS — kalendly</title>
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <link rel="stylesheet" href="/dist/styles/calendar.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      background: #f5f5f5;
+    }
+
+    .page-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .page-nav a {
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .page-nav a:hover { color: #fc8917; }
+
+    .page-nav .current {
+      background: #fc8917;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .controls h1 { margin: 0 0 4px; color: #111827; font-size: 20px; }
+    .controls p  { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+    }
+
+    button {
+      background: #fc8917;
+      color: white;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #e67612; }
+    button.secondary { background: #6b7280; }
+    button.secondary:hover { background: #4b5563; }
+
+    .event-log {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .event-log h3 { margin: 0 0 12px; color: #111827; font-size: 15px; }
+
+    .log-entry {
+      padding: 7px 10px;
+      margin-bottom: 6px;
+      background: #f9fafb;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      border-left: 3px solid #fc8917;
+    }
+
+    .log-entry .ts { color: #9ca3af; margin-right: 8px; }
+  </style>
+</head>
+<body>
+
+  <nav class="page-nav">
+    <a href="/">Home</a>
+    <span class="current">Vanilla JS</span>
+    <a href="/examples/react/index.html">React</a>
+    <a href="/examples/vue/index.html">Vue</a>
+    <a href="/examples/svelte/index.html">Svelte</a>
+    <a href="/examples/angular/index.html">Angular</a>
+    <a href="/examples/solid/index.html">Solid</a>
+  </nav>
+
+  <div class="controls">
+    <h1>Vanilla JavaScript Demo</h1>
+    <p>Using <code>&lt;kal-calendar&gt;</code> as a plain HTML custom element — no framework required.</p>
+    <div class="button-grid">
+      <button type="button" id="addRandomBtn">Add Random Event</button>
+      <button type="button" id="loadSampleBtn">Load Sample Data</button>
+      <button type="button" id="clearAllBtn" class="secondary">Clear All Events</button>
+      <button type="button" id="goToTodayBtn">Go to Today</button>
+    </div>
+  </div>
+
+  <kal-calendar id="cal" title="My Calendar"></kal-calendar>
+
+  <div class="event-log">
+    <h3>Event Log</h3>
+    <div id="log"></div>
+  </div>
+
+  <script src="/dist/index.umd.js"></script>
+  <script>
+    const cal = document.getElementById('cal');
+
+    let events = [
+      {
+        id: 1,
+        name: 'Team Standup',
+        date: new Date(new Date().getFullYear(), new Date().getMonth(), 10),
+        startTime: '09:00',
+        endTime: '09:30',
+        category: 'meeting',
+        color: '#10b981',
+        priority: 'high',
+        location: 'Conference Room A',
+      },
+      {
+        id: 2,
+        name: 'Project Deadline',
+        date: new Date(new Date().getFullYear(), new Date().getMonth(), 20),
+        category: 'deadline',
+        color: '#ef4444',
+        priority: 'high',
+      },
+      {
+        id: 3,
+        name: 'Code Review',
+        date: new Date(),
+        startTime: '14:00',
+        endTime: '15:00',
+        category: 'work',
+        color: '#3b82f6',
+        location: 'Virtual - Zoom',
+      },
+    ];
+
+    cal.events = events;
+
+    // Listen to custom events
+    cal.addEventListener('cal-date-select', e => {
+      log(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} events)`);
+    });
+
+    cal.addEventListener('cal-month-change', e => {
+      log(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`);
+    });
+
+    // Controls
+    document.getElementById('addRandomBtn').addEventListener('click', () => {
+      const names = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
+      const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444'];
+      const i = Math.floor(Math.random() * names.length);
+      const d = new Date();
+      d.setDate(d.getDate() + Math.floor(Math.random() * 28));
+      const ev = { id: Date.now(), name: names[i], date: d, color: colors[i] };
+      events = [...events, ev];
+      cal.events = events;
+      log(`Added: ${ev.name} on ${d.toDateString()}`);
+    });
+
+    document.getElementById('loadSampleBtn').addEventListener('click', () => {
+      const now = new Date();
+      const sample = [
+        { id: Date.now() + 1, name: 'Sprint Planning', date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting', color: '#10b981' },
+        { id: Date.now() + 2, name: 'Doctor Appointment', date: new Date(now.getFullYear(), now.getMonth(), 18), category: 'personal', color: '#8b5cf6' },
+        { id: Date.now() + 3, name: 'Team Building', date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other', color: '#f59e0b' },
+      ];
+      events = [...events, ...sample];
+      cal.events = events;
+      log(`Loaded ${sample.length} sample events`);
+    });
+
+    document.getElementById('clearAllBtn').addEventListener('click', () => {
+      events = [];
+      cal.events = events;
+      log('Cleared all events');
+    });
+
+    document.getElementById('goToTodayBtn').addEventListener('click', () => {
+      cal.goToDate(new Date());
+      log('Navigated to today');
+    });
+
+    function log(msg) {
+      const container = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="ts">[${new Date().toLocaleTimeString()}]</span>${msg}`;
+      container.prepend(entry);
+      while (container.children.length > 20) container.removeChild(container.lastChild);
+    }
+
+    log('Calendar initialised');
+  </script>
+</body>
+</html>
