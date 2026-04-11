@@ -1,7 +1,13 @@
 {
   "name": "kalendly",
   "version": "0.2.0",
-  "description": "A universal calendar web component — works in React, Vue, Angular, svelte, and plain HTML with no framework dependency",
+  "description": "A universal calendar web component — works in React, Vue, Angular, Svelte, Solid.js, and plain HTML with no framework dependency",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build": "tsup && npm run copy:styles && npm run copy:dist",
     "copy:styles": "mkdir -p dist/styles && cp src/styles/calendar.css dist/styles/",
@@ -12,7 +18,6 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest --watch",
     "test:package": "node tests/integration/package-validation.test.mjs",
     "test:manual": "echo 'Open tests/manual/*.html in browser' && npx serve . -p 8080",
     "lint": "eslint src tests",
@@ -24,35 +29,16 @@
     "prepublishOnly": "npm run test && npm run build",
     "prepack": "npm run test:package"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/callezenwaka/kalendly.git"
-  },
-  "bugs": {
-    "url": "https://github.com/callezenwaka/kalendly/issues"
-  },
-  "homepage": "https://github.com/callezenwaka/kalendly#readme",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "require": "./dist/index.js"
     },
     "./core": {
       "types": "./dist/core/index.d.ts",
       "import": "./dist/core/index.mjs",
-      "require": "./dist/core/index.cjs"
-    },
-    "./react": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "require": "./dist/core/index.js"
     },
     "./styles": {
       "types": "./styles.d.ts",
@@ -65,20 +51,15 @@
     "README.md",
     "LICENSE"
   ],
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    }
-  },
   "lint-staged": {
     "package.json": [
       "sh -c 'npm install --package-lock-only' sh",
       "git add package-lock.json"
     ],
-    "*.{ts,tsx,vue,js,jsx,json,css,md}": [
+    "*.{ts,js,json,css,md}": [
       "prettier --write"
     ],
-    "*.{ts,tsx}": [
+    "*.ts": [
       "eslint --fix",
       "vitest related --run",
       "bash -c 'tsc --noEmit'"
@@ -86,9 +67,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.6.0",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.1",
@@ -117,6 +95,14 @@
     "events",
     "datepicker"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/callezenwaka/kalendly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/callezenwaka/kalendly/issues"
+  },
+  "homepage": "https://github.com/callezenwaka/kalendly#readme",
   "author": "Callis Ezenwaka <callisezenwaka@outlook.com>",
   "license": "MIT"
 }
