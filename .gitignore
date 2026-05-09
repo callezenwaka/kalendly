@@ -94,5 +94,6 @@ temp/
 
 # Spec files
 spec-v*.md
+roadmap-v*.md
 docs/dist/
 dist-examples/

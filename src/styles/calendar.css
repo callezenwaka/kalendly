@@ -349,6 +349,19 @@
   border-radius: 50%;
 }
 
+/* Availability mode */
+.calendar--table td.availability--booked {
+  background-color: #fee2e2;
+}
+
+.calendar--table td.availability--booked::after {
+  background-color: #dc2626;
+}
+
+.calendar--table td.availability--free {
+  background-color: #dcfce7;
+}
+
 .calendar--table thead th {
   vertical-align: bottom;
   border-bottom: 2px solid var(--calendar-border-color);

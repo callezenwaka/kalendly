@@ -16,6 +16,7 @@ export class CalendarElement extends HTMLElement {
     'week-starts-on',
     'title',
     'use-short-month-names',
+    'availability-mode',
   ];
 
   private engine: CalendarEngine | null = null;
@@ -65,11 +66,13 @@ export class CalendarElement extends HTMLElement {
   set renderEvent(val: (e: CalendarEvent) => string) {
     this._renderEvent = val;
     if (this.engine) this.render();
+    // ignored when availability-mode attribute is set
   }
 
   set renderNoEvents(val: () => string) {
     this._renderNoEvents = val;
     if (this.engine) this.render();
+    // ignored when availability-mode attribute is set
   }
 
   connectedCallback(): void {
@@ -206,6 +209,7 @@ export class CalendarElement extends HTMLElement {
     const title = this.getAttribute('title');
     const minYear = this.minYear;
     const maxYear = this.maxYear;
+    const availabilityMode = this.getAttribute('availability-mode');
 
     const today = new Date();
     const todayMonth = today.getMonth();
@@ -473,6 +477,13 @@ export class CalendarElement extends HTMLElement {
                   ${week
                     .map((calendarDate, dayIndex) => {
                       const classes = getCellClasses(calendarDate);
+                      if (availabilityMode && calendarDate.isCurrentMonth) {
+                        classes.push(
+                          calendarDate.hasEvents
+                            ? 'availability--booked'
+                            : 'availability--free'
+                        );
+                      }
                       const dateString = calendarDate.date.toISOString();
                       return `
                       <td
@@ -494,7 +505,7 @@ export class CalendarElement extends HTMLElement {
           </table>
 
           ${
-            viewModel.selectedDate
+            !availabilityMode && viewModel.selectedDate
               ? `
             <div class="date-popup ${viewModel.popupPositionClass}">
               <div class="popup-header">

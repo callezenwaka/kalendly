@@ -45,6 +45,7 @@ function mount(
     theme?: CalendarTheme;
     renderEvent?: (e: CalendarEvent) => string;
     renderNoEvents?: () => string;
+    availabilityMode?: 'day' | 'time';
   } = {}
 ): CalendarElement {
   const el = document.createElement('kal-calendar') as CalendarElement;
@@ -59,6 +60,8 @@ function mount(
   if (props.maxYear !== undefined)
     el.setAttribute('max-year', String(props.maxYear));
   if (props.useShortMonthNames) el.setAttribute('use-short-month-names', '');
+  if (props.availabilityMode)
+    el.setAttribute('availability-mode', props.availabilityMode);
 
   el.events = props.events ?? [];
   if (props.theme !== undefined) el.theme = props.theme;
@@ -529,6 +532,128 @@ describe('CalendarElement', () => {
       );
       expect(root.style.getPropertyValue('--calendar-tertiary-color')).toBe(
         '#c4b5fd'
+      );
+    });
+  });
+
+  describe('Availability Mode', () => {
+    const BOOKED_DATE = new Date('2024-01-15');
+    const BOOKED_EVENTS: CalendarEvent[] = [
+      { id: 1, name: 'Private Booking', date: '2024-01-15' },
+    ];
+
+    it('should add availability--booked class to cells with events', () => {
+      const el = mount({
+        events: BOOKED_EVENTS,
+        initialDate: BOOKED_DATE,
+        availabilityMode: 'day',
+      });
+      const bookedCell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      expect(bookedCell?.classList.contains('availability--booked')).toBe(true);
+    });
+
+    it('should add availability--free class to cells without events', () => {
+      const el = mount({
+        events: BOOKED_EVENTS,
+        initialDate: BOOKED_DATE,
+        availabilityMode: 'day',
+      });
+      const freeCell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '16'
+      );
+      expect(freeCell?.classList.contains('availability--free')).toBe(true);
+    });
+
+    it('should not add availability classes to other-month cells', () => {
+      const el = mount({
+        events: BOOKED_EVENTS,
+        initialDate: BOOKED_DATE,
+        availabilityMode: 'day',
+      });
+      const otherMonthCells = el.querySelectorAll('td.other-month');
+      otherMonthCells.forEach(cell => {
+        expect(cell.classList.contains('availability--booked')).toBe(false);
+        expect(cell.classList.contains('availability--free')).toBe(false);
+      });
+    });
+
+    it('should not open popup when a day is clicked', () => {
+      const el = mount({
+        events: BOOKED_EVENTS,
+        initialDate: BOOKED_DATE,
+        availabilityMode: 'day',
+      });
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(el.querySelector('.date-popup')).toBeNull();
+    });
+
+    it('should still dispatch cal-date-select when a day is clicked', () => {
+      const el = mount({
+        events: BOOKED_EVENTS,
+        initialDate: BOOKED_DATE,
+        availabilityMode: 'day',
+      });
+      const handler = vi.fn();
+      el.addEventListener('cal-date-select', handler);
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(handler).toHaveBeenCalled();
+    });
+
+    it('should ignore renderEvent when availability-mode is set', () => {
+      const el = mount({
+        events: BOOKED_EVENTS,
+        initialDate: BOOKED_DATE,
+        availabilityMode: 'day',
+        renderEvent: () => '<div class="custom-render">CUSTOM</div>',
+      });
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(el.innerHTML).not.toContain('CUSTOM');
+    });
+
+    it('should ignore renderNoEvents when availability-mode is set', () => {
+      const el = mount({
+        events: [],
+        initialDate: BOOKED_DATE,
+        availabilityMode: 'day',
+        renderNoEvents: () => '<div class="custom-empty">CUSTOM EMPTY</div>',
+      });
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(el.innerHTML).not.toContain('CUSTOM EMPTY');
+    });
+
+    it('should restore normal behaviour when availability-mode is removed', () => {
+      const el = mount({
+        events: BOOKED_EVENTS,
+        initialDate: BOOKED_DATE,
+        availabilityMode: 'day',
+      });
+      el.removeAttribute('availability-mode');
+
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(el.querySelector('.date-popup')).toBeTruthy();
+
+      const bookedCell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      expect(bookedCell?.classList.contains('availability--booked')).toBe(
+        false
       );
     });
   });
