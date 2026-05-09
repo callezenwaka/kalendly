@@ -349,6 +349,42 @@
   border-radius: 50%;
 }
 
+/* Time grid (availability-mode="time") */
+.time-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.time-grid__slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.time-grid__label {
+  font-weight: 600;
+  color: inherit;
+  min-width: 48px;
+}
+
+.time-grid__status {
+  font-weight: 500;
+}
+
+.time-grid__slot--booked {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.time-grid__slot--free {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
 /* Availability mode */
 .calendar--table td.availability--booked {
   background-color: #fee2e2;

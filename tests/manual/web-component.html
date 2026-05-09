@@ -137,6 +137,28 @@
     .badge .dot.green  { background: #10b981; }
     .badge .dot.orange { background: #fc8917; }
     .badge .dot.red    { background: #ef4444; }
+
+    .mode-btn { background: #f1f5f9; color: #374151; border: 2px solid #e2e8f0; }
+    .mode-btn:hover { background: #e2e8f0; transform: none; }
+    .mode-btn.active { background: #fc8917; color: white; border-color: #e67612; }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #6b7280;
+      flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-swatch {
+      width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0;
+    }
+    .legend-swatch.booked { background: #fee2e2; border: 1px solid #dc2626; }
+    .legend-swatch.free   { background: #dcfce7; border: 1px solid #16a34a; }
+
+    .hidden { display: none; }
+    .full-width { grid-column: 1 / -1; }
   </style>
 </head>
 <body>
@@ -181,6 +203,19 @@
         <button id="btn-theme-blue"   class="blue">Blue</button>
         <button id="btn-theme-green"  class="green">Green</button>
         <button id="btn-theme-purple">Purple</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Availability Mode</h2>
+      <div class="btn-grid">
+        <button class="mode-btn active" id="btn-mode-normal">Normal</button>
+        <button class="mode-btn" id="btn-mode-day">Day View</button>
+        <button class="mode-btn full-width" id="btn-mode-time">Time View</button>
+      </div>
+      <div class="legend hidden" id="availability-legend">
+        <div class="legend-item"><div class="legend-swatch booked"></div> Booked</div>
+        <div class="legend-item"><div class="legend-swatch free"></div> Available</div>
       </div>
     </div>
 
@@ -405,6 +440,39 @@
     const passed  = results.filter(Boolean).length;
     log(`── ${passed}/${results.length} checks passed ──────────────────`, passed === results.length ? 'ok' : 'warn');
   });
+
+  // ─── availability mode ────────────────────────────────────────────────────────
+  const LEAN_EVENTS = [
+    { id: 10, date: '2025-01-08', startTime: '09:00', endTime: '11:00' },
+    { id: 11, date: '2025-01-08', startTime: '14:00', endTime: '16:00' },
+    { id: 12, date: '2025-01-15' },
+    { id: 13, date: '2025-01-20', startTime: '10:00', endTime: '12:00' },
+    { id: 14, date: '2025-01-22', allDay: true },
+  ];
+
+  const modeBtns = ['btn-mode-normal', 'btn-mode-day', 'btn-mode-time'];
+  const legend   = document.getElementById('availability-legend');
+
+  function setMode(mode) {
+    modeBtns.forEach(id => document.getElementById(id).classList.remove('active'));
+    document.getElementById(`btn-mode-${mode}`).classList.add('active');
+
+    if (mode === 'normal') {
+      el.removeAttribute('availability-mode');
+      el.events = events;
+      legend.classList.add('hidden');
+      log('Availability mode → off (normal calendar)', 'info');
+    } else {
+      el.setAttribute('availability-mode', mode);
+      el.events = LEAN_EVENTS;
+      legend.classList.remove('hidden');
+      log(`Availability mode → ${mode} (lean events, details hidden)`, 'ok');
+    }
+  }
+
+  document.getElementById('btn-mode-normal').addEventListener('click', () => setMode('normal'));
+  document.getElementById('btn-mode-day'   ).addEventListener('click', () => setMode('day'));
+  document.getElementById('btn-mode-time'  ).addEventListener('click', () => setMode('time'));
 
   // ─── init ─────────────────────────────────────────────────────────────────────
   log('UMD bundle loaded. Running initial checks…', 'info');

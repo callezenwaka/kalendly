@@ -658,6 +658,121 @@ describe('CalendarElement', () => {
     });
   });
 
+  describe('Availability Mode — time', () => {
+    const BASE_DATE = new Date('2024-01-15');
+    const TIMED_EVENTS: CalendarEvent[] = [
+      {
+        id: 1,
+        name: 'Private',
+        date: '2024-01-15',
+        startTime: '09:00',
+        endTime: '11:00',
+      },
+    ];
+
+    it('should open popup when a day is clicked', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+      });
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(el.querySelector('.date-popup')).toBeTruthy();
+    });
+
+    it('should render the time grid inside the popup', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+      });
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(el.querySelector('.time-grid')).toBeTruthy();
+      expect(el.querySelectorAll('.time-grid__slot').length).toBe(24);
+    });
+
+    it('should mark booked hours correctly', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+      });
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const slots = el.querySelectorAll('.time-grid__slot');
+      // 09:00 and 10:00 should be booked (startTime=09:00, endTime=11:00)
+      expect(slots[9].classList.contains('time-grid__slot--booked')).toBe(true);
+      expect(slots[10].classList.contains('time-grid__slot--booked')).toBe(
+        true
+      );
+      // 08:00 and 11:00 should be free
+      expect(slots[8].classList.contains('time-grid__slot--free')).toBe(true);
+      expect(slots[11].classList.contains('time-grid__slot--free')).toBe(true);
+    });
+
+    it('should mark all hours booked for all-day events', () => {
+      const el = mount({
+        events: [{ id: 1, name: 'Private', date: '2024-01-15', allDay: true }],
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+      });
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const slots = el.querySelectorAll('.time-grid__slot--booked');
+      expect(slots.length).toBe(24);
+    });
+
+    it('should show all hours free when no events on that day', () => {
+      const el = mount({
+        events: [],
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+      });
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const slots = el.querySelectorAll('.time-grid__slot--free');
+      expect(slots.length).toBe(24);
+    });
+
+    it('should not render event details in the time grid', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+      });
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(el.innerHTML).not.toContain('Private');
+      expect(el.querySelector('.event-card')).toBeNull();
+    });
+
+    it('should still show booked/free cell backgrounds from day mode', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+      });
+      const bookedCell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === '15'
+      );
+      expect(bookedCell?.classList.contains('availability--booked')).toBe(true);
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle empty events array', () => {
       const el = mount({ events: [] });

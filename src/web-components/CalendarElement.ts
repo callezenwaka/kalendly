@@ -365,6 +365,28 @@ export class CalendarElement extends HTMLElement {
     const renderEvent = this._renderEvent || defaultRenderEvent;
     const renderNoEvents = this._renderNoEvents || defaultRenderNoEvents;
 
+    const renderTimeGrid = (events: CalendarEvent[]): string => {
+      const isHourBooked = (hour: number): boolean =>
+        events.some(event => {
+          if (!event.startTime || !event.endTime) return true;
+          const [startH] = (event.startTime as string).split(':').map(Number);
+          const [endH] = (event.endTime as string).split(':').map(Number);
+          return hour >= startH && hour < endH;
+        });
+
+      const slots = Array.from({ length: 24 }, (_, hour) => {
+        const label = `${String(hour).padStart(2, '0')}:00`;
+        const booked = isHourBooked(hour);
+        return `
+          <div class="time-grid__slot ${booked ? 'time-grid__slot--booked' : 'time-grid__slot--free'}">
+            <span class="time-grid__label">${label}</span>
+            <span class="time-grid__status">${booked ? 'Booked' : 'Available'}</span>
+          </div>`;
+      });
+
+      return `<div class="time-grid">${slots.join('')}</div>`;
+    };
+
     const html = `
       ${
         title
@@ -505,7 +527,7 @@ export class CalendarElement extends HTMLElement {
           </table>
 
           ${
-            !availabilityMode && viewModel.selectedDate
+            availabilityMode !== 'day' && viewModel.selectedDate
               ? `
             <div class="date-popup ${viewModel.popupPositionClass}">
               <div class="popup-header">
@@ -525,9 +547,13 @@ export class CalendarElement extends HTMLElement {
 
               <div class="events-container">
                 ${
-                  viewModel.tasks.length > 0
-                    ? viewModel.tasks.map(event => renderEvent(event)).join('')
-                    : renderNoEvents()
+                  availabilityMode === 'time'
+                    ? renderTimeGrid(viewModel.tasks)
+                    : viewModel.tasks.length > 0
+                      ? viewModel.tasks
+                          .map(event => renderEvent(event))
+                          .join('')
+                      : renderNoEvents()
                 }
               </div>
             </div>
