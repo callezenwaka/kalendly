@@ -230,6 +230,15 @@
     </div>
 
     <div class="panel" style="margin-bottom:16px">
+      <h2>Lazy Fetch</h2>
+      <div class="btn-grid">
+        <button type="button" class="mode-btn active" id="btn-lazy-off">Off</button>
+        <button type="button" class="mode-btn full-width" id="btn-lazy-on">On (500 ms delay)</button>
+      </div>
+      <p class="hint">Simulates per-month server fetch. Navigate months to see the skeleton.</p>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
       <h2>API / Diagnostics</h2>
       <div class="btn-grid">
         <button id="btn-get-date">getCurrentDate()</button>
@@ -249,7 +258,6 @@
     <kal-calendar
       id="calendar"
       title="Web Component Test"
-      initial-date="2025-01-15"
     ></kal-calendar>
   </div>
 
@@ -295,19 +303,19 @@
 
   const SAMPLE_EVENTS = [
     {
-      id: 1, name: 'Team Standup', date: '2025-01-15',
+      id: 1, name: 'Team Standup', date: thisMonth(15),
       startTime: '09:00', endTime: '09:30',
       category: 'meeting', priority: 'high',
       attendees: ['Alice', 'Bob', 'Carol'],
       location: 'Zoom', tags: ['daily'],
     },
     {
-      id: 2, name: 'Project Deadline', date: '2025-01-20',
+      id: 2, name: 'Project Deadline', date: thisMonth(20),
       category: 'deadline', priority: 'high',
       description: 'Q1 deliverables due', tags: ['important'],
     },
     {
-      id: 3, name: 'Code Review', date: '2025-01-15',
+      id: 3, name: 'Code Review', date: thisMonth(15),
       startTime: '14:00', endTime: '15:00',
       category: 'work', status: 'completed',
       location: 'GitHub', tags: ['dev'],
@@ -451,7 +459,7 @@
     const afterGoto = el.querySelector('.calendar--picker-btn')?.textContent || '';
     const gotoOk = afterGoto.includes('July') && afterGoto.includes('2030');
     log(`[9] goToDate(2030-07) → picker shows "July 2030"  → ${gotoOk ? 'PASS' : 'FAIL'}`, gotoOk ? 'ok' : 'err');
-    el.goToDate(new Date('2025-01-15')); // restore
+    el.goToDate(new Date()); // restore to today
 
     // 10. attribute change triggers re-render
     el.setAttribute('title', 'Updated Title');
@@ -465,12 +473,17 @@
   });
 
   // ─── availability mode ────────────────────────────────────────────────────────
+  function thisMonth(day) {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
   const LEAN_EVENTS = [
-    { id: 10, date: '2025-01-08', startTime: '09:00', endTime: '11:00' },
-    { id: 11, date: '2025-01-08', startTime: '14:00', endTime: '16:00' },
-    { id: 12, date: '2025-01-15' },
-    { id: 13, date: '2025-01-20', startTime: '10:00', endTime: '12:00' },
-    { id: 14, date: '2025-01-22', allDay: true },
+    { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00' },
+    { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00' },
+    { id: 12, date: thisMonth(15) },
+    { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00' },
+    { id: 14, date: thisMonth(22), allDay: true },
   ];
 
   const modeBtns = ['btn-mode-normal', 'btn-mode-day', 'btn-mode-time'];
@@ -515,6 +528,52 @@
 
   document.getElementById('btn-sel-off'  ).addEventListener('click', () => setSelectable('off'));
   document.getElementById('btn-sel-range').addEventListener('click', () => setSelectable('range'));
+
+  // ─── lazy fetch ──────────────────────────────────────────────────────────────
+  let lazyMonthHandler = null;
+
+  function simulateFetch(year, month) {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        // Return only the events that belong to this month
+        const filtered = LEAN_EVENTS.filter(ev => {
+          const d = new Date(ev.date);
+          return d.getFullYear() === year && d.getMonth() === month;
+        });
+        resolve(filtered);
+      }, 500);
+    });
+  }
+
+  function setLazy(on) {
+    ['btn-lazy-off', 'btn-lazy-on'].forEach(id =>
+      document.getElementById(id).classList.remove('active')
+    );
+    document.getElementById(on ? 'btn-lazy-on' : 'btn-lazy-off').classList.add('active');
+
+    if (lazyMonthHandler) {
+      el.removeEventListener('cal-month-change', lazyMonthHandler);
+      lazyMonthHandler = null;
+      log('Lazy fetch → off', 'info');
+    }
+
+    if (on) {
+      lazyMonthHandler = async (e) => {
+        const { year, month } = e.detail;
+        log(`Fetching events for ${year}-${String(month + 1).padStart(2, '0')}…`, 'info');
+        el.loading = true;
+        const fetched = await simulateFetch(year, month);
+        el.events = fetched;
+        el.loading = false;
+        log(`Loaded ${fetched.length} event(s) for ${year}-${String(month + 1).padStart(2, '0')}`, 'ok');
+      };
+      el.addEventListener('cal-month-change', lazyMonthHandler);
+      log('Lazy fetch → on (navigate months to trigger simulated fetch)', 'ok');
+    }
+  }
+
+  document.getElementById('btn-lazy-off').addEventListener('click', () => setLazy(false));
+  document.getElementById('btn-lazy-on' ).addEventListener('click', () => setLazy(true));
 
   // ─── init ─────────────────────────────────────────────────────────────────────
   log('UMD bundle loaded. Running initial checks…', 'info');

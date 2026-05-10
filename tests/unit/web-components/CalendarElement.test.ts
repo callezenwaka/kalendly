@@ -1120,6 +1120,97 @@ describe('CalendarElement', () => {
     });
   });
 
+  describe('Loading state', () => {
+    it('loading getter returns false by default', () => {
+      const el = mount({});
+      expect(el.loading).toBe(false);
+    });
+
+    it('setting loading=true reflects as attribute', () => {
+      const el = mount({});
+      el.loading = true;
+      expect(el.hasAttribute('loading')).toBe(true);
+    });
+
+    it('setting loading=false removes the attribute', () => {
+      const el = mount({});
+      el.loading = true;
+      el.loading = false;
+      expect(el.hasAttribute('loading')).toBe(false);
+    });
+
+    it('renders skeleton cells when loading is true', () => {
+      const el = mount({});
+      el.loading = true;
+      const skeletons = el.querySelectorAll('td.calendar--skeleton');
+      expect(skeletons.length).toBe(42); // 6 weeks × 7 days
+    });
+
+    it('renders no skeleton cells when loading is false', () => {
+      const el = mount({});
+      expect(el.querySelectorAll('td.calendar--skeleton').length).toBe(0);
+    });
+
+    it('skeleton cells are aria-hidden', () => {
+      const el = mount({});
+      el.loading = true;
+      const skeletons = el.querySelectorAll('td.calendar--skeleton');
+      skeletons.forEach(td => {
+        expect(td.getAttribute('aria-hidden')).toBe('true');
+      });
+    });
+
+    it('suppresses popup when loading is true', () => {
+      const el = mount({
+        initialDate: new Date('2024-01-15'),
+        events: [{ id: 1, name: 'Test', date: '2024-01-15' }],
+      });
+      Array.from(el.querySelectorAll('td'))
+        .find(td => td.textContent?.trim() === '15')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      el.loading = true;
+      expect(el.querySelector('.date-popup')).toBeNull();
+    });
+
+    it('cal-month-change fires before render on next navigation', () => {
+      const el = mount({ initialDate: new Date('2024-01-15') });
+      let monthInEventWasOld = false;
+      el.addEventListener('cal-month-change', (e: Event) => {
+        const { month } = (e as CustomEvent).detail;
+        // event says February (month 1) — engine hasn't rendered yet
+        if (month === 1) {
+          el.loading = true; // set synchronously
+          monthInEventWasOld = true;
+        }
+      });
+      el.querySelector<HTMLElement>('[data-action="next"]')?.click();
+      expect(monthInEventWasOld).toBe(true);
+      // loading was set in the handler → skeleton should be visible
+      expect(el.querySelectorAll('td.calendar--skeleton').length).toBe(42);
+    });
+
+    it('cal-month-change fires before render on previous navigation', () => {
+      const el = mount({ initialDate: new Date('2024-02-15') });
+      let detailMonth = -1;
+      el.addEventListener('cal-month-change', (e: Event) => {
+        detailMonth = (e as CustomEvent).detail.month;
+      });
+      el.querySelector<HTMLElement>('[data-action="previous"]')?.click();
+      expect(detailMonth).toBe(0); // January
+    });
+
+    it('clearing loading re-renders real cells', () => {
+      const el = mount({});
+      el.loading = true;
+      expect(el.querySelectorAll('td.calendar--skeleton').length).toBe(42);
+      el.loading = false;
+      expect(el.querySelectorAll('td.calendar--skeleton').length).toBe(0);
+      expect(el.querySelectorAll('td[data-clickable]').length).toBeGreaterThan(
+        0
+      );
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle empty events array', () => {
       const el = mount({ events: [] });

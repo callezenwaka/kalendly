@@ -23,6 +23,7 @@ export class CalendarElement extends HTMLElement {
     'use-short-month-names',
     'availability-mode',
     'selectable',
+    'loading',
   ];
 
   private engine: CalendarEngine | null = null;
@@ -89,6 +90,15 @@ export class CalendarElement extends HTMLElement {
     // ignored when availability-mode attribute is set
   }
 
+  get loading(): boolean {
+    return this.hasAttribute('loading');
+  }
+
+  set loading(val: boolean) {
+    if (val) this.setAttribute('loading', '');
+    else this.removeAttribute('loading');
+  }
+
   connectedCallback(): void {
     this.classList.add('kalendly-calendar');
     this.initEngine();
@@ -107,6 +117,10 @@ export class CalendarElement extends HTMLElement {
     newVal: string | null
   ): void {
     if (oldVal === newVal) return;
+    if (name === 'loading') {
+      this.render();
+      return;
+    }
     if (name === 'selectable' && newVal === null) {
       this._rangeStart = null;
       this._rangeEnd = null;
@@ -233,6 +247,7 @@ export class CalendarElement extends HTMLElement {
     const maxYear = this.maxYear;
     const availabilityMode = this.getAttribute('availability-mode');
     const selectable = this.hasAttribute('selectable');
+    const isLoading = this.loading;
 
     const today = new Date();
     const todayMonth = today.getMonth();
@@ -545,57 +560,72 @@ export class CalendarElement extends HTMLElement {
               </tr>
             </thead>
             <tbody data-calendar-body>
-              ${viewModel.calendarDates
-                .map(
-                  week => `
-                <tr>
-                  ${week
-                    .map((calendarDate, dayIndex) => {
-                      const classes = getCellClasses(calendarDate);
-                      if (availabilityMode && calendarDate.isCurrentMonth) {
-                        classes.push(
-                          calendarDate.hasEvents
-                            ? 'availability--booked'
-                            : 'availability--free'
-                        );
-                      }
-                      if (
-                        availabilityMode === 'day' &&
-                        selectable &&
-                        calendarDate.isCurrentMonth
-                      ) {
-                        const d = calendarDate.date;
-                        if (this._rangeStart && isSameDay(d, this._rangeStart))
-                          classes.push('availability--range-start');
-                        if (this._rangeEnd && isSameDay(d, this._rangeEnd))
-                          classes.push('availability--range-end');
-                        if (this._rangeStart && this._rangeEnd) {
-                          if (d > this._rangeStart && d < this._rangeEnd)
-                            classes.push('availability--in-range');
-                        }
-                      }
-                      const dateString = calendarDate.date.toISOString();
-                      return `
-                      <td
-                        class="${classes.join(' ')}"
-                        data-date="${dateString}"
-                        data-day-index="${dayIndex}"
-                        data-clickable="true"
-                      >
-                        ${calendarDate.date.getDate()}
-                      </td>
-                    `;
-                    })
-                    .join('')}
-                </tr>
-              `
-                )
-                .join('')}
+              ${
+                isLoading
+                  ? Array.from(
+                      { length: 6 },
+                      () =>
+                        `<tr>${Array.from(
+                          { length: 7 },
+                          () =>
+                            `<td class="calendar--skeleton" aria-hidden="true"></td>`
+                        ).join('')}</tr>`
+                    ).join('')
+                  : viewModel.calendarDates
+                      .map(
+                        week => `
+                    <tr>
+                      ${week
+                        .map((calendarDate, dayIndex) => {
+                          const classes = getCellClasses(calendarDate);
+                          if (availabilityMode && calendarDate.isCurrentMonth) {
+                            classes.push(
+                              calendarDate.hasEvents
+                                ? 'availability--booked'
+                                : 'availability--free'
+                            );
+                          }
+                          if (
+                            availabilityMode === 'day' &&
+                            selectable &&
+                            calendarDate.isCurrentMonth
+                          ) {
+                            const d = calendarDate.date;
+                            if (
+                              this._rangeStart &&
+                              isSameDay(d, this._rangeStart)
+                            )
+                              classes.push('availability--range-start');
+                            if (this._rangeEnd && isSameDay(d, this._rangeEnd))
+                              classes.push('availability--range-end');
+                            if (this._rangeStart && this._rangeEnd) {
+                              if (d > this._rangeStart && d < this._rangeEnd)
+                                classes.push('availability--in-range');
+                            }
+                          }
+                          const dateString = calendarDate.date.toISOString();
+                          return `
+                          <td
+                            class="${classes.join(' ')}"
+                            data-date="${dateString}"
+                            data-day-index="${dayIndex}"
+                            data-clickable="true"
+                          >
+                            ${calendarDate.date.getDate()}
+                          </td>
+                        `;
+                        })
+                        .join('')}
+                    </tr>
+                  `
+                      )
+                      .join('')
+              }
             </tbody>
           </table>
 
           ${
-            availabilityMode !== 'day' && viewModel.selectedDate
+            !isLoading && availabilityMode !== 'day' && viewModel.selectedDate
               ? `
             <div class="date-popup ${viewModel.popupPositionClass}">
               <div class="popup-header">
@@ -733,21 +763,33 @@ export class CalendarElement extends HTMLElement {
       e.stopPropagation();
 
       switch (action) {
-        case 'previous':
+        case 'previous': {
+          const vm = this.engine!.getViewModel();
+          const tMonth = vm.currentMonth === 0 ? 11 : vm.currentMonth - 1;
+          const tYear =
+            vm.currentMonth === 0 ? vm.currentYear - 1 : vm.currentYear;
+          this.dispatchMonthChange(tYear, tMonth);
           this.actions!.previous();
-          this.dispatchMonthChange();
           break;
+        }
 
-        case 'next':
+        case 'next': {
+          const vm = this.engine!.getViewModel();
+          const tMonth = vm.currentMonth === 11 ? 0 : vm.currentMonth + 1;
+          const tYear =
+            vm.currentMonth === 11 ? vm.currentYear + 1 : vm.currentYear;
+          this.dispatchMonthChange(tYear, tMonth);
           this.actions!.next();
-          this.dispatchMonthChange();
           break;
+        }
 
-        case 'today':
+        case 'today': {
+          const t = new Date();
+          this.dispatchMonthChange(t.getFullYear(), t.getMonth());
           this.actions!.goToToday();
           this.pickerOpen = false;
-          this.dispatchMonthChange();
           break;
+        }
 
         case 'toggle-picker':
           this.pickerOpen = !this.pickerOpen;
@@ -764,8 +806,8 @@ export class CalendarElement extends HTMLElement {
             const newYear = vm.currentYear - 1;
             this.yearInput = String(newYear);
             this.updatePickerYear(newYear);
+            this.dispatchMonthChange(newYear, vm.currentMonth);
             this.actions!.jump(newYear, vm.currentMonth);
-            this.dispatchMonthChange();
           }
           break;
         }
@@ -776,17 +818,18 @@ export class CalendarElement extends HTMLElement {
             const newYear = vm.currentYear + 1;
             this.yearInput = String(newYear);
             this.updatePickerYear(newYear);
+            this.dispatchMonthChange(newYear, vm.currentMonth);
             this.actions!.jump(newYear, vm.currentMonth);
-            this.dispatchMonthChange();
           }
           break;
         }
 
         case 'select-month': {
           const month = parseInt(actionEl.dataset.month || '0', 10);
-          this.actions!.jump(this.engine!.getViewModel().currentYear, month);
+          const year = this.engine!.getViewModel().currentYear;
+          this.dispatchMonthChange(year, month);
+          this.actions!.jump(year, month);
           this.pickerOpen = false;
-          this.dispatchMonthChange();
           break;
         }
 
@@ -868,8 +911,8 @@ export class CalendarElement extends HTMLElement {
         target.value = this.yearInput;
         target.classList.remove('invalid');
       } else if (year !== vm.currentYear) {
+        this.dispatchMonthChange(year, vm.currentMonth);
         this.actions!.jump(year, vm.currentMonth);
-        this.dispatchMonthChange();
       }
     };
 
@@ -917,14 +960,17 @@ export class CalendarElement extends HTMLElement {
     if (nextBtn) nextBtn.disabled = year >= this.maxYear;
   }
 
-  private dispatchMonthChange(): void {
+  private dispatchMonthChange(year?: number, month?: number): void {
     if (!this.engine) return;
     const vm = this.engine.getViewModel();
     this.dispatchEvent(
       new CustomEvent('cal-month-change', {
         bubbles: true,
         composed: true,
-        detail: { year: vm.currentYear, month: vm.currentMonth },
+        detail: {
+          year: year ?? vm.currentYear,
+          month: month ?? vm.currentMonth,
+        },
       })
     );
   }
@@ -943,7 +989,10 @@ export class CalendarElement extends HTMLElement {
   }
 
   goToDate(date: Date): void {
-    this.actions?.jump(date.getFullYear(), date.getMonth());
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    this.dispatchMonthChange(year, month);
+    this.actions?.jump(year, month);
   }
 
   getEngine(): CalendarEngine {
