@@ -50,6 +50,7 @@
       border-radius: 10px;
       padding: 20px;
       box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      margin-bottom: 16px;
     }
 
     .panel h2 {
@@ -173,7 +174,7 @@
 
   <!-- Left: controls -->
   <div>
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>Status</h2>
       <div class="badge-row">
         <div class="badge" id="badge-registered">
@@ -187,7 +188,7 @@
       </div>
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>Events</h2>
       <div class="btn-grid">
         <button id="btn-add">Add Event</button>
@@ -197,7 +198,7 @@
       </div>
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>Theme</h2>
       <div class="btn-grid">
         <button id="btn-theme-default">Default (Orange)</button>
@@ -207,7 +208,7 @@
       </div>
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>Availability Mode</h2>
       <div class="btn-grid">
         <button class="mode-btn active" id="btn-mode-normal">Normal</button>
@@ -220,7 +221,7 @@
       </div>
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>Selectable</h2>
       <div class="btn-grid">
         <button type="button" class="mode-btn active" id="btn-sel-off">Off</button>
@@ -229,7 +230,7 @@
       <p class="hint">Requires an availability mode. Click a free day/slot to start, click again to extend the range.</p>
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>Lazy Fetch</h2>
       <div class="btn-grid">
         <button type="button" class="mode-btn active" id="btn-lazy-off">Off</button>
@@ -238,12 +239,12 @@
       <p class="hint">Simulates per-month server fetch. Navigate months to see the skeleton.</p>
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel">
       <h2>API / Diagnostics</h2>
       <div class="btn-grid">
         <button id="btn-get-date">getCurrentDate()</button>
         <button id="btn-get-engine" class="green">getEngine()</button>
-        <button id="btn-run-all" class="green" style="grid-column:1/-1">Run All Checks</button>
+        <button id="btn-run-all" class="green full-width">Run All Checks</button>
       </div>
     </div>
 
