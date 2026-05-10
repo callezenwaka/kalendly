@@ -48,54 +48,40 @@ npm test
 kalendly/
 ├── src/
 │   ├── core/              # Core calendar engine (framework-agnostic)
-│   ├── react/             # React components
-│   ├── react-native/      # React Native components
-│   ├── vue/               # Vue components
-│   ├── vanilla/           # Vanilla JavaScript implementation
+│   ├── web-components/    # <kal-calendar> custom element
 │   └── styles/            # CSS and styling
-├── examples/              # Demo applications
-│   ├── react/
-│   ├── react-native/
-│   ├── vue/
-│   └── vanilla/
+├── docs/
+│   └── examples/          # Live framework demos (served by dev:examples)
+│       ├── vanilla/
+│       ├── react/
+│       ├── vue/
+│       ├── svelte/
+│       ├── angular/
+│       └── solid/
 ├── tests/                 # Unit and integration tests
 │   ├── unit/
-│   └── integration/
+│   ├── integration/
+│   └── manual/            # Browser-based manual test pages
 └── dist/                  # Built output (generated)
 ```
 
 ## Building the Project
 
-### Build all frameworks:
+### Build:
 
 ```bash
 npm run build
 ```
 
-This runs:
-
-- `tsup` for React, React Native, and Vanilla builds
-- `vite build` for Vue build
-
-### Build specific frameworks:
-
-```bash
-# Build React/React Native/Vanilla
-npm run build:tsup
-
-# Build Vue
-npm run build:vue
-```
+This runs `tsup`, copies `calendar.css` to `dist/styles/`, then copies `dist/` into `docs/dist/` so the example pages can load the built files.
 
 ### Development mode (watch):
 
 ```bash
-# Watch React/React Native/Vanilla
-npm run dev:tsup
-
-# Watch Vue
-npm run dev:vue
+npm run dev
 ```
+
+Rebuilds on every source change (TypeScript + CSS). Run alongside `dev:examples` when iterating on both the component and the demos.
 
 ## Running Tests
 
@@ -144,63 +130,24 @@ This starts a local server on `http://localhost:8080` where you can:
 
 ## Running Examples
 
-The `examples/` directory contains demo applications for each framework.
+The `docs/examples/` directory contains live demos for all supported frameworks.
 
-### Run All Examples:
-
-You can start all framework examples at once:
+### Start the dev server:
 
 ```bash
 npm run dev:examples
 ```
 
-This starts a Vite development server on port 5173 that serves all examples. The examples will be available at:
+This builds the package then serves `docs/` on port 5173. All demos are available at:
 
-- Vanilla: http://localhost:5173/examples/vanilla/index.html
+- Vanilla JS: http://localhost:5173/examples/vanilla/index.html
 - React: http://localhost:5173/examples/react/index.html
 - Vue: http://localhost:5173/examples/vue/index.html
+- Svelte: http://localhost:5173/examples/svelte/index.html
+- Angular: http://localhost:5173/examples/angular/index.html
+- Solid.js: http://localhost:5173/examples/solid/index.html
 
-### Run Individual Examples:
-
-#### React Example:
-
-```bash
-cd examples/react
-npm install
-npm run dev
-# Open http://localhost:5173
-```
-
-#### Vue Example:
-
-```bash
-cd examples/vue
-npm install
-npm run dev
-# Open http://localhost:5174
-```
-
-#### Vanilla JavaScript Example:
-
-```bash
-cd examples/vanilla
-# Open index.html in your browser
-# Or use a simple HTTP server:
-npx serve .
-```
-
-#### React Native Example:
-
-```bash
-cd examples/react-native
-npm install
-
-# For iOS:
-npm run ios
-
-# For Android:
-npm run android
-```
+Each demo includes interactive controls for availability mode, selectable range, and lazy event fetching. When working on the component source, run `npm run dev` in a separate terminal so changes are rebuilt automatically — then refresh the browser.
 
 ## Making Changes
 
@@ -242,15 +189,14 @@ These run automatically when you commit.
 Add tests for any new features or bug fixes:
 
 ```typescript
-// tests/unit/react/YourFeature.test.tsx
+// tests/unit/web-components/YourFeature.test.ts
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { YourComponent } from '../../../src/react/components/YourComponent';
 
-describe('YourComponent', () => {
-  it('should render correctly', () => {
-    render(<YourComponent />);
-    expect(screen.getByText('Expected Text')).toBeTruthy();
+describe('YourFeature', () => {
+  it('should behave correctly', () => {
+    document.body.innerHTML = '<kal-calendar id="cal"></kal-calendar>';
+    const cal = document.getElementById('cal') as any;
+    // assert ...
   });
 });
 ```

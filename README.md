@@ -9,6 +9,8 @@ A universal calendar web component — works in React, Vue, Svelte, Angular, Sol
 - **Themeable**: CSS variables + JS property API
 - **Type Safe**: Full TypeScript support
 - **Event-rich**: Categories, priorities, time ranges, attendees, and more
+- **Availability mode**: Day and time views for booking flows — hides event details, shows booked/free cells
+- **Lazy loading**: Per-month on-demand fetch with skeleton shimmer state
 - **Accessible**: Built with accessibility in mind
 - **Tree-shakeable**: Import only what you need
 
@@ -60,11 +62,7 @@ npm install kalendly
 />
 <script src="https://unpkg.com/kalendly/dist/index.umd.js"></script>
 
-<kal-calendar
-  id="cal"
-  title="My Calendar"
-  initial-date="2025-01-15"
-></kal-calendar>
+<kal-calendar id="cal" title="My Calendar"></kal-calendar>
 
 <script>
   const cal = document.getElementById('cal');
@@ -242,20 +240,6 @@ function App() {
 }
 ```
 
-## Migration from v0.1.x
-
-v0.2.0 replaces the four separate framework packages with a single web component.
-
-| Before (v0.1.x)                                     | After (v0.2.0+)                    |
-| --------------------------------------------------- | ---------------------------------- |
-| `import { Calendar } from 'kalendly/react'`         | `import 'kalendly'`                |
-| `import { Calendar } from 'kalendly/vue'`           | `import 'kalendly'`                |
-| `import { Calendar } from 'kalendly/react-native'`  | Not supported                      |
-| `import { createCalendar } from 'kalendly/vanilla'` | `import 'kalendly'`                |
-| `<Calendar events={events} />`                      | `<kal-calendar events={events} />` |
-
-React Native is out of scope and not replaced.
-
 ## Styling
 
 ### Loading styles
@@ -301,35 +285,122 @@ document.querySelector('kal-calendar').theme = {
 
 Primitives are set as HTML attributes:
 
-| Attribute               | Type       | Default          | Description                           |
-| ----------------------- | ---------- | ---------------- | ------------------------------------- |
-| `title`                 | `string`   | —                | Calendar title                        |
-| `initial-date`          | `string`   | today            | ISO date string for initial view      |
-| `min-year`              | `string`   | currentYear - 30 | Minimum year in picker                |
-| `max-year`              | `string`   | currentYear + 10 | Maximum year in picker                |
-| `week-starts-on`        | `"0"\|"1"` | `"0"`            | Week start: 0 = Sunday, 1 = Monday    |
-| `use-short-month-names` | `string`   | —                | Present = use abbreviated month names |
+| Attribute               | Type             | Default          | Description                                      |
+| ----------------------- | ---------------- | ---------------- | ------------------------------------------------ |
+| `title`                 | `string`         | —                | Calendar title                                   |
+| `initial-date`          | `string`         | today            | ISO date string for initial view                 |
+| `min-year`              | `string`         | currentYear - 30 | Minimum year in picker                           |
+| `max-year`              | `string`         | currentYear + 10 | Maximum year in picker                           |
+| `week-starts-on`        | `"0"\|"1"`       | `"0"`            | Week start: 0 = Sunday, 1 = Monday               |
+| `use-short-month-names` | `string`         | —                | Present = use abbreviated month names            |
+| `availability-mode`     | `"day"\|"time"`  | —                | Hides event details; shows booked/free cells     |
+| `selectable`            | `"range"`        | —                | Enables day/slot selection (requires avail mode) |
+| `loading`               | `boolean` (flag) | —                | Present = render skeleton shimmer cells          |
 
 ## Properties
 
 Rich objects are set as JS properties (not attributes):
 
-| Property         | Type                               | Description                      |
-| ---------------- | ---------------------------------- | -------------------------------- |
-| `events`         | `CalendarEvent[]`                  | Events to display                |
-| `theme`          | `CalendarTheme`                    | Custom theme colors              |
-| `categoryColors` | `CategoryColorMap`                 | Per-category color overrides     |
-| `renderEvent`    | `(event: CalendarEvent) => string` | Custom event HTML renderer       |
-| `renderNoEvents` | `() => string`                     | Custom empty-state HTML renderer |
+| Property         | Type                               | Description                                       |
+| ---------------- | ---------------------------------- | ------------------------------------------------- |
+| `events`         | `CalendarEvent[]`                  | Events to display                                 |
+| `loading`        | `boolean`                          | `true` = render skeleton cells; `false` = restore |
+| `theme`          | `CalendarTheme`                    | Custom theme colors                               |
+| `categoryColors` | `CategoryColorMap`                 | Per-category color overrides                      |
+| `renderEvent`    | `(event: CalendarEvent) => string` | Custom event HTML renderer                        |
+| `renderNoEvents` | `() => string`                     | Custom empty-state HTML renderer                  |
+
+> `renderEvent` and `renderNoEvents` are ignored when `availability-mode` is set.
 
 ## Custom Events
 
-| Event              | `detail` shape                            | Description               |
-| ------------------ | ----------------------------------------- | ------------------------- |
-| `cal-date-select`  | `{ date: Date, events: CalendarEvent[] }` | User clicked a date       |
-| `cal-month-change` | `{ year: number, month: number }`         | Month navigation occurred |
+| Event                     | `detail` shape                                                         | Description                            |
+| ------------------------- | ---------------------------------------------------------------------- | -------------------------------------- |
+| `cal-date-select`         | `{ date: Date, events: CalendarEvent[] }`                              | User clicked a date (normal mode)      |
+| `cal-month-change`        | `{ year: number, month: number }`                                      | Fires **before** the new month renders |
+| `cal-availability-select` | `{ startDate: Date, endDate: Date }` or `{ date, startTime, endTime }` | Day/slot selected in availability mode |
 
-Both events bubble and are composed (cross Shadow DOM boundaries).
+All events bubble and are composed (cross Shadow DOM boundaries).
+
+`cal-availability-select` detail shape depends on mode:
+
+- **Day mode** (`availability-mode="day"`): `{ startDate: Date, endDate: Date }` — first click gives `startDate === endDate`; second click extends the range; third click resets
+- **Time mode** (`availability-mode="time"`): `{ date: Date, startTime: string, endTime: string }` — first click selects a single slot; second click extends; third click resets
+
+## Availability Mode
+
+Hides all event details from the end user — only booked/free state is shown. Designed for scheduling and booking flows where the server's event data must not be exposed to the viewer.
+
+### Day view
+
+```html
+<kal-calendar availability-mode="day"></kal-calendar>
+```
+
+Days with events get a red tint (booked); days without get a green tint (free). Clicking a day opens no popup.
+
+Pass the minimal event shape — no names, no descriptions:
+
+```js
+cal.events = [
+  { id: 1, date: new Date(2025, 4, 8) },
+  { id: 2, date: new Date(2025, 4, 8), startTime: '14:00', endTime: '16:00' },
+  { id: 3, date: new Date(2025, 4, 20), startTime: '10:00', endTime: '12:00' },
+];
+```
+
+### Time view
+
+```html
+<kal-calendar availability-mode="time"></kal-calendar>
+```
+
+Clicking a day opens a time-grid popup showing which hours are booked (red) and free (green). No event name or organiser is ever rendered.
+
+### Selectable range
+
+Add `selectable="range"` to let the user pick a free day or time slot:
+
+```html
+<kal-calendar availability-mode="day" selectable="range"></kal-calendar>
+<kal-calendar availability-mode="time" selectable="range"></kal-calendar>
+```
+
+```js
+// Day mode — fires on every click
+cal.addEventListener('cal-availability-select', e => {
+  const { startDate, endDate } = e.detail;
+  console.log('Selected:', startDate, '→', endDate);
+});
+
+// Time mode — fires on every slot click
+cal.addEventListener('cal-availability-select', e => {
+  const { date, startTime, endTime } = e.detail;
+  console.log('Slot:', date, startTime, '–', endTime);
+});
+```
+
+Booked days/slots cannot be selected. The 3-click state machine: first click selects, second extends, third resets.
+
+## Lazy Event Fetching
+
+`cal-month-change` fires **before** the new month renders, so you can set `loading = true` synchronously — the calendar shows skeleton shimmer cells from the first frame with no empty-calendar flash.
+
+```js
+cal.addEventListener('cal-month-change', async ({ detail }) => {
+  const { year, month } = detail;
+  cal.loading = true;
+  cal.events = await fetchEvents(year, month); // your API call
+  cal.loading = false;
+});
+```
+
+The "dump all events upfront" pattern still works unchanged — `cal-month-change` is optional:
+
+```js
+// Load once, component handles all months
+cal.events = allEvents;
+```
 
 ## JavaScript API
 
@@ -470,14 +541,6 @@ Custom Elements v1 — Chrome 67+, Firefox 63+, Safari 12.1+, Edge 79+.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-```bash
-git clone https://github.com/callezenwaka/kalendly.git
-cd kalendly
-npm install
-npm test
-npm run dev:examples
-```
-
 ## License
 
 MIT © Callis Ezenwaka
@@ -488,7 +551,8 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ### Recent Updates
 
-- **v0.2.0**: Migrated to a single `<kal-calendar>` web component — works natively in React, Vue, Angular, and plain HTML with no framework dependency
+- **v0.2.1**: Add availability mode (day/time views), selectable range, lazy event fetching with skeleton loading
+- **v0.2.0**: Migrated to a single `<kal-calendar>` web component — works natively in React, Vue, Angular, Svelte, Solid.js, and plain HTML with no framework dependency
 - **v0.1.7**: Vanilla calendar performance optimization with event delegation
 - **v0.1.6**: Navigation enhancements — Today button, month/year picker, optional `title` prop
 - **v0.1.5**: Universal theming system, TypeScript improvements

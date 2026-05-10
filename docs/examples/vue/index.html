@@ -46,12 +46,20 @@
     }
 
     .controls h1 { margin: 0 0 4px; color: #111827; font-size: 20px; }
+    .controls h2 { margin: 0 0 8px; color: #111827; font-size: 15px; font-weight: 600; }
     .controls p  { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+    .controls .hint { margin: 8px 0 0; color: #9ca3af; font-size: 12px; }
 
     .button-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 8px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 16px 0;
     }
 
     button {
@@ -69,6 +77,7 @@
     button:hover { background: #33a06f; }
     button.secondary { background: #6b7280; }
     button.secondary:hover { background: #4b5563; }
+    button.active { outline: 2px solid #111827; outline-offset: 2px; }
 
     .event-log {
       background: white;
@@ -113,100 +122,192 @@
   <script type="module">
     import { createApp, ref, h, onMounted, watch } from 'https://esm.sh/vue@3.5.13/dist/vue.esm-bundler.js';
 
+    function thisMonth(day) {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), day);
+    }
+
+    const leanEvents = [
+      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00' },
+      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00' },
+      { id: 12, date: thisMonth(15) },
+      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00' },
+      { id: 14, date: thisMonth(22), allDay: true },
+    ];
+
     createApp({
       setup() {
-        const events = ref([
-          {
-            id: 1,
-            name: 'Team Standup',
-            date: new Date(new Date().getFullYear(), new Date().getMonth(), 10),
-            startTime: '09:00',
-            endTime: '09:30',
-            category: 'meeting',
-            color: '#10b981',
-            priority: 'high',
-            location: 'Conference Room A',
-          },
-          {
-            id: 2,
-            name: 'Project Deadline',
-            date: new Date(new Date().getFullYear(), new Date().getMonth(), 20),
-            category: 'deadline',
-            color: '#ef4444',
-            priority: 'high',
-          },
-          {
-            id: 3,
-            name: 'Code Review',
-            date: new Date(),
-            startTime: '14:00',
-            endTime: '15:00',
-            category: 'work',
-            color: '#3b82f6',
-            location: 'Virtual - Zoom',
-          },
+        const normalEvents = ref([
+          { id: 1, name: 'Team Standup',     date: thisMonth(10), startTime: '09:00', endTime: '09:30', category: 'meeting',  color: '#10b981', priority: 'high', location: 'Conference Room A' },
+          { id: 2, name: 'Project Deadline', date: thisMonth(20), category: 'deadline', color: '#ef4444', priority: 'high' },
+          { id: 3, name: 'Code Review',      date: new Date(),    startTime: '14:00', endTime: '15:00', category: 'work',     color: '#3b82f6', location: 'Virtual - Zoom' },
         ]);
-
-        const logs = ref(['Calendar initialised']);
-        const calRef = ref(null);
+        const mode       = ref('Normal'); // 'Normal' | 'day' | 'time'
+        const selectable = ref('off');    // 'off' | 'range'
+        const lazyOn     = ref(false);
+        const logs       = ref(['Calendar initialised']);
+        const calRef     = ref(null);
+        let   lazyHandler = null;
 
         function addLog(msg) {
           logs.value.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
           if (logs.value.length > 20) logs.value.pop();
         }
 
-        // Sync events to the custom element property
-        onMounted(() => {
-          if (calRef.value) calRef.value.events = events.value;
-        });
+        function syncCalendar() {
+          const cal = calRef.value;
+          if (!cal) return;
+          if (mode.value === 'Normal') {
+            cal.removeAttribute('availability-mode');
+            cal.events = normalEvents.value;
+          } else {
+            cal.setAttribute('availability-mode', mode.value);
+            cal.events = leanEvents;
+          }
+          if (selectable.value === 'range') {
+            cal.setAttribute('selectable', 'range');
+          } else {
+            cal.removeAttribute('selectable');
+          }
+        }
 
-        watch(events, val => {
-          if (calRef.value) calRef.value.events = val;
+        onMounted(syncCalendar);
+        watch([mode, selectable, normalEvents], syncCalendar);
+
+        watch(lazyOn, (val) => {
+          const cal = calRef.value;
+          if (!cal) return;
+          if (lazyHandler) {
+            cal.removeEventListener('cal-month-change', lazyHandler);
+            lazyHandler = null;
+          }
+          if (val) {
+            lazyHandler = async (e) => {
+              const { year, month } = e.detail;
+              addLog(`Fetching events for ${year}-${String(month + 1).padStart(2, '0')}…`);
+              cal.loading = true;
+              await new Promise(r => setTimeout(r, 500));
+              const isAvail = cal.hasAttribute('availability-mode');
+              const source  = isAvail ? leanEvents : normalEvents.value;
+              cal.events = source.filter(ev => {
+                const d = ev.date instanceof Date ? ev.date : new Date(ev.date);
+                return d.getFullYear() === year && d.getMonth() === month;
+              });
+              cal.loading = false;
+              addLog(`Loaded ${cal.events.length} event(s) for ${year}-${String(month + 1).padStart(2, '0')}`);
+            };
+            cal.addEventListener('cal-month-change', lazyHandler);
+          }
+          addLog(val ? 'Lazy fetch → on (navigate months to trigger)' : 'Lazy fetch → off');
         });
 
         function addRandom() {
-          const names = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
+          const names  = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
           const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444'];
           const i = Math.floor(Math.random() * names.length);
           const d = new Date();
           d.setDate(d.getDate() + Math.floor(Math.random() * 28));
           const ev = { id: Date.now(), name: names[i], date: d, color: colors[i] };
-          events.value = [...events.value, ev];
+          normalEvents.value = [...normalEvents.value, ev];
           addLog(`Added: ${ev.name} on ${d.toDateString()}`);
         }
 
         function loadSample() {
           const now = new Date();
           const sample = [
-            { id: Date.now() + 1, name: 'Sprint Planning', date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting', color: '#10b981' },
+            { id: Date.now() + 1, name: 'Sprint Planning',    date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting',  color: '#10b981' },
             { id: Date.now() + 2, name: 'Doctor Appointment', date: new Date(now.getFullYear(), now.getMonth(), 18), category: 'personal', color: '#8b5cf6' },
-            { id: Date.now() + 3, name: 'Team Building', date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other', color: '#f59e0b' },
+            { id: Date.now() + 3, name: 'Team Building',      date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other',    color: '#f59e0b' },
           ];
-          events.value = [...events.value, ...sample];
+          normalEvents.value = [...normalEvents.value, ...sample];
           addLog(`Loaded ${sample.length} sample events`);
         }
 
         function clearAll() {
-          events.value = [];
+          normalEvents.value = [];
           addLog('Cleared all events');
+        }
+
+        function goToToday() {
+          calRef.value?.goToDate(new Date());
+          addLog('Navigated to today');
+        }
+
+        function handleModeChange(m) {
+          mode.value = m;
+          addLog(m === 'Normal'
+            ? 'Availability mode → off'
+            : `Availability mode → ${m} (lean events, details hidden)`);
+        }
+
+        function handleSelectableChange(val) {
+          selectable.value = val;
+          addLog(`Selectable → ${val}`);
+        }
+
+        function handleAvailabilitySelect(e) {
+          const d = e.detail;
+          if (d.startTime) {
+            addLog(`Slot selected: ${d.date.toDateString()} ${d.startTime}–${d.endTime}`);
+          } else {
+            const isSingle = d.startDate.toDateString() === d.endDate.toDateString();
+            addLog(isSingle
+              ? `Day selected: ${d.startDate.toDateString()}`
+              : `Range selected: ${d.startDate.toDateString()} → ${d.endDate.toDateString()}`
+            );
+          }
         }
 
         return () => h('div', null, [
           h('div', { class: 'controls' }, [
             h('h1', null, 'Vue 3 Demo'),
             h('p', null, ['Using ', h('code', null, '<kal-calendar>'), ' — Vue 3 supports custom elements natively.']),
+
+            h('h2', null, 'Events'),
             h('div', { class: 'button-grid' }, [
               h('button', { type: 'button', onClick: addRandom }, 'Add Random Event'),
               h('button', { type: 'button', onClick: loadSample }, 'Load Sample Data'),
               h('button', { type: 'button', class: 'secondary', onClick: clearAll }, 'Clear All Events'),
+              h('button', { type: 'button', onClick: goToToday }, 'Go to Today'),
             ]),
+
+            h('hr', { class: 'divider' }),
+
+            h('h2', null, 'Availability Mode'),
+            h('div', { class: 'button-grid' }, [
+              h('button', { type: 'button', class: mode.value === 'Normal' ? 'active' : '', onClick: () => handleModeChange('Normal') }, 'Normal'),
+              h('button', { type: 'button', class: mode.value === 'day'    ? 'active' : '', onClick: () => handleModeChange('day')    }, 'Day View'),
+              h('button', { type: 'button', class: mode.value === 'time'   ? 'active' : '', onClick: () => handleModeChange('time')   }, 'Time View'),
+            ]),
+            h('p', { class: 'hint' }, 'Day / Time view hides event details and shows booked vs free cells.'),
+
+            h('hr', { class: 'divider' }),
+
+            h('h2', null, 'Selectable Range'),
+            h('div', { class: 'button-grid' }, [
+              h('button', { type: 'button', class: selectable.value === 'off'   ? 'active' : '', onClick: () => handleSelectableChange('off')   }, 'Off'),
+              h('button', { type: 'button', class: selectable.value === 'range' ? 'active' : '', onClick: () => handleSelectableChange('range') }, 'Range'),
+            ]),
+            h('p', { class: 'hint' }, 'Requires availability mode. Click a free day to start, click again to extend, third click resets.'),
+
+            h('hr', { class: 'divider' }),
+
+            h('h2', null, 'Lazy Fetch'),
+            h('div', { class: 'button-grid' }, [
+              h('button', { type: 'button', class: !lazyOn.value ? 'active' : '', onClick: () => { lazyOn.value = false; } }, 'Off'),
+              h('button', { type: 'button', class:  lazyOn.value ? 'active' : '', onClick: () => { lazyOn.value = true;  } }, 'On (500 ms delay)'),
+            ]),
+            h('p', { class: 'hint' }, 'Simulates per-month server fetch. Navigate months to see the skeleton loading state.'),
           ]),
+
           h('kal-calendar', {
             ref: calRef,
             title: 'My Calendar',
-            'onCal-date-select': e => addLog(`Date selected: ${e.detail.date.toDateString()}`),
-            'onCal-month-change': e => addLog(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`),
+            'onCal-date-select':         e => addLog(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`),
+            'onCal-month-change':         e => { if (!lazyHandler) addLog(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`); },
+            'onCal-availability-select':  handleAvailabilitySelect,
           }),
+
           h('div', { class: 'event-log' }, [
             h('h3', null, 'Event Log'),
             ...logs.value.map((msg, i) => h('div', { key: i, class: 'log-entry' }, msg)),

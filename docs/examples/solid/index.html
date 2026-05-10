@@ -46,12 +46,20 @@
     }
 
     .controls h1 { margin: 0 0 4px; color: #111827; font-size: 20px; }
+    .controls h2 { margin: 0 0 8px; color: #111827; font-size: 15px; font-weight: 600; }
     .controls p  { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+    .controls .hint { margin: 8px 0 0; color: #9ca3af; font-size: 12px; }
 
     .button-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 8px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 16px 0;
     }
 
     button {
@@ -69,6 +77,7 @@
     button:hover { background: #1e3a5f; }
     button.secondary { background: #6b7280; }
     button.secondary:hover { background: #4b5563; }
+    button.active { outline: 2px solid #111827; outline-offset: 2px; }
 
     .event-log {
       background: white;
@@ -170,12 +179,42 @@
   <div class="controls">
     <h1>Solid.js Demo</h1>
     <p>Live <code>&lt;kal-calendar&gt;</code> below — loaded via script tag. See the integration guide for Solid.js project setup.</p>
+
+    <h2>Events</h2>
     <div class="button-grid">
       <button type="button" id="addRandomBtn">Add Random Event</button>
       <button type="button" id="loadSampleBtn">Load Sample Data</button>
       <button type="button" id="clearAllBtn" class="secondary">Clear All Events</button>
       <button type="button" id="goToTodayBtn">Go to Today</button>
     </div>
+
+    <hr class="divider">
+
+    <h2>Availability Mode</h2>
+    <div class="button-grid">
+      <button type="button" id="modeNormalBtn" class="active">Normal</button>
+      <button type="button" id="modeDayBtn">Day View</button>
+      <button type="button" id="modeTimeBtn">Time View</button>
+    </div>
+    <p class="hint">Day / Time view hides event details and shows booked vs free cells.</p>
+
+    <hr class="divider">
+
+    <h2>Selectable Range</h2>
+    <div class="button-grid">
+      <button type="button" id="selOffBtn" class="active">Off</button>
+      <button type="button" id="selRangeBtn">Range</button>
+    </div>
+    <p class="hint">Requires availability mode. Click a free day to start, click again to extend, third click resets.</p>
+
+    <hr class="divider">
+
+    <h2>Lazy Fetch</h2>
+    <div class="button-grid">
+      <button type="button" id="lazyOffBtn" class="active">Off</button>
+      <button type="button" id="lazyOnBtn">On (500 ms delay)</button>
+    </div>
+    <p class="hint">Simulates per-month server fetch. Navigate months to see the skeleton loading state.</p>
   </div>
 
   <kal-calendar id="cal" title="My Calendar"></kal-calendar>
@@ -277,75 +316,108 @@ npm install kalendly
   <script>
     const cal = document.getElementById('cal');
 
-    let events = [
-      {
-        id: 1,
-        name: 'Team Standup',
-        date: new Date(new Date().getFullYear(), new Date().getMonth(), 10),
-        startTime: '09:00',
-        endTime: '09:30',
-        category: 'meeting',
-        color: '#10b981',
-        priority: 'high',
-        location: 'Conference Room A',
-      },
-      {
-        id: 2,
-        name: 'Project Deadline',
-        date: new Date(new Date().getFullYear(), new Date().getMonth(), 20),
-        category: 'deadline',
-        color: '#ef4444',
-        priority: 'high',
-      },
-      {
-        id: 3,
-        name: 'Code Review',
-        date: new Date(),
-        startTime: '14:00',
-        endTime: '15:00',
-        category: 'work',
-        color: '#3b82f6',
-        location: 'Virtual - Zoom',
-      },
+    // ─── helpers ──────────────────────────────────────────────────────────────
+    function thisMonth(day) {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), day);
+    }
+
+    function log(msg) {
+      const container = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="ts">[${new Date().toLocaleTimeString()}]</span>${msg}`;
+      container.prepend(entry);
+      while (container.children.length > 20) container.removeChild(container.lastChild);
+    }
+
+    function setActiveBtn(group, activeId) {
+      group.forEach(id => document.getElementById(id).classList.remove('active'));
+      document.getElementById(activeId).classList.add('active');
+    }
+
+    // ─── events ───────────────────────────────────────────────────────────────
+    let normalEvents = [
+      { id: 1, name: 'Team Standup',     date: thisMonth(10), startTime: '09:00', endTime: '09:30', category: 'meeting',  color: '#10b981', priority: 'high', location: 'Conference Room A' },
+      { id: 2, name: 'Project Deadline', date: thisMonth(20), category: 'deadline', color: '#ef4444', priority: 'high' },
+      { id: 3, name: 'Code Review',      date: new Date(),    startTime: '14:00', endTime: '15:00', category: 'work',     color: '#3b82f6', location: 'Virtual - Zoom' },
     ];
 
-    cal.events = events;
+    const leanEvents = [
+      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00' },
+      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00' },
+      { id: 12, date: thisMonth(15) },
+      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00' },
+      { id: 14, date: thisMonth(22), allDay: true },
+    ];
 
+    cal.events = normalEvents;
+
+    // ─── custom event listeners ───────────────────────────────────────────────
     cal.addEventListener('cal-date-select', e => {
-      log(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} events)`);
+      log(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`);
     });
+
+    cal.addEventListener('cal-availability-select', e => {
+      const d = e.detail;
+      if (d.startTime) {
+        log(`Slot selected: ${d.date.toDateString()} ${d.startTime}–${d.endTime}`);
+      } else {
+        const isSingle = d.startDate.toDateString() === d.endDate.toDateString();
+        log(isSingle
+          ? `Day selected: ${d.startDate.toDateString()}`
+          : `Range selected: ${d.startDate.toDateString()} → ${d.endDate.toDateString()}`
+        );
+      }
+    });
+
+    // ─── lazy fetch ───────────────────────────────────────────────────────────
+    let lazyHandler = null;
+
+    function getCurrentModeEvents(year, month) {
+      const isAvail = cal.hasAttribute('availability-mode');
+      const source  = isAvail ? leanEvents : normalEvents;
+      return source.filter(ev => {
+        const d = ev.date instanceof Date ? ev.date : new Date(ev.date);
+        return d.getFullYear() === year && d.getMonth() === month;
+      });
+    }
 
     cal.addEventListener('cal-month-change', e => {
-      log(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`);
+      const { year, month } = e.detail;
+      if (!lazyHandler) {
+        log(`Month changed: ${year}-${String(month + 1).padStart(2, '0')}`);
+      }
     });
 
+    // ─── event controls ───────────────────────────────────────────────────────
     document.getElementById('addRandomBtn').addEventListener('click', () => {
-      const names = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
+      const names  = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
       const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444'];
       const i = Math.floor(Math.random() * names.length);
       const d = new Date();
       d.setDate(d.getDate() + Math.floor(Math.random() * 28));
       const ev = { id: Date.now(), name: names[i], date: d, color: colors[i] };
-      events = [...events, ev];
-      cal.events = events;
+      normalEvents = [...normalEvents, ev];
+      if (!cal.hasAttribute('availability-mode')) cal.events = normalEvents;
       log(`Added: ${ev.name} on ${d.toDateString()}`);
     });
 
     document.getElementById('loadSampleBtn').addEventListener('click', () => {
       const now = new Date();
       const sample = [
-        { id: Date.now() + 1, name: 'Sprint Planning', date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting', color: '#10b981' },
+        { id: Date.now() + 1, name: 'Sprint Planning',    date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting',  color: '#10b981' },
         { id: Date.now() + 2, name: 'Doctor Appointment', date: new Date(now.getFullYear(), now.getMonth(), 18), category: 'personal', color: '#8b5cf6' },
-        { id: Date.now() + 3, name: 'Team Building', date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other', color: '#f59e0b' },
+        { id: Date.now() + 3, name: 'Team Building',      date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other',    color: '#f59e0b' },
       ];
-      events = [...events, ...sample];
-      cal.events = events;
+      normalEvents = [...normalEvents, ...sample];
+      if (!cal.hasAttribute('availability-mode')) cal.events = normalEvents;
       log(`Loaded ${sample.length} sample events`);
     });
 
     document.getElementById('clearAllBtn').addEventListener('click', () => {
-      events = [];
-      cal.events = events;
+      normalEvents = [];
+      cal.events = cal.hasAttribute('availability-mode') ? leanEvents : [];
       log('Cleared all events');
     });
 
@@ -354,24 +426,80 @@ npm install kalendly
       log('Navigated to today');
     });
 
+    // ─── availability mode controls ───────────────────────────────────────────
+    const modeBtns = ['modeNormalBtn', 'modeDayBtn', 'modeTimeBtn'];
+
+    function setMode(mode) {
+      setActiveBtn(modeBtns, `mode${mode.charAt(0).toUpperCase() + mode.slice(1)}Btn`);
+      if (mode === 'Normal') {
+        cal.removeAttribute('availability-mode');
+        cal.events = normalEvents;
+        log('Availability mode → off');
+      } else {
+        cal.setAttribute('availability-mode', mode === 'Day' ? 'day' : 'time');
+        cal.events = leanEvents;
+        log(`Availability mode → ${mode.toLowerCase()} (lean events, details hidden)`);
+      }
+    }
+
+    document.getElementById('modeNormalBtn').addEventListener('click', () => setMode('Normal'));
+    document.getElementById('modeDayBtn').addEventListener('click',    () => setMode('Day'));
+    document.getElementById('modeTimeBtn').addEventListener('click',   () => setMode('Time'));
+
+    // ─── selectable controls ──────────────────────────────────────────────────
+    const selBtns = ['selOffBtn', 'selRangeBtn'];
+
+    document.getElementById('selOffBtn').addEventListener('click', () => {
+      setActiveBtn(selBtns, 'selOffBtn');
+      cal.removeAttribute('selectable');
+      log('Selectable → off');
+    });
+
+    document.getElementById('selRangeBtn').addEventListener('click', () => {
+      setActiveBtn(selBtns, 'selRangeBtn');
+      cal.setAttribute('selectable', 'range');
+      log('Selectable → range');
+    });
+
+    // ─── lazy fetch controls ──────────────────────────────────────────────────
+    const lazyBtns = ['lazyOffBtn', 'lazyOnBtn'];
+
+    document.getElementById('lazyOffBtn').addEventListener('click', () => {
+      setActiveBtn(lazyBtns, 'lazyOffBtn');
+      if (lazyHandler) {
+        cal.removeEventListener('cal-month-change', lazyHandler);
+        lazyHandler = null;
+      }
+      log('Lazy fetch → off');
+    });
+
+    document.getElementById('lazyOnBtn').addEventListener('click', () => {
+      setActiveBtn(lazyBtns, 'lazyOnBtn');
+      if (lazyHandler) cal.removeEventListener('cal-month-change', lazyHandler);
+      lazyHandler = async (e) => {
+        const { year, month } = e.detail;
+        log(`Fetching events for ${year}-${String(month + 1).padStart(2, '0')}…`);
+        cal.loading = true;
+        await new Promise(r => setTimeout(r, 500));
+        cal.events = getCurrentModeEvents(year, month);
+        cal.loading = false;
+        log(`Loaded ${cal.events.length} event(s) for ${year}-${String(month + 1).padStart(2, '0')}`);
+      };
+      cal.addEventListener('cal-month-change', lazyHandler);
+      log('Lazy fetch → on (navigate months to trigger)');
+    });
+
+    // ─── integration guide tabs ───────────────────────────────────────────────
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
         const target = tab.dataset.tab;
+        if (!target) return;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById(`tab-${target}`).classList.add('active');
       });
     });
-
-    function log(msg) {
-      const container = document.getElementById('log');
-      const entry = document.createElement('div');
-      entry.className = 'log-entry';
-      entry.innerHTML = `<span class="ts">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
-      container.prepend(entry);
-      while (container.children.length > 20) container.removeChild(container.lastChild);
-    }
 
     log('Calendar initialised');
   </script>

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-05-10
+
+### Added
+
+- **`availability-mode="day"`** — day cells show booked (red tint) vs free (green tint) without exposing any event details; clicking a day opens no popup
+- **`availability-mode="time"`** — clicking a day opens a time-grid popup showing which hour blocks are booked or free; no event name, organiser, or attendee data is rendered
+- **`selectable="range"`** — enables free day/slot selection in availability mode; 3-click state machine: first click selects, second extends the range, third resets; booked cells are non-selectable
+- **`cal-availability-select` event** — fires on every selection; payload is `{ startDate, endDate }` in day mode or `{ date, startTime, endTime }` in time mode
+- **`loading` property / attribute** — `el.loading = true` replaces calendar cells with a shimmer skeleton; `el.loading = false` restores the real grid
+- **`cal-month-change` fires before render** — dispatched with the target month's `year`/`month` before the engine navigates, allowing `loading = true` to be set synchronously with no empty-calendar flash
+- **Skeleton shimmer CSS** — `calendar--skeleton` cells with `@keyframes skeleton-shimmer` left-to-right animation
+
+### Changed
+
+- `cal-month-change` dispatch order moved before engine action in `previous`, `next`, `jump`, and `goToDate` — backwards compatible; apps using `el.events` upfront see no change in behaviour
+- `renderEvent` and `renderNoEvents` properties are ignored when `availability-mode` is set
+
 ## [0.2.0] - 2026-04-10
 
 ### Breaking Changes
@@ -263,6 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DOM event system
 - Imperative API
 
+[0.2.1]: https://github.com/callezenwaka/kalendly/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/callezenwaka/kalendly/compare/v0.1.7...v0.2.0
 [0.1.7]: https://github.com/callezenwaka/kalendly/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/callezenwaka/kalendly/compare/v0.1.5...v0.1.6

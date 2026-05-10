@@ -46,12 +46,20 @@
     }
 
     .controls h1 { margin: 0 0 4px; color: #111827; font-size: 20px; }
+    .controls h2 { margin: 0 0 8px; color: #111827; font-size: 15px; font-weight: 600; }
     .controls p  { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+    .controls .hint { margin: 8px 0 0; color: #9ca3af; font-size: 12px; }
 
     .button-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 8px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 16px 0;
     }
 
     button {
@@ -69,6 +77,7 @@
     button:hover { background: #38bdf8; }
     button.secondary { background: #6b7280; color: white; }
     button.secondary:hover { background: #4b5563; }
+    button.active { outline: 2px solid #111827; outline-offset: 2px; }
 
     .event-log {
       background: white;
@@ -114,94 +123,197 @@
     import { useState, useRef, useEffect, createElement as h } from 'https://esm.sh/react@19.1.0';
     import { createRoot } from 'https://esm.sh/react-dom@19.1.0/client';
 
-    function App() {
-      const [events, setEvents] = useState([
-        {
-          id: 1,
-          name: 'Team Standup',
-          date: new Date(new Date().getFullYear(), new Date().getMonth(), 10),
-          startTime: '09:00',
-          endTime: '09:30',
-          category: 'meeting',
-          color: '#10b981',
-          priority: 'high',
-          location: 'Conference Room A',
-        },
-        {
-          id: 2,
-          name: 'Project Deadline',
-          date: new Date(new Date().getFullYear(), new Date().getMonth(), 20),
-          category: 'deadline',
-          color: '#ef4444',
-          priority: 'high',
-        },
-        {
-          id: 3,
-          name: 'Code Review',
-          date: new Date(),
-          startTime: '14:00',
-          endTime: '15:00',
-          category: 'work',
-          color: '#3b82f6',
-          location: 'Virtual - Zoom',
-        },
-      ]);
+    function thisMonth(day) {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), day);
+    }
 
-      const [logs, setLogs] = useState(['Calendar initialised']);
+    const leanEvents = [
+      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00' },
+      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00' },
+      { id: 12, date: thisMonth(15) },
+      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00' },
+      { id: 14, date: thisMonth(22), allDay: true },
+    ];
+
+    function App() {
+      const [normalEvents, setNormalEvents] = useState([
+        { id: 1, name: 'Team Standup',     date: thisMonth(10), startTime: '09:00', endTime: '09:30', category: 'meeting',  color: '#10b981', priority: 'high', location: 'Conference Room A' },
+        { id: 2, name: 'Project Deadline', date: thisMonth(20), category: 'deadline', color: '#ef4444', priority: 'high' },
+        { id: 3, name: 'Code Review',      date: new Date(),    startTime: '14:00', endTime: '15:00', category: 'work',     color: '#3b82f6', location: 'Virtual - Zoom' },
+      ]);
+      const [mode, setMode]           = useState('Normal'); // 'Normal' | 'day' | 'time'
+      const [selectable, setSelectable] = useState('off');  // 'off' | 'range'
+      const [lazyOn, setLazyOn]       = useState(false);
+      const [logs, setLogs]           = useState(['Calendar initialised']);
+
+      const calRef           = useRef(null);
+      const lazyOnRef        = useRef(false);
+      const normalEventsRef  = useRef(normalEvents);
+
+      useEffect(() => { lazyOnRef.current = lazyOn; }, [lazyOn]);
+      useEffect(() => { normalEventsRef.current = normalEvents; }, [normalEvents]);
 
       function addLog(msg) {
         setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 19)]);
       }
 
+      // Sync mode + selectable + events to the element
+      useEffect(() => {
+        const cal = calRef.current;
+        if (!cal) return;
+        if (mode === 'Normal') {
+          cal.removeAttribute('availability-mode');
+          cal.events = normalEvents;
+        } else {
+          cal.setAttribute('availability-mode', mode);
+          cal.events = leanEvents;
+        }
+        if (selectable === 'range') {
+          cal.setAttribute('selectable', 'range');
+        } else {
+          cal.removeAttribute('selectable');
+        }
+      }, [mode, selectable, normalEvents]);
+
+      // Lazy fetch handler — registered/unregistered when lazyOn changes
+      useEffect(() => {
+        const cal = calRef.current;
+        if (!cal || !lazyOn) return;
+        const handler = async (e) => {
+          const { year, month } = e.detail;
+          addLog(`Fetching events for ${year}-${String(month + 1).padStart(2, '0')}…`);
+          cal.loading = true;
+          await new Promise(r => setTimeout(r, 500));
+          const isAvail  = cal.hasAttribute('availability-mode');
+          const source   = isAvail ? leanEvents : normalEventsRef.current;
+          cal.events = source.filter(ev => {
+            const d = ev.date instanceof Date ? ev.date : new Date(ev.date);
+            return d.getFullYear() === year && d.getMonth() === month;
+          });
+          cal.loading = false;
+          addLog(`Loaded ${cal.events.length} event(s) for ${year}-${String(month + 1).padStart(2, '0')}`);
+        };
+        cal.addEventListener('cal-month-change', handler);
+        return () => cal.removeEventListener('cal-month-change', handler);
+      }, [lazyOn]);
+
       function addRandom() {
-        const names = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
+        const names  = ['Client Meeting', 'Code Review', 'Training', 'Lunch', 'Sprint Planning'];
         const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444'];
         const i = Math.floor(Math.random() * names.length);
         const d = new Date();
         d.setDate(d.getDate() + Math.floor(Math.random() * 28));
         const ev = { id: Date.now(), name: names[i], date: d, color: colors[i] };
-        setEvents(prev => [...prev, ev]);
+        setNormalEvents(prev => [...prev, ev]);
         addLog(`Added: ${ev.name} on ${d.toDateString()}`);
       }
 
       function loadSample() {
         const now = new Date();
         const sample = [
-          { id: Date.now() + 1, name: 'Sprint Planning', date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting', color: '#10b981' },
+          { id: Date.now() + 1, name: 'Sprint Planning',    date: new Date(now.getFullYear(), now.getMonth(), 17), category: 'meeting',  color: '#10b981' },
           { id: Date.now() + 2, name: 'Doctor Appointment', date: new Date(now.getFullYear(), now.getMonth(), 18), category: 'personal', color: '#8b5cf6' },
-          { id: Date.now() + 3, name: 'Team Building', date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other', color: '#f59e0b' },
+          { id: Date.now() + 3, name: 'Team Building',      date: new Date(now.getFullYear(), now.getMonth(), 22), category: 'other',    color: '#f59e0b' },
         ];
-        setEvents(prev => [...prev, ...sample]);
+        setNormalEvents(prev => [...prev, ...sample]);
         addLog(`Loaded ${sample.length} sample events`);
       }
 
       function clearAll() {
-        setEvents([]);
+        setNormalEvents([]);
         addLog('Cleared all events');
       }
 
-      // React 19: pass events as a property via ref
-      const calRef = useRef(null);
-      useEffect(() => {
-        if (calRef.current) calRef.current.events = events;
-      }, [events]);
+      function goToToday() {
+        calRef.current?.goToDate(new Date());
+        addLog('Navigated to today');
+      }
+
+      function handleModeChange(newMode) {
+        setMode(newMode);
+        addLog(newMode === 'Normal'
+          ? 'Availability mode → off'
+          : `Availability mode → ${newMode} (lean events, details hidden)`);
+      }
+
+      function handleSelectableChange(val) {
+        setSelectable(val);
+        addLog(`Selectable → ${val}`);
+      }
+
+      function handleLazyChange(val) {
+        setLazyOn(val);
+        addLog(val ? 'Lazy fetch → on (navigate months to trigger)' : 'Lazy fetch → off');
+      }
+
+      function handleAvailabilitySelect(e) {
+        const d = e.detail;
+        if (d.startTime) {
+          addLog(`Slot selected: ${d.date.toDateString()} ${d.startTime}–${d.endTime}`);
+        } else {
+          const isSingle = d.startDate.toDateString() === d.endDate.toDateString();
+          addLog(isSingle
+            ? `Day selected: ${d.startDate.toDateString()}`
+            : `Range selected: ${d.startDate.toDateString()} → ${d.endDate.toDateString()}`
+          );
+        }
+      }
 
       return h('div', null,
         h('div', { className: 'controls' },
           h('h1', null, 'React 19 Demo'),
           h('p', null, 'Using ', h('code', null, '<kal-calendar>'), ' directly — React 19 supports custom elements natively.'),
+
+          h('h2', null, 'Events'),
           h('div', { className: 'button-grid' },
             h('button', { type: 'button', onClick: addRandom }, 'Add Random Event'),
             h('button', { type: 'button', onClick: loadSample }, 'Load Sample Data'),
             h('button', { type: 'button', className: 'secondary', onClick: clearAll }, 'Clear All Events'),
+            h('button', { type: 'button', onClick: goToToday }, 'Go to Today'),
           ),
+
+          h('hr', { className: 'divider' }),
+
+          h('h2', null, 'Availability Mode'),
+          h('div', { className: 'button-grid' },
+            h('button', { type: 'button', className: mode === 'Normal' ? 'active' : '', onClick: () => handleModeChange('Normal') }, 'Normal'),
+            h('button', { type: 'button', className: mode === 'day'    ? 'active' : '', onClick: () => handleModeChange('day')    }, 'Day View'),
+            h('button', { type: 'button', className: mode === 'time'   ? 'active' : '', onClick: () => handleModeChange('time')   }, 'Time View'),
+          ),
+          h('p', { className: 'hint' }, 'Day / Time view hides event details and shows booked vs free cells.'),
+
+          h('hr', { className: 'divider' }),
+
+          h('h2', null, 'Selectable Range'),
+          h('div', { className: 'button-grid' },
+            h('button', { type: 'button', className: selectable === 'off'   ? 'active' : '', onClick: () => handleSelectableChange('off')   }, 'Off'),
+            h('button', { type: 'button', className: selectable === 'range' ? 'active' : '', onClick: () => handleSelectableChange('range') }, 'Range'),
+          ),
+          h('p', { className: 'hint' }, 'Requires availability mode. Click a free day to start, click again to extend, third click resets.'),
+
+          h('hr', { className: 'divider' }),
+
+          h('h2', null, 'Lazy Fetch'),
+          h('div', { className: 'button-grid' },
+            h('button', { type: 'button', className: !lazyOn ? 'active' : '', onClick: () => handleLazyChange(false) }, 'Off'),
+            h('button', { type: 'button', className:  lazyOn ? 'active' : '', onClick: () => handleLazyChange(true)  }, 'On (500 ms delay)'),
+          ),
+          h('p', { className: 'hint' }, 'Simulates per-month server fetch. Navigate months to see the skeleton loading state.'),
         ),
+
         h('kal-calendar', {
           ref: calRef,
           title: 'My Calendar',
-          'oncal-date-select': e => addLog(`Date selected: ${e.detail.date.toDateString()}`),
-          'oncal-month-change': e => addLog(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`),
+          'oncal-date-select': e => addLog(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`),
+          'oncal-month-change': e => {
+            if (!lazyOnRef.current) {
+              addLog(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`);
+            }
+          },
+          'oncal-availability-select': handleAvailabilitySelect,
         }),
+
         h('div', { className: 'event-log' },
           h('h3', null, 'Event Log'),
           ...logs.map((msg, i) =>
