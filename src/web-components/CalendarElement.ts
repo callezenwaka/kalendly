@@ -8,6 +8,11 @@ import {
 } from '../core';
 import type { CalendarEvent, CalendarTheme, CategoryColorMap } from '../core';
 
+const isSameDay = (a: Date, b: Date): boolean =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
 export class CalendarElement extends HTMLElement {
   static observedAttributes = [
     'initial-date',
@@ -17,6 +22,7 @@ export class CalendarElement extends HTMLElement {
     'title',
     'use-short-month-names',
     'availability-mode',
+    'selectable',
   ];
 
   private engine: CalendarEngine | null = null;
@@ -39,6 +45,14 @@ export class CalendarElement extends HTMLElement {
   private _categoryColors: CategoryColorMap | null = null;
   private _renderEvent: ((e: CalendarEvent) => string) | null = null;
   private _renderNoEvents: (() => string) | null = null;
+
+  // Selection state (availability mode — range)
+  private _rangeStart: Date | null = null;
+  private _rangeEnd: Date | null = null;
+  private _timeRangeDate: Date | null = null;
+  private _timeRangeStart: string | null = null;
+  private _timeRangeEnd: string | null = null;
+  private _timeRangeComplete = false;
 
   get events(): CalendarEvent[] {
     return this._events;
@@ -88,11 +102,19 @@ export class CalendarElement extends HTMLElement {
   }
 
   attributeChangedCallback(
-    _name: string,
+    name: string,
     oldVal: string | null,
     newVal: string | null
   ): void {
     if (oldVal === newVal) return;
+    if (name === 'selectable' && newVal === null) {
+      this._rangeStart = null;
+      this._rangeEnd = null;
+      this._timeRangeDate = null;
+      this._timeRangeStart = null;
+      this._timeRangeEnd = null;
+      this._timeRangeComplete = false;
+    }
     this.reinit();
   }
 
@@ -210,6 +232,7 @@ export class CalendarElement extends HTMLElement {
     const minYear = this.minYear;
     const maxYear = this.maxYear;
     const availabilityMode = this.getAttribute('availability-mode');
+    const selectable = this.hasAttribute('selectable');
 
     const today = new Date();
     const todayMonth = today.getMonth();
@@ -365,7 +388,7 @@ export class CalendarElement extends HTMLElement {
     const renderEvent = this._renderEvent || defaultRenderEvent;
     const renderNoEvents = this._renderNoEvents || defaultRenderNoEvents;
 
-    const renderTimeGrid = (events: CalendarEvent[]): string => {
+    const renderTimeGrid = (events: CalendarEvent[], date: Date): string => {
       const isHourBooked = (hour: number): boolean =>
         events.some(event => {
           if (!event.startTime || !event.endTime) return true;
@@ -375,11 +398,41 @@ export class CalendarElement extends HTMLElement {
         });
 
       const slots = Array.from({ length: 24 }, (_, hour) => {
-        const label = `${String(hour).padStart(2, '0')}:00`;
+        const startTime = `${String(hour).padStart(2, '0')}:00`;
+        const endTime = `${String(hour + 1).padStart(2, '0')}:00`;
         const booked = isHourBooked(hour);
+
+        const inTimeRange =
+          !booked &&
+          selectable &&
+          this._timeRangeStart !== null &&
+          this._timeRangeEnd !== null &&
+          isSameDay(this._timeRangeDate!, date) &&
+          startTime >= this._timeRangeStart &&
+          endTime <= this._timeRangeEnd;
+
+        const isRangeStart = inTimeRange && startTime === this._timeRangeStart;
+        const isRangeEnd = inTimeRange && endTime === this._timeRangeEnd;
+        const isInRange = inTimeRange && !isRangeStart && !isRangeEnd;
+
+        const slotClasses = [
+          'time-grid__slot',
+          booked ? 'time-grid__slot--booked' : 'time-grid__slot--free',
+          isRangeStart ? 'time-grid__slot--range-start' : '',
+          isRangeEnd ? 'time-grid__slot--range-end' : '',
+          isInRange ? 'time-grid__slot--in-range' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
+
+        const slotAttrs =
+          !booked && selectable
+            ? `data-action="select-slot" data-start-time="${startTime}" data-end-time="${endTime}" data-date="${date.toISOString()}"`
+            : '';
+
         return `
-          <div class="time-grid__slot ${booked ? 'time-grid__slot--booked' : 'time-grid__slot--free'}">
-            <span class="time-grid__label">${label}</span>
+          <div class="${slotClasses}" ${slotAttrs}>
+            <span class="time-grid__label">${startTime}</span>
             <span class="time-grid__status">${booked ? 'Booked' : 'Available'}</span>
           </div>`;
       });
@@ -506,6 +559,21 @@ export class CalendarElement extends HTMLElement {
                             : 'availability--free'
                         );
                       }
+                      if (
+                        availabilityMode === 'day' &&
+                        selectable &&
+                        calendarDate.isCurrentMonth
+                      ) {
+                        const d = calendarDate.date;
+                        if (this._rangeStart && isSameDay(d, this._rangeStart))
+                          classes.push('availability--range-start');
+                        if (this._rangeEnd && isSameDay(d, this._rangeEnd))
+                          classes.push('availability--range-end');
+                        if (this._rangeStart && this._rangeEnd) {
+                          if (d > this._rangeStart && d < this._rangeEnd)
+                            classes.push('availability--in-range');
+                        }
+                      }
                       const dateString = calendarDate.date.toISOString();
                       return `
                       <td
@@ -548,7 +616,7 @@ export class CalendarElement extends HTMLElement {
               <div class="events-container">
                 ${
                   availabilityMode === 'time'
-                    ? renderTimeGrid(viewModel.tasks)
+                    ? renderTimeGrid(viewModel.tasks, viewModel.selectedDate!)
                     : viewModel.tasks.length > 0
                       ? viewModel.tasks
                           .map(event => renderEvent(event))
@@ -583,6 +651,70 @@ export class CalendarElement extends HTMLElement {
         e.stopPropagation();
         const date = new Date(cell.dataset.date);
         const dayIndex = parseInt(cell.dataset.dayIndex || '0');
+        const availMode = this.getAttribute('availability-mode');
+        const isSelectable = this.hasAttribute('selectable');
+
+        if (availMode === 'day' && isSelectable) {
+          const isBooked = cell.classList.contains('availability--booked');
+          if (!isBooked) {
+            let startDate: Date;
+            let endDate: Date;
+            if (this._rangeEnd !== null) {
+              // State 2 (complete) → reset, start fresh
+              this._rangeStart = date;
+              this._rangeEnd = null;
+              startDate = date;
+              endDate = date;
+            } else if (this._rangeStart === null) {
+              // State 0 → first click
+              this._rangeStart = date;
+              startDate = date;
+              endDate = date;
+            } else {
+              // State 1 → second click, complete the range if no booked day inside
+              const [s, e] =
+                this._rangeStart <= date
+                  ? [this._rangeStart, date]
+                  : [date, this._rangeStart];
+              const cursor = new Date(s);
+              cursor.setDate(cursor.getDate() + 1);
+              let blocked = false;
+              while (cursor < e) {
+                if (this.engine!.getEventsForDate(cursor).length > 0) {
+                  blocked = true;
+                  break;
+                }
+                cursor.setDate(cursor.getDate() + 1);
+              }
+              if (blocked) {
+                // Booked day inside range — reset, start fresh from this click
+                this._rangeStart = date;
+                this._rangeEnd = null;
+              } else {
+                this._rangeStart = s;
+                this._rangeEnd = e;
+              }
+              startDate = this._rangeStart;
+              endDate = this._rangeEnd ?? this._rangeStart;
+            }
+            this.dispatchEvent(
+              new CustomEvent('cal-availability-select', {
+                bubbles: true,
+                composed: true,
+                detail: { startDate, endDate },
+              })
+            );
+          }
+        }
+
+        if (availMode === 'time') {
+          // Reset time range when a new day is opened
+          this._timeRangeDate = null;
+          this._timeRangeStart = null;
+          this._timeRangeEnd = null;
+          this._timeRangeComplete = false;
+        }
+
         this.engine!.handleDateClick(date, dayIndex);
         this.dispatchEvent(
           new CustomEvent('cal-date-select', {
@@ -659,8 +791,54 @@ export class CalendarElement extends HTMLElement {
         }
 
         case 'close-popup':
+          this._timeRangeDate = null;
+          this._timeRangeStart = null;
+          this._timeRangeEnd = null;
+          this._timeRangeComplete = false;
           this.engine!.clearSelection();
           break;
+
+        case 'select-slot': {
+          const slotStart = actionEl.dataset.startTime!;
+          const slotEnd = actionEl.dataset.endTime!;
+          const slotDate = new Date(actionEl.dataset.date!);
+          if (this._timeRangeComplete) {
+            // State 2 → reset, start fresh
+            this._timeRangeDate = slotDate;
+            this._timeRangeStart = slotStart;
+            this._timeRangeEnd = slotEnd;
+            this._timeRangeComplete = false;
+          } else if (this._timeRangeStart === null) {
+            // State 0 → first click
+            this._timeRangeDate = slotDate;
+            this._timeRangeStart = slotStart;
+            this._timeRangeEnd = slotEnd;
+          } else {
+            // State 1 → second click, extend range
+            const newStart =
+              slotStart < this._timeRangeStart
+                ? slotStart
+                : this._timeRangeStart;
+            const newEnd =
+              slotEnd > this._timeRangeEnd! ? slotEnd : this._timeRangeEnd!;
+            this._timeRangeStart = newStart;
+            this._timeRangeEnd = newEnd;
+            this._timeRangeComplete = true;
+          }
+          this.render();
+          this.dispatchEvent(
+            new CustomEvent('cal-availability-select', {
+              bubbles: true,
+              composed: true,
+              detail: {
+                date: this._timeRangeDate,
+                startTime: this._timeRangeStart,
+                endTime: this._timeRangeEnd,
+              },
+            })
+          );
+          break;
+        }
       }
     };
 

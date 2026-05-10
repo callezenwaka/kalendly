@@ -388,6 +388,7 @@
 /* Availability mode */
 .calendar--table td.availability--booked {
   background-color: #fee2e2;
+  cursor: not-allowed;
 }
 
 .calendar--table td.availability--booked::after {
@@ -396,6 +397,33 @@
 
 .calendar--table td.availability--free {
   background-color: #dcfce7;
+}
+
+.calendar--table td.availability--range-start,
+.calendar--table td.availability--range-end {
+  background-color: #16a34a;
+  color: #fff;
+  font-weight: 700;
+  outline: 2px solid #15803d;
+  outline-offset: -2px;
+}
+
+.calendar--table td.availability--in-range {
+  background-color: #bbf7d0;
+  outline: 1px solid #86efac;
+  outline-offset: -1px;
+}
+
+.time-grid__slot--range-start,
+.time-grid__slot--range-end {
+  background-color: #16a34a;
+  color: #fff;
+  font-weight: 700;
+}
+
+.time-grid__slot--in-range {
+  background-color: #bbf7d0;
+  color: #15803d;
 }
 
 .calendar--table thead th {

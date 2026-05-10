@@ -159,6 +159,7 @@
 
     .hidden { display: none; }
     .full-width { grid-column: 1 / -1; }
+    .hint { margin: 8px 0 0; font-size: 12px; color: #6b7280; }
   </style>
 </head>
 <body>
@@ -217,6 +218,15 @@
         <div class="legend-item"><div class="legend-swatch booked"></div> Booked</div>
         <div class="legend-item"><div class="legend-swatch free"></div> Available</div>
       </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Selectable</h2>
+      <div class="btn-grid">
+        <button type="button" class="mode-btn active" id="btn-sel-off">Off</button>
+        <button type="button" class="mode-btn full-width" id="btn-sel-range">Range</button>
+      </div>
+      <p class="hint">Requires an availability mode. Click a free day/slot to start, click again to extend the range.</p>
     </div>
 
     <div class="panel" style="margin-bottom:16px">
@@ -316,6 +326,19 @@
   el.addEventListener('cal-month-change', (e) => {
     const { year, month } = e.detail;
     log(`cal-month-change → ${year}-${String(month + 1).padStart(2, '0')}`, 'info');
+  });
+
+  el.addEventListener('cal-availability-select', (e) => {
+    const d = e.detail;
+    if (d.startDate) {
+      const same = d.startDate.toDateString() === d.endDate.toDateString();
+      const msg = same
+        ? `${d.startDate.toDateString()} (single day)`
+        : `${d.startDate.toDateString()} → ${d.endDate.toDateString()}`;
+      log(`cal-availability-select → ${msg}`, 'ok');
+    } else {
+      log(`cal-availability-select → ${d.date.toDateString()} ${d.startTime}–${d.endTime}`, 'ok');
+    }
   });
 
   // ─── buttons ─────────────────────────────────────────────────────────────────
@@ -473,6 +496,25 @@
   document.getElementById('btn-mode-normal').addEventListener('click', () => setMode('normal'));
   document.getElementById('btn-mode-day'   ).addEventListener('click', () => setMode('day'));
   document.getElementById('btn-mode-time'  ).addEventListener('click', () => setMode('time'));
+
+  // ─── selectable ───────────────────────────────────────────────────────────────
+  const selBtns = ['btn-sel-off', 'btn-sel-range'];
+
+  function setSelectable(mode) {
+    selBtns.forEach(id => document.getElementById(id).classList.remove('active'));
+    document.getElementById(`btn-sel-${mode}`).classList.add('active');
+
+    if (mode === 'off') {
+      el.removeAttribute('selectable');
+      log('Selectable → off', 'info');
+    } else {
+      el.setAttribute('selectable', 'range');
+      log('Selectable → range (click a free day to start, click again to extend)', 'ok');
+    }
+  }
+
+  document.getElementById('btn-sel-off'  ).addEventListener('click', () => setSelectable('off'));
+  document.getElementById('btn-sel-range').addEventListener('click', () => setSelectable('range'));
 
   // ─── init ─────────────────────────────────────────────────────────────────────
   log('UMD bundle loaded. Running initial checks…', 'info');

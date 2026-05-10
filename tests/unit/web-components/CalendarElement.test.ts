@@ -46,6 +46,7 @@ function mount(
     renderEvent?: (e: CalendarEvent) => string;
     renderNoEvents?: () => string;
     availabilityMode?: 'day' | 'time';
+    selectable?: 'range';
   } = {}
 ): CalendarElement {
   const el = document.createElement('kal-calendar') as CalendarElement;
@@ -62,6 +63,7 @@ function mount(
   if (props.useShortMonthNames) el.setAttribute('use-short-month-names', '');
   if (props.availabilityMode)
     el.setAttribute('availability-mode', props.availabilityMode);
+  if (props.selectable) el.setAttribute('selectable', props.selectable);
 
   el.events = props.events ?? [];
   if (props.theme !== undefined) el.theme = props.theme;
@@ -770,6 +772,351 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       expect(bookedCell?.classList.contains('availability--booked')).toBe(true);
+    });
+  });
+
+  describe('Selectable — day mode', () => {
+    const BASE_DATE = new Date('2024-01-15');
+    const EVENTS: CalendarEvent[] = [
+      { id: 1, name: 'Private', date: '2024-01-15' },
+    ];
+
+    function clickDay(el: CalendarElement, day: string): void {
+      const cell = Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === day
+      );
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    function getCell(el: CalendarElement, day: string): Element | undefined {
+      return Array.from(el.querySelectorAll('td')).find(
+        td => td.textContent?.trim() === day
+      );
+    }
+
+    it('first click on a free day adds availability--range-start class', () => {
+      const el = mount({
+        events: EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'day',
+        selectable: 'range',
+      });
+      clickDay(el, '16');
+      expect(
+        getCell(el, '16')?.classList.contains('availability--range-start')
+      ).toBe(true);
+    });
+
+    it('first click fires cal-availability-select with startDate === endDate', () => {
+      const el = mount({
+        events: EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'day',
+        selectable: 'range',
+      });
+      const handler = vi.fn();
+      el.addEventListener('cal-availability-select', handler);
+      clickDay(el, '16');
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      const { startDate, endDate } = (handler.mock.calls[0][0] as CustomEvent)
+        .detail;
+      expect(startDate).toBeInstanceOf(Date);
+      expect(endDate).toBeInstanceOf(Date);
+      expect(startDate.toDateString()).toBe(endDate.toDateString());
+    });
+
+    it('second click on a later day sets range-end and in-range cells', () => {
+      const el = mount({
+        events: EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'day',
+        selectable: 'range',
+      });
+      clickDay(el, '16');
+      clickDay(el, '20');
+
+      expect(
+        getCell(el, '16')?.classList.contains('availability--range-start')
+      ).toBe(true);
+      expect(
+        getCell(el, '20')?.classList.contains('availability--range-end')
+      ).toBe(true);
+      expect(
+        getCell(el, '18')?.classList.contains('availability--in-range')
+      ).toBe(true);
+    });
+
+    it('second click fires cal-availability-select with startDate < endDate', () => {
+      const el = mount({
+        events: EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'day',
+        selectable: 'range',
+      });
+      const handler = vi.fn();
+      el.addEventListener('cal-availability-select', handler);
+      clickDay(el, '16');
+      clickDay(el, '20');
+
+      expect(handler).toHaveBeenCalledTimes(2);
+      const { startDate, endDate } = (handler.mock.calls[1][0] as CustomEvent)
+        .detail;
+      expect(startDate < endDate).toBe(true);
+    });
+
+    it('swaps start and end when second click is before first', () => {
+      const el = mount({
+        events: EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'day',
+        selectable: 'range',
+      });
+      const handler = vi.fn();
+      el.addEventListener('cal-availability-select', handler);
+      clickDay(el, '20');
+      clickDay(el, '16');
+
+      const { startDate, endDate } = (handler.mock.calls[1][0] as CustomEvent)
+        .detail;
+      expect(startDate < endDate).toBe(true);
+      expect(
+        getCell(el, '16')?.classList.contains('availability--range-start')
+      ).toBe(true);
+      expect(
+        getCell(el, '20')?.classList.contains('availability--range-end')
+      ).toBe(true);
+    });
+
+    it('third click resets and starts a new range', () => {
+      const el = mount({
+        events: EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'day',
+        selectable: 'range',
+      });
+      clickDay(el, '16');
+      clickDay(el, '20');
+      clickDay(el, '22');
+
+      expect(
+        getCell(el, '22')?.classList.contains('availability--range-start')
+      ).toBe(true);
+      expect(
+        getCell(el, '16')?.classList.contains('availability--range-start')
+      ).toBe(false);
+      expect(
+        getCell(el, '20')?.classList.contains('availability--range-end')
+      ).toBe(false);
+    });
+
+    it('clicking a booked day does not update the range', () => {
+      const el = mount({
+        events: EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'day',
+        selectable: 'range',
+      });
+      const handler = vi.fn();
+      el.addEventListener('cal-availability-select', handler);
+      clickDay(el, '15');
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('rejects a range that spans a booked day — resets to new first click', () => {
+      // Jan 15 is booked; clicking 13 then 17 would span 15
+      const el = mount({
+        events: EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'day',
+        selectable: 'range',
+      });
+      const handler = vi.fn();
+      el.addEventListener('cal-availability-select', handler);
+      clickDay(el, '13');
+      clickDay(el, '17'); // spans booked day 15 — should reset
+
+      // Second call should have startDate === endDate (fresh first click at 17)
+      const { startDate, endDate } = (handler.mock.calls[1][0] as CustomEvent)
+        .detail;
+      expect(startDate.toDateString()).toBe(endDate.toDateString());
+      expect(
+        getCell(el, '13')?.classList.contains('availability--range-start')
+      ).toBe(false);
+      expect(
+        getCell(el, '17')?.classList.contains('availability--range-start')
+      ).toBe(true);
+    });
+
+    it('removing selectable attribute clears the range', () => {
+      const el = mount({
+        events: EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'day',
+        selectable: 'range',
+      });
+      clickDay(el, '16');
+      el.removeAttribute('selectable');
+      expect(
+        getCell(el, '16')?.classList.contains('availability--range-start')
+      ).toBe(false);
+    });
+  });
+
+  describe('Selectable — time mode', () => {
+    const BASE_DATE = new Date('2024-01-15');
+    const TIMED_EVENTS: CalendarEvent[] = [
+      {
+        id: 1,
+        name: 'Private',
+        date: '2024-01-15',
+        startTime: '09:00',
+        endTime: '11:00',
+      },
+    ];
+
+    function openTimeGrid(el: CalendarElement): void {
+      Array.from(el.querySelectorAll('td'))
+        .find(td => td.textContent?.trim() === '15')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    function clickSlot(el: CalendarElement, startTime: string): void {
+      (
+        el.querySelector(
+          `.time-grid__slot--free[data-start-time="${startTime}"]`
+        ) as HTMLElement
+      )?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    it('free slots have data-action="select-slot" when selectable="range"', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+        selectable: 'range',
+      });
+      openTimeGrid(el);
+      expect(
+        el.querySelectorAll('.time-grid__slot--free[data-action="select-slot"]')
+          .length
+      ).toBeGreaterThan(0);
+    });
+
+    it('booked slots do not have data-action="select-slot"', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+        selectable: 'range',
+      });
+      openTimeGrid(el);
+      expect(
+        el.querySelectorAll(
+          '.time-grid__slot--booked[data-action="select-slot"]'
+        ).length
+      ).toBe(0);
+    });
+
+    it('first click fires cal-availability-select with single slot', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+        selectable: 'range',
+      });
+      openTimeGrid(el);
+      const handler = vi.fn();
+      el.addEventListener('cal-availability-select', handler);
+      clickSlot(el, '08:00');
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      const { date, startTime, endTime } = (
+        handler.mock.calls[0][0] as CustomEvent
+      ).detail;
+      expect(date).toBeInstanceOf(Date);
+      expect(startTime).toBe('08:00');
+      expect(endTime).toBe('09:00');
+    });
+
+    it('first click adds time-grid__slot--range-start class', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+        selectable: 'range',
+      });
+      openTimeGrid(el);
+      clickSlot(el, '08:00');
+      expect(el.querySelector('.time-grid__slot--range-start')).toBeTruthy();
+    });
+
+    it('second click extends the time range', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+        selectable: 'range',
+      });
+      openTimeGrid(el);
+      const handler = vi.fn();
+      el.addEventListener('cal-availability-select', handler);
+      clickSlot(el, '08:00');
+      clickSlot(el, '13:00');
+
+      const { startTime, endTime } = (handler.mock.calls[1][0] as CustomEvent)
+        .detail;
+      expect(startTime).toBe('08:00');
+      expect(endTime).toBe('14:00');
+    });
+
+    it('third click resets and starts a new time range', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+        selectable: 'range',
+      });
+      openTimeGrid(el);
+      const handler = vi.fn();
+      el.addEventListener('cal-availability-select', handler);
+      clickSlot(el, '08:00');
+      clickSlot(el, '13:00');
+      clickSlot(el, '14:00');
+
+      const { startTime, endTime } = (handler.mock.calls[2][0] as CustomEvent)
+        .detail;
+      expect(startTime).toBe('14:00');
+      expect(endTime).toBe('15:00');
+    });
+
+    it('closing the popup clears the time range', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+        selectable: 'range',
+      });
+      openTimeGrid(el);
+      clickSlot(el, '08:00');
+      (
+        el.querySelector('[data-action="close-popup"]') as HTMLButtonElement
+      )?.click();
+      openTimeGrid(el);
+      expect(el.querySelector('.time-grid__slot--range-start')).toBeNull();
+    });
+
+    it('free slots do not have data-action when selectable is not set', () => {
+      const el = mount({
+        events: TIMED_EVENTS,
+        initialDate: BASE_DATE,
+        availabilityMode: 'time',
+      });
+      openTimeGrid(el);
+      expect(
+        el.querySelectorAll('.time-grid__slot--free[data-action="select-slot"]')
+          .length
+      ).toBe(0);
     });
   });
 
