@@ -1,8 +1,10 @@
 name: Publish to npm
 
 # Triggers on any v* tag — push the tag manually or via a release.
-# The workflow reads the tag, bumps package.json to match, commits it
-# back to main, then builds and publishes to npm.
+# The workflow reads the tag, bumps package.json to match, builds and
+# validates everything, then commits the version bump and publishes.
+# Version bump is committed only after all checks pass — a failed build
+# or validation leaves main unchanged.
 #
 # Required secrets:
 #   AUTOMATION_TOKEN — fine-grained PAT with Contents: Read & write
@@ -57,6 +59,12 @@ jobs:
       - name: Run tests
         run: npm run test:run
 
+      - name: Build package
+        run: npm run build
+
+      - name: Validate package
+        run: npm run test:package
+
       - name: Commit version bump
         run: |
           git config user.name "github-actions[bot]"
@@ -64,12 +72,6 @@ jobs:
           git add package.json package-lock.json
           git commit -m "chore: bump version to ${{ github.ref_name }}"
           git push origin HEAD:main
-
-      - name: Build package
-        run: npm run build
-
-      - name: Validate package
-        run: npm run test:package
 
       - name: Publish to npm
         run: npm publish --access public --provenance
