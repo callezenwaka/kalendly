@@ -1007,3 +1007,9 @@ export function defineCalendarElement(tagName = 'kal-calendar'): void {
     customElements.define(tagName, CalendarElement);
   }
 }
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'kal-calendar': CalendarElement;
+  }
+}

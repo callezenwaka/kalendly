@@ -402,16 +402,31 @@ The "dump all events upfront" pattern still works unchanged — `cal-month-chang
 cal.events = allEvents;
 ```
 
-## JavaScript API
+## Core API
+
+`querySelector('kal-calendar')` returns `CalendarElement | null` automatically — no cast needed:
+
+```ts
+import type { CalendarElement } from 'kalendly';
+
+const cal = document.querySelector('kal-calendar'); // CalendarElement | null
+cal?.goToDate(new Date());
+cal?.updateEvents(events);
+cal?.updateTheme(theme);
+cal?.getCurrentDate(); // Date | null
+cal?.getEngine(); // CalendarEngine
+```
+
+**JavaScript** works the same way without the import:
 
 ```js
 const cal = document.querySelector('kal-calendar');
 
-cal.updateEvents(newEvents); // Re-render with new events
-cal.updateTheme(newTheme); // Apply new theme
-cal.goToDate(new Date(2025, 5, 1)); // Navigate to date
-cal.getCurrentDate(); // Returns currently selected Date
-cal.getEngine(); // Access CalendarEngine directly
+cal.updateEvents(newEvents);
+cal.updateTheme(newTheme);
+cal.goToDate(new Date());
+cal.getCurrentDate();
+cal.getEngine();
 ```
 
 ## CalendarEvent Interface
