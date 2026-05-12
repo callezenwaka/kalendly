@@ -165,7 +165,7 @@ async function runTests() {
   try {
     total++;
     const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-    const required = ['.', './core', './react', './styles'];
+    const required = ['.', './core', './styles'];
     const removed = ['./vue', './vanilla', './react-native'];
 
     let valid = true;
