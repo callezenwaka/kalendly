@@ -337,9 +337,14 @@ Hides all event details from the end user — only booked/free state is shown. D
 <kal-calendar availability-mode="day"></kal-calendar>
 ```
 
-Days with events get a red tint (booked); days without get a green tint (free). Clicking a day opens no popup.
+Days with events are tinted red (booked); days without events are tinted green (free). Only cells in the current month are colour-coded — other-month cells remain grayed out. Clicking a day fires no popup and reveals no event details.
 
-Pass the minimal event shape — no names, no descriptions:
+<div align="center">
+  <img src="./docs/images/day.png" alt="Availability day view — month grid with red booked cells and green free cells"/>
+  <p><em>Day view: the month grid shows only booked/free state per day — event names, times, and attendees are never revealed</em></p>
+</div>
+
+Pass the minimal event shape — only `id` and `date` are required; `startTime`/`endTime` are optional and mark the whole day as booked regardless:
 
 ```js
 cal.events = [
@@ -355,7 +360,12 @@ cal.events = [
 <kal-calendar availability-mode="time"></kal-calendar>
 ```
 
-Clicking a day opens a time-grid popup showing which hours are booked (red) and free (green). No event name or organiser is ever rendered.
+Clicking a day opens a popup with a 24-slot hourly grid (00:00 – 23:00). Each slot shows only "Booked" or "Available" — no event name or organiser is ever rendered. A slot is booked if any event's time window overlaps that hour; the rest are free.
+
+<div align="center">
+  <img src="./docs/images/time.png" alt="Availability time view — day popup showing 24 hourly slots coloured red (booked) or green (available)"/>
+  <p><em>Time view: clicking a day opens an hourly grid — booked slots in red, available slots in green; no event details exposed</em></p>
+</div>
 
 ### Selectable range
 
