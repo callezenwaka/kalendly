@@ -145,7 +145,55 @@ function App() {
 
 ### Vue 3
 
-Vue 3 supports custom elements natively — bind props with `:` and listen to events with `@`:
+Vue 3 supports custom elements natively — bind props with `:` and listen to events with `@`.
+
+> **Vue-specific:** Vue's template compiler warns on unknown tags. React, Solid.js, and Svelte treat hyphenated tags as DOM elements natively — no config needed. Angular uses `CUSTOM_ELEMENTS_SCHEMA` (see the Angular section below).
+
+Tell Vue's compiler that `<kal-*>` tags are native custom elements. The config location depends on your build tool:
+
+**Vite** (`vite.config.ts`):
+
+```ts
+vue({
+  template: {
+    compilerOptions: {
+      isCustomElement: tag => tag.startsWith('kal-'),
+    },
+  },
+});
+```
+
+**Nuxt 3** (`nuxt.config.ts`):
+
+```ts
+export default defineNuxtConfig({
+  vue: {
+    compilerOptions: {
+      isCustomElement: tag => tag.startsWith('kal-'),
+    },
+  },
+});
+```
+
+**webpack / Vue CLI** (`vue.config.js`):
+
+```js
+module.exports = {
+  chainWebpack: config => {
+    config.module
+      .rule('vue')
+      .use('vue-loader')
+      .tap(options => ({
+        ...options,
+        compilerOptions: {
+          isCustomElement: tag => tag.startsWith('kal-'),
+        },
+      }));
+  },
+};
+```
+
+Without this the component still renders correctly — Vue falls back to a native DOM element. This only suppresses the console warning.
 
 ```vue
 <template>

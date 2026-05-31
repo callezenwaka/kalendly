@@ -257,48 +257,62 @@ docs: update installation instructions
 
 ### For Maintainers
 
-The project uses GitHub Actions for automated publishing with npm Trusted Publishing.
+Releases are fully CI-driven. Do not run `npm version` or `npm publish` locally — the workflow handles both.
 
-1. Ensure all changes are merged to `main`:
+#### Required secrets (repo Settings → Secrets and variables → Actions)
+
+| Secret             | Value                                                                                                                                               |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTOMATION_TOKEN` | Fine-grained PAT with **Contents: Read & write** and **Workflows: Read & write** on this repo — used to push the version-bump commit back to `main` |
+| `NPM_TOKEN`        | npm access token — used as `NODE_AUTH_TOKEN` to publish the package                                                                                 |
+
+#### Steps
+
+1. Merge all changes to `main` and verify CI is green:
 
 ```bash
 git checkout main
 git pull origin main
 ```
 
-2. Update version in package.json:
+2. Push a version tag — the tag drives everything:
 
 ```bash
-# For patches (0.1.0 → 0.1.1)
-npm version patch
+# patch: 0.2.1 → 0.2.2
+git tag v0.2.2
+git push origin v0.2.2
 
-# For minor (0.1.0 → 0.2.0)
-npm version minor
+# minor: 0.2.1 → 0.3.0
+git tag v0.3.0
+git push origin v0.3.0
 
-# For major (0.1.0 → 1.0.0)
-npm version major
+# major: 0.2.1 → 1.0.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
-3. Push with tags:
+3. The `publish` workflow triggers automatically and:
+   - Reads the version from the tag (strips the `v`)
+   - Bumps `package.json` to match (`--no-git-tag-version`)
+   - Runs `type-check`, `test:run`, `build`, and `test:package`
+   - Commits `package.json` + `package-lock.json` back to `main`
+   - Publishes to npm with `--provenance` (attaches a signed build attestation)
 
-```bash
-git push origin main --follow-tags
-```
-
-4. GitHub Actions will automatically:
-   - Run all tests
-   - Build the package
-   - Validate the package
-   - Publish to npm with provenance
+The version bump commit only lands on `main` after all checks pass — a failed build or test leaves `main` unchanged.
 
 ### Manual Publishing (Fallback)
 
-If GitHub Actions fails:
+Only if the CI workflow fails and the release is urgent:
 
 ```bash
+git checkout main
+git pull origin main
+npm ci
+npm run type-check
+npm run test:run
 npm run build
-npm test
 npm run test:package
+npm version <patch|minor|major> --no-git-tag-version
 npm publish --access public
 ```
 

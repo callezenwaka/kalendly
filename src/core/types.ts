@@ -132,5 +132,7 @@ export interface CalendarTheme {
   borderColor?: string;
   todayOutline?: string;
   selectedBg?: string;
+  headerBg?: string;
+  popupBg?: string;
   eventIndicator?: string;
 }
