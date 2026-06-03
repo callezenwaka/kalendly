@@ -26,6 +26,24 @@ export class CalendarElement extends HTMLElement {
     'loading',
   ];
 
+  private static readonly themeMap: Record<keyof CalendarTheme, string> = {
+    primary: '--calendar-primary-color',
+    secondary: '--calendar-secondary-color',
+    tertiary: '--calendar-tertiary-color',
+    textColor: '--calendar-text-color',
+    textLight: '--calendar-text-light',
+    background: '--calendar-background',
+    cellHover: '--calendar-cell-hover',
+    borderColor: '--calendar-border-color',
+    todayOutline: '--calendar-today-outline',
+    selectedBg: '--calendar-selected-bg',
+    headerBg: '--calendar-header-bg',
+    popupBg: '--calendar-popup-bg',
+    pickerBg: '--calendar-picker-bg',
+    pickerShadow: '--calendar-picker-shadow',
+    eventIndicator: '--calendar-event-indicator',
+  };
+
   private engine: CalendarEngine | null = null;
   private unsubscribe: (() => void) | null = null;
   private actions: ReturnType<CalendarEngine['getActions']> | null = null;
@@ -212,34 +230,12 @@ export class CalendarElement extends HTMLElement {
   private applyTheme(): void {
     if (!this._theme) return;
     const root = document.documentElement;
-    const t = this._theme;
-    if (t.primary)
-      root.style.setProperty('--calendar-primary-color', t.primary);
-    if (t.secondary)
-      root.style.setProperty('--calendar-secondary-color', t.secondary);
-    if (t.tertiary)
-      root.style.setProperty('--calendar-tertiary-color', t.tertiary);
-    if (t.textColor)
-      root.style.setProperty('--calendar-text-color', t.textColor);
-    if (t.textLight)
-      root.style.setProperty('--calendar-text-light', t.textLight);
-    if (t.background)
-      root.style.setProperty('--calendar-background', t.background);
-    if (t.cellHover)
-      root.style.setProperty('--calendar-cell-hover', t.cellHover);
-    if (t.borderColor)
-      root.style.setProperty('--calendar-border-color', t.borderColor);
-    if (t.todayOutline)
-      root.style.setProperty('--calendar-today-outline', t.todayOutline);
-    if (t.selectedBg)
-      root.style.setProperty('--calendar-selected-bg', t.selectedBg);
-    if (t.headerBg) root.style.setProperty('--calendar-header-bg', t.headerBg);
-    if (t.popupBg) root.style.setProperty('--calendar-popup-bg', t.popupBg);
-    if (t.pickerBg) root.style.setProperty('--calendar-picker-bg', t.pickerBg);
-    if (t.pickerShadow)
-      root.style.setProperty('--calendar-picker-shadow', t.pickerShadow);
-    if (t.eventIndicator)
-      root.style.setProperty('--calendar-event-indicator', t.eventIndicator);
+    for (const key of Object.keys(CalendarElement.themeMap) as Array<
+      keyof CalendarTheme
+    >) {
+      const value = this._theme[key];
+      if (value) root.style.setProperty(CalendarElement.themeMap[key], value);
+    }
   }
 
   private render(): void {
