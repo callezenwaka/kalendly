@@ -235,6 +235,9 @@ export class CalendarElement extends HTMLElement {
       root.style.setProperty('--calendar-selected-bg', t.selectedBg);
     if (t.headerBg) root.style.setProperty('--calendar-header-bg', t.headerBg);
     if (t.popupBg) root.style.setProperty('--calendar-popup-bg', t.popupBg);
+    if (t.pickerBg) root.style.setProperty('--calendar-picker-bg', t.pickerBg);
+    if (t.pickerShadow)
+      root.style.setProperty('--calendar-picker-shadow', t.pickerShadow);
     if (t.eventIndicator)
       root.style.setProperty('--calendar-event-indicator', t.eventIndicator);
   }

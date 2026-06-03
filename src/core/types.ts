@@ -134,5 +134,7 @@ export interface CalendarTheme {
   selectedBg?: string;
   headerBg?: string;
   popupBg?: string;
+  pickerBg?: string;
+  pickerShadow?: string;
   eventIndicator?: string;
 }
