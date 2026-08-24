@@ -270,3 +270,56 @@ export function getCategoryColor(
 
   return isValidHexColor(color) ? color : '#fc8917';
 }
+
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+// Escape a value for interpolation into HTML text or a quoted attribute
+export function escapeHtml(value: unknown): string {
+  if (value === null || value === undefined) return '';
+
+  return String(value).replace(/[&<>"']/g, char => HTML_ESCAPES[char]);
+}
+
+// Reduce a caller-supplied value to a single safe CSS class token
+export function slugifyToken(value: string): string {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// Allow http(s), mailto and relative URLs; anything else (javascript:, data:,
+// vbscript:) collapses to a harmless anchor
+export function safeUrl(value: string): string {
+  // Browsers ignore control characters when resolving a scheme, so
+  // `java\0script:` and `java\tscript:` both navigate. Strip them before
+  // testing rather than after.
+  const normalized = String(value)
+    .split('')
+    .filter(char => char.charCodeAt(0) > 0x20)
+    .join('');
+
+  if (/^(?:https?:|mailto:)/i.test(normalized)) return normalized;
+
+  // Relative URLs have no scheme at all — a colon before the first slash,
+  // question mark or hash means someone is naming one
+  const schemeless = !/^[^/?#]*:/.test(normalized);
+
+  return schemeless ? normalized : '#';
+}
+
+// Accept hex colors and bare CSS color keywords; reject anything that could
+// terminate the declaration or escape the style attribute
+export function safeColor(value: string): string {
+  const trimmed = String(value).trim();
+
+  return isValidHexColor(trimmed) || /^[a-z]+$/i.test(trimmed)
+    ? trimmed
+    : '#3b82f6';
+}

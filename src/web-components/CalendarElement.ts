@@ -3,6 +3,10 @@ import {
   getCellClasses,
   formatTimeRange,
   formatAttendees,
+  escapeHtml,
+  slugifyToken,
+  safeUrl,
+  safeColor,
   MONTHS_FULL,
   MONTHS,
 } from '../core';
@@ -263,7 +267,7 @@ export class CalendarElement extends HTMLElement {
       const timeRange = formatTimeRange(event);
       const attendeesList = formatAttendees(event.attendees);
 
-      let borderColor = event.color || '#3b82f6';
+      let borderColor = safeColor(event.color || '#3b82f6');
       if (event.category) {
         borderColor = this.engine!.getCategoryColor(event.category);
       }
@@ -302,11 +306,11 @@ export class CalendarElement extends HTMLElement {
       return `
         <div class="event-card" style="border-left-color: ${borderColor}">
           <div class="event-header">
-            <div class="event-title">${event.name}</div>
+            <div class="event-title">${escapeHtml(event.name)}</div>
             <div class="event-badges">
-              ${event.category ? `<span class="badge category-${event.category}">${getCategoryLabel(event.category)}</span>` : ''}
-              ${event.priority ? `<span class="badge priority-${event.priority}">${getPriorityLabel(event.priority)}</span>` : ''}
-              ${event.status && event.status !== 'scheduled' ? `<span class="badge status-${event.status}">${getStatusLabel(event.status)}</span>` : ''}
+              ${event.category ? `<span class="badge category-${slugifyToken(event.category)}">${escapeHtml(getCategoryLabel(event.category))}</span>` : ''}
+              ${event.priority ? `<span class="badge priority-${slugifyToken(event.priority)}">${escapeHtml(getPriorityLabel(event.priority))}</span>` : ''}
+              ${event.status && event.status !== 'scheduled' ? `<span class="badge status-${slugifyToken(event.status)}">${escapeHtml(getStatusLabel(event.status))}</span>` : ''}
             </div>
           </div>
 
@@ -315,7 +319,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Time:</span>
-            <span class="event-time-value">${timeRange}</span>
+            <span class="event-time-value">${escapeHtml(timeRange)}</span>
           </div>
           `
               : ''
@@ -324,7 +328,7 @@ export class CalendarElement extends HTMLElement {
           ${
             event.description
               ? `
-          <div class="event-description">${event.description}</div>
+          <div class="event-description">${escapeHtml(event.description)}</div>
           `
               : ''
           }
@@ -334,7 +338,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Location:</span>
-            <span class="event-time-value">${event.location}</span>
+            <span class="event-time-value">${escapeHtml(event.location)}</span>
           </div>
           `
               : ''
@@ -345,7 +349,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Attendees:</span>
-            <span class="event-time-value">${attendeesList}</span>
+            <span class="event-time-value">${escapeHtml(attendeesList)}</span>
           </div>
           `
               : ''
@@ -356,7 +360,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Organizer:</span>
-            <span class="event-time-value">${event.organizer}</span>
+            <span class="event-time-value">${escapeHtml(event.organizer)}</span>
           </div>
           `
               : ''
@@ -367,7 +371,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Notes:</span>
-            <span class="event-time-value">${event.notes}</span>
+            <span class="event-time-value">${escapeHtml(event.notes)}</span>
           </div>
           `
               : ''
@@ -377,7 +381,7 @@ export class CalendarElement extends HTMLElement {
             event.url
               ? `
           <div class="event-time">
-            <a href="${event.url}" target="_blank" rel="noopener noreferrer" class="event-link">
+            <a href="${escapeHtml(safeUrl(event.url as string))}" target="_blank" rel="noopener noreferrer" class="event-link">
               View Details →
             </a>
           </div>
@@ -389,7 +393,7 @@ export class CalendarElement extends HTMLElement {
             event.tags && event.tags.length > 0
               ? `
           <div class="event-tags">
-            ${event.tags.map((tag: string) => `<span class="event-tag">${tag}</span>`).join('')}
+            ${event.tags.map((tag: string) => `<span class="event-tag">${escapeHtml(tag)}</span>`).join('')}
           </div>
           `
               : ''
@@ -461,7 +465,7 @@ export class CalendarElement extends HTMLElement {
         title
           ? `
       <div class="page--title">
-        <h1>${title}</h1>
+        <h1>${escapeHtml(title)}</h1>
       </div>
       `
           : ''
@@ -505,7 +509,7 @@ export class CalendarElement extends HTMLElement {
                     <input
                       type="text"
                       class="calendar--picker-year-input${!this.yearInputValid ? ' invalid' : ''}"
-                      value="${this.yearInput || viewModel.currentYear}"
+                      value="${escapeHtml(this.yearInput || viewModel.currentYear)}"
                       data-year-input
                       aria-label="Year"
                     />

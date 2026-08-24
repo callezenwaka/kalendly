@@ -1226,3 +1226,197 @@ describe('CalendarElement', () => {
     });
   });
 });
+
+describe('CalendarElement — output escaping', () => {
+  const DAY = new Date('2024-01-15');
+
+  function openDay(el: CalendarElement, day = '15'): void {
+    const cell = Array.from(el.querySelectorAll('td')).find(
+      td => td.textContent?.trim() === day
+    );
+    cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+
+  it('renders a script payload in event name as text', () => {
+    const el = mount({
+      initialDate: DAY,
+      events: [
+        {
+          id: 1,
+          name: '<script>alert(1)</script>',
+          date: '2024-01-15',
+        },
+      ],
+    });
+    openDay(el);
+
+    const title = el.querySelector('.event-title');
+    expect(title?.querySelector('script')).toBeNull();
+    expect(title?.textContent).toBe('<script>alert(1)</script>');
+  });
+
+  it('renders a script payload in description as text', () => {
+    const el = mount({
+      initialDate: DAY,
+      events: [
+        {
+          id: 1,
+          name: 'Meeting',
+          date: '2024-01-15',
+          description: '<img src=x onerror=alert(1)>',
+        },
+      ],
+    });
+    openDay(el);
+
+    const description = el.querySelector('.event-description');
+    expect(description?.querySelector('img')).toBeNull();
+    expect(description?.textContent).toBe('<img src=x onerror=alert(1)>');
+  });
+
+  it('collapses a javascript: url to a harmless anchor', () => {
+    const el = mount({
+      initialDate: DAY,
+      events: [
+        {
+          id: 1,
+          name: 'Meeting',
+          date: '2024-01-15',
+          url: 'javascript:alert(1)',
+        },
+      ],
+    });
+    openDay(el);
+
+    expect(el.querySelector('.event-link')?.getAttribute('href')).toBe('#');
+  });
+
+  it('preserves a legitimate url', () => {
+    const el = mount({
+      initialDate: DAY,
+      events: [
+        {
+          id: 1,
+          name: 'Meeting',
+          date: '2024-01-15',
+          url: 'https://example.com/e/1',
+        },
+      ],
+    });
+    openDay(el);
+
+    expect(el.querySelector('.event-link')?.getAttribute('href')).toBe(
+      'https://example.com/e/1'
+    );
+  });
+
+  it('does not let a color escape the style attribute', () => {
+    const el = mount({
+      initialDate: DAY,
+      events: [
+        {
+          id: 1,
+          name: 'Meeting',
+          date: '2024-01-15',
+          color: 'red" onmouseover="alert(1)',
+        },
+      ],
+    });
+    openDay(el);
+
+    const card = el.querySelector('.event-card');
+    expect(card?.getAttribute('onmouseover')).toBeNull();
+    expect(card?.getAttribute('style')).toContain('#3b82f6');
+  });
+
+  it('escapes the title attribute', () => {
+    const el = mount({
+      initialDate: DAY,
+      title: '<img src=x onerror=alert(1)>',
+    });
+
+    const heading = el.querySelector('.page--title h1');
+    expect(heading?.querySelector('img')).toBeNull();
+    expect(heading?.textContent).toBe('<img src=x onerror=alert(1)>');
+  });
+
+  it('escapes a reflected year input value', () => {
+    const el = mount({ initialDate: DAY });
+
+    const picker = el.querySelector(
+      '[data-action="toggle-picker"]'
+    ) as HTMLElement;
+    picker?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    (el as unknown as { yearInput: string }).yearInput =
+      '" onfocus=alert(1) autofocus="';
+    el.events = [];
+
+    const input = el.querySelector('[data-year-input]');
+    expect(input?.getAttribute('onfocus')).toBeNull();
+    expect(input?.getAttribute('autofocus')).toBeNull();
+    expect(input?.getAttribute('value')).toBe('" onfocus=alert(1) autofocus="');
+  });
+
+  it('renders a multi-word status as a single class token', () => {
+    const el = mount({
+      initialDate: DAY,
+      events: [
+        {
+          id: 1,
+          name: 'Meeting',
+          date: '2024-01-15',
+          status: 'in progress' as CalendarEvent['status'],
+        },
+      ],
+    });
+    openDay(el);
+
+    const badge = el.querySelector('.badge.status-in-progress');
+    expect(badge).toBeTruthy();
+    expect(badge?.classList.length).toBe(2);
+    expect(badge?.textContent?.trim()).toBe('IN PROGRESS');
+  });
+
+  it('escapes attendees, organizer, location and notes', () => {
+    const el = mount({
+      initialDate: DAY,
+      events: [
+        {
+          id: 1,
+          name: 'Meeting',
+          date: '2024-01-15',
+          location: '<b>HQ</b>',
+          organizer: '<b>Ada</b>',
+          notes: '<b>bring laptop</b>',
+          attendees: ['<b>Ada</b>', '<b>Grace</b>'],
+        },
+      ],
+    });
+    openDay(el);
+
+    const card = el.querySelector('.event-card');
+    expect(card?.querySelector('b')).toBeNull();
+    expect(card?.textContent).toContain('<b>HQ</b>');
+    expect(card?.textContent).toContain('<b>Ada</b>');
+  });
+
+  it('escapes tags', () => {
+    const el = mount({
+      initialDate: DAY,
+      events: [
+        {
+          id: 1,
+          name: 'Meeting',
+          date: '2024-01-15',
+          tags: ['<b>urgent</b>'],
+        },
+      ],
+    });
+    openDay(el);
+
+    const tag = el.querySelector('.event-tag');
+    expect(tag?.querySelector('b')).toBeNull();
+    expect(tag?.textContent).toBe('<b>urgent</b>');
+  });
+});
