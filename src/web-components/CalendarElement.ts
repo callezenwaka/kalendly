@@ -242,6 +242,11 @@ export class CalendarElement extends HTMLElement {
     }
   }
 
+  private isDateSelectable(date: Date): boolean {
+    if (!this.engine) return false;
+    return this.engine.getEventsForDate(date).length === 0;
+  }
+
   private render(): void {
     if (!this.engine) return;
 
@@ -690,8 +695,7 @@ export class CalendarElement extends HTMLElement {
         const isSelectable = this.hasAttribute('selectable');
 
         if (availMode === 'day' && isSelectable) {
-          const isBooked = cell.classList.contains('availability--booked');
-          if (!isBooked) {
+          if (this.isDateSelectable(date)) {
             let startDate: Date;
             let endDate: Date;
             if (this._rangeEnd !== null) {
@@ -715,7 +719,7 @@ export class CalendarElement extends HTMLElement {
               cursor.setDate(cursor.getDate() + 1);
               let blocked = false;
               while (cursor < e) {
-                if (this.engine!.getEventsForDate(cursor).length > 0) {
+                if (!this.isDateSelectable(cursor)) {
                   blocked = true;
                   break;
                 }

@@ -1420,3 +1420,87 @@ describe('CalendarElement — output escaping', () => {
     expect(tag?.textContent).toBe('<b>urgent</b>');
   });
 });
+
+describe('CalendarElement — selectability predicate', () => {
+  const BASE_DATE = new Date('2024-01-15');
+
+  function clickDay(el: CalendarElement, day: string): void {
+    const cell = Array.from(el.querySelectorAll('td')).find(
+      td => td.textContent?.trim() === day
+    );
+    cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+
+  function mountRange(events: CalendarEvent[]): CalendarElement {
+    return mount({
+      events,
+      initialDate: BASE_DATE,
+      availabilityMode: 'day',
+      selectable: 'range',
+    });
+  }
+
+  it('treats a booked day the same as an endpoint and inside a span', () => {
+    const booked: CalendarEvent[] = [
+      { id: 1, name: 'Private', date: '2024-01-20' },
+    ];
+
+    const asEndpoint = mountRange(booked);
+    const endpointSelections: unknown[] = [];
+    asEndpoint.addEventListener('cal-availability-select', e =>
+      endpointSelections.push((e as CustomEvent).detail)
+    );
+    clickDay(asEndpoint, '20');
+
+    expect(endpointSelections.length).toBe(0);
+
+    const inSpan = mountRange(booked);
+    const spanSelections: { startDate: Date; endDate: Date }[] = [];
+    inSpan.addEventListener('cal-availability-select', e =>
+      spanSelections.push(
+        (e as CustomEvent).detail as { startDate: Date; endDate: Date }
+      )
+    );
+    clickDay(inSpan, '18');
+    clickDay(inSpan, '22');
+
+    // Second click spans the booked 20th, so the range resets to the 22nd
+    const last = spanSelections[spanSelections.length - 1];
+    expect(last.startDate.getDate()).toBe(22);
+    expect(last.endDate.getDate()).toBe(22);
+  });
+
+  it('completes a range when every day inside it is free', () => {
+    const el = mountRange([{ id: 1, name: 'Private', date: '2024-01-28' }]);
+    const selections: { startDate: Date; endDate: Date }[] = [];
+    el.addEventListener('cal-availability-select', e =>
+      selections.push(
+        (e as CustomEvent).detail as { startDate: Date; endDate: Date }
+      )
+    );
+
+    clickDay(el, '18');
+    clickDay(el, '22');
+
+    const last = selections[selections.length - 1];
+    expect(last.startDate.getDate()).toBe(18);
+    expect(last.endDate.getDate()).toBe(22);
+  });
+
+  it('does not read selectability back from the rendered class', () => {
+    const el = mountRange([{ id: 1, name: 'Private', date: '2024-01-20' }]);
+    const cell = Array.from(el.querySelectorAll('td')).find(
+      td => td.textContent?.trim() === '20'
+    );
+
+    cell?.classList.remove('availability--booked');
+
+    const selections: unknown[] = [];
+    el.addEventListener('cal-availability-select', e =>
+      selections.push((e as CustomEvent).detail)
+    );
+    cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(selections.length).toBe(0);
+  });
+});
