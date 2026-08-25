@@ -161,15 +161,15 @@ export function getCellClasses(calendarDate: CalendarDate): string[] {
   const classes: string[] = [];
 
   if (!calendarDate.isCurrentMonth) {
-    classes.push('other-month');
+    classes.push('calendar-cell-other-month');
   }
 
   if (calendarDate.isToday) {
-    classes.push('schedule--current--exam');
+    classes.push('calendar-cell-today');
   }
 
   if (calendarDate.hasEvents) {
-    classes.push('has--event');
+    classes.push('calendar-cell-has-event');
   }
 
   return classes;

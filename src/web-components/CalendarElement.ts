@@ -469,11 +469,11 @@ export class CalendarElement extends HTMLElement {
         const isInRange = inTimeRange && !isRangeStart && !isRangeEnd;
 
         const slotClasses = [
-          'time-grid__slot',
-          booked ? 'time-grid__slot--booked' : 'time-grid__slot--free',
-          isRangeStart ? 'time-grid__slot--range-start' : '',
-          isRangeEnd ? 'time-grid__slot--range-end' : '',
-          isInRange ? 'time-grid__slot--in-range' : '',
+          'time-grid-slot',
+          booked ? 'time-grid-slot-booked' : 'time-grid-slot-free',
+          isRangeStart ? 'time-grid-slot-range-start' : '',
+          isRangeEnd ? 'time-grid-slot-range-end' : '',
+          isInRange ? 'time-grid-slot-in-range' : '',
         ]
           .filter(Boolean)
           .join(' ');
@@ -485,8 +485,8 @@ export class CalendarElement extends HTMLElement {
 
         return `
           <div class="${slotClasses}" ${slotAttrs}>
-            <span class="time-grid__label">${startTime}</span>
-            <span class="time-grid__status">${booked ? 'Booked' : 'Available'}</span>
+            <span class="time-grid-label">${startTime}</span>
+            <span class="time-grid-status">${booked ? 'Booked' : 'Available'}</span>
           </div>`;
       });
 
@@ -497,24 +497,24 @@ export class CalendarElement extends HTMLElement {
       ${
         title
           ? `
-      <div class="page--title">
+      <div class="calendar-title">
         <h1>${escapeHtml(title)}</h1>
       </div>
       `
           : ''
       }
 
-      <div class="calendar--content">
-        <div class="calendar--card">
-          <div class="calendar--nav-header">
-            <button type="button" class="calendar--nav-arrow" data-action="previous" aria-label="Previous month">
+      <div class="calendar-content">
+        <div class="calendar-card">
+          <div class="calendar-nav-header">
+            <button type="button" class="calendar-nav-arrow" data-action="previous" aria-label="Previous month">
               &#8249;
             </button>
 
-            <div class="calendar--picker-container" data-picker-container>
+            <div class="calendar-picker-container" data-picker-container>
               <button
                 type="button"
-                class="calendar--picker-btn"
+                class="calendar-picker-btn"
                 data-action="toggle-picker"
                 aria-expanded="${this.pickerOpen ? 'true' : 'false'}"
                 aria-haspopup="true"
@@ -524,38 +524,38 @@ export class CalendarElement extends HTMLElement {
                     ? `${MONTHS[viewModel.currentMonth]} ${viewModel.currentYear}`
                     : viewModel.monthAndYearText
                 }
-                <span class="calendar--picker-chevron">&#9662;</span>
+                <span class="calendar-picker-chevron">&#9662;</span>
               </button>
 
               ${
                 this.pickerOpen
                   ? `
-                <div class="calendar--picker-dropdown">
-                  <div class="calendar--picker-year-row">
+                <div class="calendar-picker-dropdown">
+                  <div class="calendar-picker-year-row">
                     <button
                       type="button"
-                      class="calendar--picker-year-arrow"
+                      class="calendar-picker-year-arrow"
                       data-action="year-prev"
                       ${viewModel.currentYear <= minYear ? 'disabled' : ''}
                       aria-label="Previous year"
                     >&#8249;</button>
                     <input
                       type="text"
-                      class="calendar--picker-year-input${!this.yearInputValid ? ' invalid' : ''}"
+                      class="calendar-picker-year-input${!this.yearInputValid ? ' invalid' : ''}"
                       value="${escapeHtml(this.yearInput || viewModel.currentYear)}"
                       data-year-input
                       aria-label="Year"
                     />
                     <button
                       type="button"
-                      class="calendar--picker-year-arrow"
+                      class="calendar-picker-year-arrow"
                       data-action="year-next"
                       ${viewModel.currentYear >= maxYear ? 'disabled' : ''}
                       aria-label="Next year"
                     >&#8250;</button>
                   </div>
 
-                  <div class="calendar--picker-months">
+                  <div class="calendar-picker-months">
                     ${(useShortMonths ? MONTHS : MONTHS_FULL)
                       .map((month, index) => {
                         const isSelected = index === viewModel.currentMonth;
@@ -565,7 +565,7 @@ export class CalendarElement extends HTMLElement {
                         return `
                         <button
                           type="button"
-                          class="calendar--picker-month${isSelected ? ' selected' : ''}${isCurrent ? ' current-month' : ''}"
+                          class="calendar-picker-month${isSelected ? ' selected' : ''}${isCurrent ? ' current-month' : ''}"
                           data-action="select-month"
                           data-month="${index}"
                         >${month}</button>
@@ -581,17 +581,17 @@ export class CalendarElement extends HTMLElement {
 
             <button
               type="button"
-              class="calendar--today-btn"
+              class="calendar-today-btn"
               data-action="today"
               ${isCurrentMonth ? 'disabled' : ''}
             >Today</button>
 
-            <button type="button" class="calendar--nav-arrow" data-action="next" aria-label="Next month">
+            <button type="button" class="calendar-nav-arrow" data-action="next" aria-label="Next month">
               &#8250;
             </button>
           </div>
 
-          <table class="calendar--table calendar--table--bordered">
+          <table class="calendar-table calendar-table-bordered">
             <thead>
               <tr>
                 ${viewModel.days.map(day => `<th>${day.slice(0, 3)}</th>`).join('')}
@@ -606,7 +606,7 @@ export class CalendarElement extends HTMLElement {
                         `<tr>${Array.from(
                           { length: 7 },
                           () =>
-                            `<td class="calendar--skeleton" aria-hidden="true"></td>`
+                            `<td class="calendar-skeleton" aria-hidden="true"></td>`
                         ).join('')}</tr>`
                     ).join('')
                   : viewModel.calendarDates
@@ -619,8 +619,8 @@ export class CalendarElement extends HTMLElement {
                           if (availabilityMode && calendarDate.isCurrentMonth) {
                             classes.push(
                               calendarDate.hasEvents
-                                ? 'availability--booked'
-                                : 'availability--free'
+                                ? 'availability-booked'
+                                : 'availability-free'
                             );
                           }
                           if (
@@ -633,12 +633,12 @@ export class CalendarElement extends HTMLElement {
                               this._rangeStart &&
                               isSameDay(d, this._rangeStart)
                             )
-                              classes.push('availability--range-start');
+                              classes.push('availability-range-start');
                             if (this._rangeEnd && isSameDay(d, this._rangeEnd))
-                              classes.push('availability--range-end');
+                              classes.push('availability-range-end');
                             if (this._rangeStart && this._rangeEnd) {
                               if (d > this._rangeStart && d < this._rangeEnd)
-                                classes.push('availability--in-range');
+                                classes.push('availability-in-range');
                             }
                           }
                           const dateString = calendarDate.date.toISOString();

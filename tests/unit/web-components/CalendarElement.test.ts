@@ -114,12 +114,12 @@ describe('CalendarElement', () => {
 
     it('should re-initialise engine when observed attribute changes', () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'January 2024'
       );
 
       el.setAttribute('initial-date', new Date('2024-06-01').toISOString());
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'June 2024'
       );
     });
@@ -136,8 +136,8 @@ describe('CalendarElement', () => {
   describe('Rendering', () => {
     it('should render calendar table', () => {
       const el = mount();
-      expect(el.querySelector('.calendar--table')).toBeTruthy();
-      expect(el.querySelector('.calendar--picker-btn')).toBeTruthy();
+      expect(el.querySelector('.calendar-table')).toBeTruthy();
+      expect(el.querySelector('.calendar-picker-btn')).toBeTruthy();
     });
 
     it('should render title when attribute is set', () => {
@@ -149,7 +149,7 @@ describe('CalendarElement', () => {
 
     it('should not render title when attribute is absent', () => {
       const el = mount();
-      expect(el.querySelector('.page--title')).toBeNull();
+      expect(el.querySelector('.calendar-title')).toBeNull();
     });
 
     it('should render previous and next buttons', () => {
@@ -281,11 +281,11 @@ describe('CalendarElement', () => {
   describe('Navigation', () => {
     it('should navigate to next month', () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'January 2024'
       );
       (el.querySelector('[data-action="next"]') as HTMLButtonElement)?.click();
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'February 2024'
       );
     });
@@ -295,28 +295,28 @@ describe('CalendarElement', () => {
       (
         el.querySelector('[data-action="previous"]') as HTMLButtonElement
       )?.click();
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'February 2024'
       );
     });
 
     it('should jump to selected month via picker', () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      (el.querySelector('.calendar--picker-btn') as HTMLButtonElement)?.click();
+      (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
 
       const monthBtns = el.querySelectorAll('[data-action="select-month"]');
       if (monthBtns.length === 0) return; // Picker not rendered
       expect(monthBtns.length).toBe(12);
       (monthBtns[5] as HTMLButtonElement)?.click();
 
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'June 2024'
       );
     });
 
     it('should jump to year via input', () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      (el.querySelector('.calendar--picker-btn') as HTMLButtonElement)?.click();
+      (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
 
       const yearInput = el.querySelector(
         '[data-year-input]'
@@ -327,7 +327,7 @@ describe('CalendarElement', () => {
       yearInput.dispatchEvent(new Event('input', { bubbles: true }));
       yearInput.dispatchEvent(new Event('blur', { bubbles: true }));
 
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'January 2025'
       );
     });
@@ -358,7 +358,7 @@ describe('CalendarElement', () => {
     it('goToDate should navigate to given date', () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       el.goToDate(new Date('2025-06-15'));
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'June 2025'
       );
     });
@@ -381,7 +381,7 @@ describe('CalendarElement', () => {
   describe('Short Month Names', () => {
     it('should use long month names by default', () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'January 2024'
       );
     });
@@ -391,15 +391,15 @@ describe('CalendarElement', () => {
         initialDate: new Date('2024-01-15'),
         useShortMonthNames: true,
       });
-      expect(el.querySelector('.calendar--picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'Jan 2024'
       );
     });
 
     it('should show long month names in picker dropdown by default', () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      (el.querySelector('.calendar--picker-btn') as HTMLButtonElement)?.click();
-      const btns = el.querySelectorAll('.calendar--picker-month');
+      (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      const btns = el.querySelectorAll('.calendar-picker-month');
       if (btns.length === 0) return;
       expect(btns[0].textContent).toBe('January');
       expect(btns[11].textContent).toBe('December');
@@ -410,8 +410,8 @@ describe('CalendarElement', () => {
         initialDate: new Date('2024-01-15'),
         useShortMonthNames: true,
       });
-      (el.querySelector('.calendar--picker-btn') as HTMLButtonElement)?.click();
-      const btns = el.querySelectorAll('.calendar--picker-month');
+      (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      const btns = el.querySelectorAll('.calendar-picker-month');
       if (btns.length === 0) return;
       expect(btns[0].textContent).toBe('Jan');
       expect(btns[11].textContent).toBe('Dec');
@@ -546,7 +546,7 @@ describe('CalendarElement', () => {
       { id: 1, name: 'Private Booking', date: '2024-01-15' },
     ];
 
-    it('should add availability--booked class to cells with events', () => {
+    it('should add availability-booked class to cells with events', () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
@@ -555,10 +555,10 @@ describe('CalendarElement', () => {
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
-      expect(bookedCell?.classList.contains('availability--booked')).toBe(true);
+      expect(bookedCell?.classList.contains('availability-booked')).toBe(true);
     });
 
-    it('should add availability--free class to cells without events', () => {
+    it('should add availability-free class to cells without events', () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
@@ -567,19 +567,21 @@ describe('CalendarElement', () => {
       const freeCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '16'
       );
-      expect(freeCell?.classList.contains('availability--free')).toBe(true);
+      expect(freeCell?.classList.contains('availability-free')).toBe(true);
     });
 
-    it('should not add availability classes to other-month cells', () => {
+    it('should not add availability classes to calendar-cell-other-month cells', () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
         availabilityMode: 'day',
       });
-      const otherMonthCells = el.querySelectorAll('td.other-month');
+      const otherMonthCells = el.querySelectorAll(
+        'td.calendar-cell-other-month'
+      );
       otherMonthCells.forEach(cell => {
-        expect(cell.classList.contains('availability--booked')).toBe(false);
-        expect(cell.classList.contains('availability--free')).toBe(false);
+        expect(cell.classList.contains('availability-booked')).toBe(false);
+        expect(cell.classList.contains('availability-free')).toBe(false);
       });
     });
 
@@ -656,9 +658,7 @@ describe('CalendarElement', () => {
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
-      expect(bookedCell?.classList.contains('availability--booked')).toBe(
-        false
-      );
+      expect(bookedCell?.classList.contains('availability-booked')).toBe(false);
     });
   });
 
@@ -698,7 +698,7 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       expect(el.querySelector('.time-grid')).toBeTruthy();
-      expect(el.querySelectorAll('.time-grid__slot').length).toBe(24);
+      expect(el.querySelectorAll('.time-grid-slot').length).toBe(24);
     });
 
     it('should mark booked hours correctly', () => {
@@ -711,15 +711,13 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      const slots = el.querySelectorAll('.time-grid__slot');
+      const slots = el.querySelectorAll('.time-grid-slot');
       // 09:00 and 10:00 should be booked (startTime=09:00, endTime=11:00)
-      expect(slots[9].classList.contains('time-grid__slot--booked')).toBe(true);
-      expect(slots[10].classList.contains('time-grid__slot--booked')).toBe(
-        true
-      );
+      expect(slots[9].classList.contains('time-grid-slot-booked')).toBe(true);
+      expect(slots[10].classList.contains('time-grid-slot-booked')).toBe(true);
       // 08:00 and 11:00 should be free
-      expect(slots[8].classList.contains('time-grid__slot--free')).toBe(true);
-      expect(slots[11].classList.contains('time-grid__slot--free')).toBe(true);
+      expect(slots[8].classList.contains('time-grid-slot-free')).toBe(true);
+      expect(slots[11].classList.contains('time-grid-slot-free')).toBe(true);
     });
 
     it('should mark all hours booked for all-day events', () => {
@@ -732,7 +730,7 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      const slots = el.querySelectorAll('.time-grid__slot--booked');
+      const slots = el.querySelectorAll('.time-grid-slot-booked');
       expect(slots.length).toBe(24);
     });
 
@@ -746,7 +744,7 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      const slots = el.querySelectorAll('.time-grid__slot--free');
+      const slots = el.querySelectorAll('.time-grid-slot-free');
       expect(slots.length).toBe(24);
     });
 
@@ -773,7 +771,7 @@ describe('CalendarElement', () => {
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
-      expect(bookedCell?.classList.contains('availability--booked')).toBe(true);
+      expect(bookedCell?.classList.contains('availability-booked')).toBe(true);
     });
   });
 
@@ -796,7 +794,7 @@ describe('CalendarElement', () => {
       );
     }
 
-    it('first click on a free day adds availability--range-start class', () => {
+    it('first click on a free day adds availability-range-start class', () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -805,7 +803,7 @@ describe('CalendarElement', () => {
       });
       clickDay(el, '16');
       expect(
-        getCell(el, '16')?.classList.contains('availability--range-start')
+        getCell(el, '16')?.classList.contains('availability-range-start')
       ).toBe(true);
     });
 
@@ -839,13 +837,13 @@ describe('CalendarElement', () => {
       clickDay(el, '20');
 
       expect(
-        getCell(el, '16')?.classList.contains('availability--range-start')
+        getCell(el, '16')?.classList.contains('availability-range-start')
       ).toBe(true);
       expect(
-        getCell(el, '20')?.classList.contains('availability--range-end')
+        getCell(el, '20')?.classList.contains('availability-range-end')
       ).toBe(true);
       expect(
-        getCell(el, '18')?.classList.contains('availability--in-range')
+        getCell(el, '18')?.classList.contains('availability-in-range')
       ).toBe(true);
     });
 
@@ -883,10 +881,10 @@ describe('CalendarElement', () => {
         .detail;
       expect(startDate < endDate).toBe(true);
       expect(
-        getCell(el, '16')?.classList.contains('availability--range-start')
+        getCell(el, '16')?.classList.contains('availability-range-start')
       ).toBe(true);
       expect(
-        getCell(el, '20')?.classList.contains('availability--range-end')
+        getCell(el, '20')?.classList.contains('availability-range-end')
       ).toBe(true);
     });
 
@@ -902,13 +900,13 @@ describe('CalendarElement', () => {
       clickDay(el, '22');
 
       expect(
-        getCell(el, '22')?.classList.contains('availability--range-start')
+        getCell(el, '22')?.classList.contains('availability-range-start')
       ).toBe(true);
       expect(
-        getCell(el, '16')?.classList.contains('availability--range-start')
+        getCell(el, '16')?.classList.contains('availability-range-start')
       ).toBe(false);
       expect(
-        getCell(el, '20')?.classList.contains('availability--range-end')
+        getCell(el, '20')?.classList.contains('availability-range-end')
       ).toBe(false);
     });
 
@@ -943,10 +941,10 @@ describe('CalendarElement', () => {
         .detail;
       expect(startDate.toDateString()).toBe(endDate.toDateString());
       expect(
-        getCell(el, '13')?.classList.contains('availability--range-start')
+        getCell(el, '13')?.classList.contains('availability-range-start')
       ).toBe(false);
       expect(
-        getCell(el, '17')?.classList.contains('availability--range-start')
+        getCell(el, '17')?.classList.contains('availability-range-start')
       ).toBe(true);
     });
 
@@ -960,7 +958,7 @@ describe('CalendarElement', () => {
       clickDay(el, '16');
       el.removeAttribute('selectable');
       expect(
-        getCell(el, '16')?.classList.contains('availability--range-start')
+        getCell(el, '16')?.classList.contains('availability-range-start')
       ).toBe(false);
     });
   });
@@ -986,7 +984,7 @@ describe('CalendarElement', () => {
     function clickSlot(el: CalendarElement, startTime: string): void {
       (
         el.querySelector(
-          `.time-grid__slot--free[data-start-time="${startTime}"]`
+          `.time-grid-slot-free[data-start-time="${startTime}"]`
         ) as HTMLElement
       )?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     }
@@ -1000,7 +998,7 @@ describe('CalendarElement', () => {
       });
       openTimeGrid(el);
       expect(
-        el.querySelectorAll('.time-grid__slot--free[data-action="select-slot"]')
+        el.querySelectorAll('.time-grid-slot-free[data-action="select-slot"]')
           .length
       ).toBeGreaterThan(0);
     });
@@ -1014,9 +1012,8 @@ describe('CalendarElement', () => {
       });
       openTimeGrid(el);
       expect(
-        el.querySelectorAll(
-          '.time-grid__slot--booked[data-action="select-slot"]'
-        ).length
+        el.querySelectorAll('.time-grid-slot-booked[data-action="select-slot"]')
+          .length
       ).toBe(0);
     });
 
@@ -1041,7 +1038,7 @@ describe('CalendarElement', () => {
       expect(endTime).toBe('09:00');
     });
 
-    it('first click adds time-grid__slot--range-start class', () => {
+    it('first click adds time-grid-slot-range-start class', () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1050,7 +1047,7 @@ describe('CalendarElement', () => {
       });
       openTimeGrid(el);
       clickSlot(el, '08:00');
-      expect(el.querySelector('.time-grid__slot--range-start')).toBeTruthy();
+      expect(el.querySelector('.time-grid-slot-range-start')).toBeTruthy();
     });
 
     it('second click extends the time range', () => {
@@ -1105,7 +1102,7 @@ describe('CalendarElement', () => {
         el.querySelector('[data-action="close-popup"]') as HTMLButtonElement
       )?.click();
       openTimeGrid(el);
-      expect(el.querySelector('.time-grid__slot--range-start')).toBeNull();
+      expect(el.querySelector('.time-grid-slot-range-start')).toBeNull();
     });
 
     it('free slots do not have data-action when selectable is not set', () => {
@@ -1116,7 +1113,7 @@ describe('CalendarElement', () => {
       });
       openTimeGrid(el);
       expect(
-        el.querySelectorAll('.time-grid__slot--free[data-action="select-slot"]')
+        el.querySelectorAll('.time-grid-slot-free[data-action="select-slot"]')
           .length
       ).toBe(0);
     });
@@ -1144,19 +1141,19 @@ describe('CalendarElement', () => {
     it('renders skeleton cells when loading is true', () => {
       const el = mount({});
       el.loading = true;
-      const skeletons = el.querySelectorAll('td.calendar--skeleton');
+      const skeletons = el.querySelectorAll('td.calendar-skeleton');
       expect(skeletons.length).toBe(42); // 6 weeks × 7 days
     });
 
     it('renders no skeleton cells when loading is false', () => {
       const el = mount({});
-      expect(el.querySelectorAll('td.calendar--skeleton').length).toBe(0);
+      expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
     });
 
     it('skeleton cells are aria-hidden', () => {
       const el = mount({});
       el.loading = true;
-      const skeletons = el.querySelectorAll('td.calendar--skeleton');
+      const skeletons = el.querySelectorAll('td.calendar-skeleton');
       skeletons.forEach(td => {
         expect(td.getAttribute('aria-hidden')).toBe('true');
       });
@@ -1188,7 +1185,7 @@ describe('CalendarElement', () => {
       el.querySelector<HTMLElement>('[data-action="next"]')?.click();
       expect(monthInEventWasOld).toBe(true);
       // loading was set in the handler → skeleton should be visible
-      expect(el.querySelectorAll('td.calendar--skeleton').length).toBe(42);
+      expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(42);
     });
 
     it('cal-month-change fires before render on previous navigation', () => {
@@ -1204,9 +1201,9 @@ describe('CalendarElement', () => {
     it('clearing loading re-renders real cells', () => {
       const el = mount({});
       el.loading = true;
-      expect(el.querySelectorAll('td.calendar--skeleton').length).toBe(42);
+      expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(42);
       el.loading = false;
-      expect(el.querySelectorAll('td.calendar--skeleton').length).toBe(0);
+      expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
       expect(el.querySelectorAll('td[data-clickable]').length).toBeGreaterThan(
         0
       );
@@ -1216,7 +1213,7 @@ describe('CalendarElement', () => {
   describe('Edge Cases', () => {
     it('should handle empty events array', () => {
       const el = mount({ events: [] });
-      expect(el.querySelector('.calendar--table')).toBeTruthy();
+      expect(el.querySelector('.calendar-table')).toBeTruthy();
     });
 
     it('should not throw on click outside a date cell', () => {
@@ -1337,7 +1334,7 @@ describe('CalendarElement — output escaping', () => {
       title: '<img src=x onerror=alert(1)>',
     });
 
-    const heading = el.querySelector('.page--title h1');
+    const heading = el.querySelector('.calendar-title h1');
     expect(heading?.querySelector('img')).toBeNull();
     expect(heading?.textContent).toBe('<img src=x onerror=alert(1)>');
   });
@@ -1499,7 +1496,7 @@ describe('CalendarElement — selectability predicate', () => {
       td => td.textContent?.trim() === '20'
     );
 
-    cell?.classList.remove('availability--booked');
+    cell?.classList.remove('availability-booked');
 
     const selections: unknown[] = [];
     el.addEventListener('cal-availability-select', e =>

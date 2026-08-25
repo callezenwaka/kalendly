@@ -316,7 +316,7 @@ kalendly uses Light DOM — all standard CSS techniques work:
 }
 
 /* 2. Direct class overrides */
-.kalendly-calendar .calendar--card {
+.kalendly-calendar .calendar-card {
   border-radius: 12px;
 }
 ```

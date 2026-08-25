@@ -425,7 +425,7 @@ describe('Popup Positioning', () => {
 
 describe('CSS Class Generation', () => {
   describe('getCellClasses', () => {
-    it('should include schedule--current--exam for today', () => {
+    it('should include calendar-cell-today for today', () => {
       const today = new Date();
       const cellDate = {
         date: today,
@@ -436,10 +436,10 @@ describe('CSS Class Generation', () => {
       };
 
       const classes = getCellClasses(cellDate);
-      expect(classes).toContain('schedule--current--exam');
+      expect(classes).toContain('calendar-cell-today');
     });
 
-    it('should include has--event when events exist', () => {
+    it('should include calendar-cell-has-event when events exist', () => {
       const cellDate = {
         date: new Date('2024-01-15'),
         isCurrentMonth: true,
@@ -449,7 +449,7 @@ describe('CSS Class Generation', () => {
       };
 
       const classes = getCellClasses(cellDate);
-      expect(classes).toContain('has--event');
+      expect(classes).toContain('calendar-cell-has-event');
     });
 
     it('should combine both classes when applicable', () => {
@@ -463,8 +463,8 @@ describe('CSS Class Generation', () => {
       };
 
       const classes = getCellClasses(cellDate);
-      expect(classes).toContain('schedule--current--exam');
-      expect(classes).toContain('has--event');
+      expect(classes).toContain('calendar-cell-today');
+      expect(classes).toContain('calendar-cell-has-event');
       expect(classes.length).toBe(2);
     });
 

@@ -435,8 +435,8 @@
     log(`[4] klassList has "kalendly-calendar"  → ${hasClass ? 'PASS' : 'FAIL'}`, hasClass ? 'ok' : 'err');
 
     // 5. calendar table rendered
-    const hasTable = !!el.querySelector('.calendar--table');
-    log(`[5] .calendar--table rendered          → ${hasTable ? 'PASS' : 'FAIL'}`, hasTable ? 'ok' : 'err');
+    const hasTable = !!el.querySelector('.calendar-table');
+    log(`[5] .calendar-table rendered          → ${hasTable ? 'PASS' : 'FAIL'}`, hasTable ? 'ok' : 'err');
 
     // 6. events property set correctly
     const eventsOk = Array.isArray(el.events);
@@ -457,7 +457,7 @@
 
     // 9. goToDate changes displayed month
     el.goToDate(new Date('2030-07-01'));
-    const afterGoto = el.querySelector('.calendar--picker-btn')?.textContent || '';
+    const afterGoto = el.querySelector('.calendar-picker-btn')?.textContent || '';
     const gotoOk = afterGoto.includes('July') && afterGoto.includes('2030');
     log(`[9] goToDate(2030-07) → picker shows "July 2030"  → ${gotoOk ? 'PASS' : 'FAIL'}`, gotoOk ? 'ok' : 'err');
     el.goToDate(new Date()); // restore to today
