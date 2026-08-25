@@ -2029,3 +2029,112 @@ describe('CalendarElement — multi-state availability', () => {
     expect(td?.style.getPropertyValue('--availability-color')).toBe('#3b82f6');
   });
 });
+
+describe('CalendarElement — availability validation timing', () => {
+  const BASE = new Date('2024-01-15');
+
+  function configure(): CalendarElement {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('availability-mode', 'day');
+    el.setAttribute('initial-date', BASE.toISOString());
+    return el;
+  }
+
+  function expectingReactionError(run: () => void): void {
+    const swallow = (e: ErrorEvent) => e.preventDefault();
+    window.addEventListener('error', swallow);
+    try {
+      run();
+    } catch {
+      // a custom element reaction reports rather than propagates
+    } finally {
+      window.removeEventListener('error', swallow);
+    }
+  }
+
+  it('throws before the element is ever connected', () => {
+    const el = configure();
+
+    expect(() => {
+      el.events = [{ id: 7, name: 'a', date: '2024-01-20' }];
+    }).toThrow(/Missing on: 7/);
+
+    expect(el.isConnected).toBe(false);
+  });
+
+  it('stores the failure when availability-mode is applied to events already set', () => {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.events = [{ id: 7, name: 'a', date: '2024-01-20' }];
+    document.body.appendChild(el);
+
+    expectingReactionError(() => el.setAttribute('availability-mode', 'day'));
+
+    expect(() => el.getEngine()).toThrow(/Missing on: 7/);
+  });
+
+  it('does not throw at configuration time for an undeclared bucket', () => {
+    const el = configure();
+
+    expect(() => {
+      el.events = [
+        {
+          id: 3,
+          name: 'a',
+          date: '2024-01-20',
+          availabilityStatus: 'maintenance',
+        },
+      ];
+    }).not.toThrow();
+  });
+
+  it('accepts a bucket declared after the events', () => {
+    const el = configure();
+    el.events = [
+      {
+        id: 3,
+        name: 'a',
+        date: '2024-01-20',
+        availabilityStatus: 'maintenance',
+      },
+    ];
+    el.availabilityColors = { maintenance: '#0891b2' };
+
+    expect(() => document.body.appendChild(el)).not.toThrow();
+    expect(el.querySelector('td.availability-maintenance')).toBeTruthy();
+  });
+
+  it('resurfaces a failed initialisation on the next read', () => {
+    const el = configure();
+    el.events = [
+      {
+        id: 3,
+        name: 'a',
+        date: '2024-01-20',
+        availabilityStatus: 'maintenance',
+      },
+    ];
+
+    expectingReactionError(() => document.body.appendChild(el));
+
+    expect(() => el.getEngine()).toThrow(/Unrecognised on: 3 \(maintenance\)/);
+    expect(() => el.getCurrentDate()).toThrow(/Unrecognised on/);
+  });
+
+  it('clears the stored failure once the configuration is corrected', () => {
+    const el = configure();
+    el.events = [
+      {
+        id: 3,
+        name: 'a',
+        date: '2024-01-20',
+        availabilityStatus: 'maintenance',
+      },
+    ];
+
+    expectingReactionError(() => document.body.appendChild(el));
+
+    el.availabilityColors = { maintenance: '#0891b2' };
+
+    expect(() => el.getEngine()).not.toThrow();
+  });
+});

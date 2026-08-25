@@ -98,6 +98,7 @@ export class CalendarElement extends HTMLElement {
   private _renderNoEvents: (() => string) | null = null;
   private _availabilityColors: Record<string, string> | null = null;
   private _selectableStatuses: string[] | null = null;
+  private _initError: Error | null = null;
 
   // Selection state (availability mode — range)
   private _rangeStart: Date | null = null;
@@ -112,7 +113,9 @@ export class CalendarElement extends HTMLElement {
   }
 
   set events(val: CalendarEvent[]) {
+    this._initError = null;
     this._events = val;
+    this.assertStatusesDeclared();
     if (this.engine) {
       this.engine.updateEvents(val);
     }
@@ -135,6 +138,7 @@ export class CalendarElement extends HTMLElement {
   }
 
   set availabilityColors(val: Record<string, string>) {
+    this._initError = null;
     this._availabilityColors = val;
     if (this.engine) this.render();
   }
@@ -169,10 +173,23 @@ export class CalendarElement extends HTMLElement {
     else this.removeAttribute('loading');
   }
 
+  // Custom element reactions report rather than propagate, so a failure here
+  // is kept and resurfaced at the next call the integrator makes
+  private reaction(run: () => void): void {
+    try {
+      run();
+    } catch (error) {
+      this._initError = error as Error;
+      throw error;
+    }
+  }
+
   connectedCallback(): void {
     this.classList.add('kalendly-calendar');
-    this.initEngine();
-    this.render();
+    this.reaction(() => {
+      this.initEngine();
+      this.render();
+    });
   }
 
   disconnectedCallback(): void {
@@ -188,7 +205,7 @@ export class CalendarElement extends HTMLElement {
   ): void {
     if (oldVal === newVal) return;
     if (name === 'loading') {
-      this.render();
+      this.reaction(() => this.render());
       return;
     }
     if (name === 'selectable' && newVal === null) {
@@ -199,7 +216,7 @@ export class CalendarElement extends HTMLElement {
       this._timeRangeEnd = null;
       this._timeRangeComplete = false;
     }
-    this.reinit();
+    this.reaction(() => this.reinit());
   }
 
   private get minYear(): number {
@@ -299,19 +316,20 @@ export class CalendarElement extends HTMLElement {
     ];
   }
 
-  private assertAvailabilityStatuses(): void {
-    const known = new Set(this.knownBuckets);
-    const missing: string[] = [];
-    const unknown: string[] = [];
+  private rethrowInitError(): void {
+    if (this._initError) throw this._initError;
+  }
 
-    for (const event of this._events) {
-      const status = event.availabilityStatus;
-      if (typeof status !== 'string' || status === '') {
-        missing.push(String(event.id));
-      } else if (!known.has(status)) {
-        unknown.push(`${event.id} (${status})`);
-      }
-    }
+  private assertStatusesDeclared(): void {
+    if (!this.getAttribute('availability-mode')) return;
+
+    const missing = this._events
+      .filter(
+        event =>
+          typeof event.availabilityStatus !== 'string' ||
+          event.availabilityStatus === ''
+      )
+      .map(event => String(event.id));
 
     if (missing.length) {
       throw new Error(
@@ -319,6 +337,14 @@ export class CalendarElement extends HTMLElement {
           `event. Missing on: ${missing.join(', ')}.`
       );
     }
+  }
+
+  private assertStatusesKnown(): void {
+    const known = new Set(this.knownBuckets);
+    const unknown = this._events
+      .filter(event => !known.has(event.availabilityStatus as string))
+      .map(event => `${event.id} (${event.availabilityStatus})`);
+
     if (unknown.length) {
       throw new Error(
         `<kal-calendar> availabilityStatus must name a built-in bucket ` +
@@ -363,7 +389,10 @@ export class CalendarElement extends HTMLElement {
     const selectable = this.hasAttribute('selectable');
     const isLoading = this.loading;
 
-    if (availabilityMode) this.assertAvailabilityStatuses();
+    if (availabilityMode) {
+      this.assertStatusesDeclared();
+      this.assertStatusesKnown();
+    }
 
     const today = new Date();
     const todayMonth = today.getMonth();
@@ -1119,10 +1148,12 @@ export class CalendarElement extends HTMLElement {
   }
 
   getCurrentDate(): Date | null {
+    this.rethrowInitError();
     return this.engine?.getViewModel().selectedDate ?? null;
   }
 
   goToDate(date: Date): void {
+    this.rethrowInitError();
     const year = date.getFullYear();
     const month = date.getMonth();
     this.dispatchMonthChange(year, month);
@@ -1130,6 +1161,7 @@ export class CalendarElement extends HTMLElement {
   }
 
   getEngine(): CalendarEngine {
+    this.rethrowInitError();
     if (!this.engine)
       throw new Error('CalendarElement is not connected to the DOM');
     return this.engine;
