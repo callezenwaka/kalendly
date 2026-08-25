@@ -292,25 +292,53 @@ export class CalendarElement extends HTMLElement {
 
   private static readonly BUILT_IN_BUCKETS = ['blocked', 'conditional', 'open'];
 
-  private resolveBucket(date: Date): string {
-    if (!this.engine) return 'open';
-
-    const events = this.engine.getEventsForDate(date);
-    if (events.length === 0) return 'open';
-
-    const declared = new Set(
-      events
-        .map(event => event.availabilityStatus)
-        .filter((s): s is string => typeof s === 'string' && s !== '')
-    );
-    if (declared.size === 0) return 'blocked';
-
-    const byPrecedence = [
+  private get knownBuckets(): string[] {
+    return [
       ...CalendarElement.BUILT_IN_BUCKETS,
       ...Object.keys(this._availabilityColors ?? {}),
     ];
+  }
 
-    return byPrecedence.find(bucket => declared.has(bucket)) ?? 'blocked';
+  private assertAvailabilityStatuses(): void {
+    const known = new Set(this.knownBuckets);
+    const missing: string[] = [];
+    const unknown: string[] = [];
+
+    for (const event of this._events) {
+      const status = event.availabilityStatus;
+      if (typeof status !== 'string' || status === '') {
+        missing.push(String(event.id));
+      } else if (!known.has(status)) {
+        unknown.push(`${event.id} (${status})`);
+      }
+    }
+
+    if (missing.length) {
+      throw new Error(
+        `<kal-calendar> availability-mode requires availabilityStatus on every ` +
+          `event. Missing on: ${missing.join(', ')}.`
+      );
+    }
+    if (unknown.length) {
+      throw new Error(
+        `<kal-calendar> availabilityStatus must name a built-in bucket ` +
+          `(${CalendarElement.BUILT_IN_BUCKETS.join(', ')}) or a key of ` +
+          `availabilityColors. Unrecognised on: ${unknown.join(', ')}.`
+      );
+    }
+  }
+
+  private resolveBucket(date: Date): string {
+    if (!this.engine) return 'open';
+
+    const declared = new Set(
+      this.engine
+        .getEventsForDate(date)
+        .map(event => event.availabilityStatus as string)
+    );
+    if (declared.size === 0) return 'open';
+
+    return this.knownBuckets.find(bucket => declared.has(bucket)) as string;
   }
 
   private isDateSelectable(date: Date): boolean {
@@ -334,6 +362,8 @@ export class CalendarElement extends HTMLElement {
     const availabilityMode = this.getAttribute('availability-mode');
     const selectable = this.hasAttribute('selectable');
     const isLoading = this.loading;
+
+    if (availabilityMode) this.assertAvailabilityStatuses();
 
     const today = new Date();
     const todayMonth = today.getMonth();

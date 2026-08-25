@@ -549,7 +549,12 @@ describe('CalendarElement', () => {
   describe('Availability Mode', () => {
     const BOOKED_DATE = new Date('2024-01-15');
     const BOOKED_EVENTS: CalendarEvent[] = [
-      { id: 1, name: 'Private Booking', date: '2024-01-15' },
+      {
+        id: 1,
+        name: 'Private Booking',
+        date: '2024-01-15',
+        availabilityStatus: 'blocked',
+      },
     ];
 
     it('should add availability-blocked class to cells with events', () => {
@@ -679,6 +684,7 @@ describe('CalendarElement', () => {
         date: '2024-01-15',
         startTime: '09:00',
         endTime: '11:00',
+        availabilityStatus: 'blocked',
       },
     ];
 
@@ -730,7 +736,15 @@ describe('CalendarElement', () => {
 
     it('should mark all hours booked for all-day events', () => {
       const el = mount({
-        events: [{ id: 1, name: 'Private', date: '2024-01-15', allDay: true }],
+        events: [
+          {
+            id: 1,
+            name: 'Private',
+            date: '2024-01-15',
+            allDay: true,
+            availabilityStatus: 'blocked',
+          },
+        ],
         initialDate: BASE_DATE,
         availabilityMode: 'time',
       });
@@ -786,7 +800,12 @@ describe('CalendarElement', () => {
   describe('Selectable — day mode', () => {
     const BASE_DATE = new Date('2024-01-15');
     const EVENTS: CalendarEvent[] = [
-      { id: 1, name: 'Private', date: '2024-01-15' },
+      {
+        id: 1,
+        name: 'Private',
+        date: '2024-01-15',
+        availabilityStatus: 'blocked',
+      },
     ];
 
     function clickDay(el: CalendarElement, day: string): void {
@@ -980,6 +999,7 @@ describe('CalendarElement', () => {
         date: '2024-01-15',
         startTime: '09:00',
         endTime: '11:00',
+        availabilityStatus: 'blocked',
       },
     ];
 
@@ -1454,7 +1474,12 @@ describe('CalendarElement — selectability predicate', () => {
 
   it('treats a booked day the same as an endpoint and inside a span', () => {
     const booked: CalendarEvent[] = [
-      { id: 1, name: 'Private', date: '2024-01-20' },
+      {
+        id: 1,
+        name: 'Private',
+        date: '2024-01-20',
+        availabilityStatus: 'blocked',
+      },
     ];
 
     const asEndpoint = mountRange(booked);
@@ -1483,7 +1508,14 @@ describe('CalendarElement — selectability predicate', () => {
   });
 
   it('completes a range when every day inside it is free', () => {
-    const el = mountRange([{ id: 1, name: 'Private', date: '2024-01-28' }]);
+    const el = mountRange([
+      {
+        id: 1,
+        name: 'Private',
+        date: '2024-01-28',
+        availabilityStatus: 'blocked',
+      },
+    ]);
     const selections: { startDate: Date; endDate: Date }[] = [];
     el.addEventListener('cal-availability-select', e =>
       selections.push(
@@ -1500,7 +1532,14 @@ describe('CalendarElement — selectability predicate', () => {
   });
 
   it('does not read selectability back from the rendered class', () => {
-    const el = mountRange([{ id: 1, name: 'Private', date: '2024-01-20' }]);
+    const el = mountRange([
+      {
+        id: 1,
+        name: 'Private',
+        date: '2024-01-20',
+        availabilityStatus: 'blocked',
+      },
+    ]);
     const cell = Array.from(el.querySelectorAll('td')).find(
       td => td.textContent?.trim() === '20'
     );
@@ -1706,14 +1745,94 @@ describe('CalendarElement — multi-state availability', () => {
     });
   }
 
-  it('renders the same DOM as before when nothing is configured', () => {
-    const el = mountDay([{ id: 1, name: 'Private', date: '2024-01-20' }]);
+  it('renders declared buckets with no configuration beyond the status', () => {
+    const el = mountDay([
+      {
+        id: 1,
+        name: 'Private',
+        date: '2024-01-20',
+        availabilityStatus: 'blocked',
+      },
+    ]);
 
     expect(cell(el, '20')?.classList.contains('availability-blocked')).toBe(
       true
     );
     expect(cell(el, '21')?.classList.contains('availability-open')).toBe(true);
     expect(cell(el, '20')?.getAttribute('style')).toBeNull();
+  });
+
+  function mountedThen(update: (el: CalendarElement) => void): () => void {
+    const el = mountDay([
+      {
+        id: 1,
+        name: 'seed',
+        date: '2024-01-20',
+        availabilityStatus: 'blocked',
+      },
+    ]);
+    return () => update(el);
+  }
+
+  it('throws when an event omits availabilityStatus', () => {
+    expect(
+      mountedThen(el => {
+        el.events = [{ id: 7, name: 'Private', date: '2024-01-20' }];
+      })
+    ).toThrow(/requires availabilityStatus on every event.*7/s);
+  });
+
+  it('names every offending event, not just the first', () => {
+    expect(
+      mountedThen(el => {
+        el.events = [
+          { id: 7, name: 'a', date: '2024-01-20' },
+          { id: 9, name: 'b', date: '2024-01-21' },
+        ];
+      })
+    ).toThrow(/7, 9/);
+  });
+
+  it('throws when availabilityStatus names no known bucket', () => {
+    expect(
+      mountedThen(el => {
+        el.events = [
+          {
+            id: 3,
+            name: 'a',
+            date: '2024-01-20',
+            availabilityStatus: 'maintenance',
+          },
+        ];
+      })
+    ).toThrow(/Unrecognised on: 3 \(maintenance\)/);
+  });
+
+  it('accepts a bucket once availabilityColors declares it', () => {
+    const el = mountDay(
+      [
+        {
+          id: 3,
+          name: 'a',
+          date: '2024-01-20',
+          availabilityStatus: 'maintenance',
+        },
+      ],
+      { availabilityColors: { maintenance: '#0891b2' } }
+    );
+
+    expect(cell(el, '20')?.classList.contains('availability-maintenance')).toBe(
+      true
+    );
+  });
+
+  it('does not validate outside availability mode', () => {
+    expect(() =>
+      mount({
+        events: [{ id: 1, name: 'a', date: '2024-01-20' }],
+        initialDate: BASE,
+      })
+    ).not.toThrow();
   });
 
   it('renders the three built-in buckets without a colour map', () => {
@@ -1778,16 +1897,6 @@ describe('CalendarElement — multi-state availability', () => {
     expect(cell(el, '20')?.getAttribute('style')).toBeNull();
   });
 
-  it('falls back to blocked for an unmatched bucket', () => {
-    const el = mountDay([
-      { id: 1, name: 'a', date: '2024-01-20', availabilityStatus: 'unknown' },
-    ]);
-
-    expect(cell(el, '20')?.classList.contains('availability-blocked')).toBe(
-      true
-    );
-  });
-
   it('resolves built-in collisions by severity, not declaration order', () => {
     const el = mountDay([
       { id: 1, name: 'a', date: '2024-01-20', availabilityStatus: 'open' },
@@ -1829,42 +1938,6 @@ describe('CalendarElement — multi-state availability', () => {
     expect(
       cell(second, '20')?.classList.contains('availability-cleaning')
     ).toBe(true);
-  });
-
-  it('lets a declared bucket win over an undeclared event', () => {
-    const el = mountDay([
-      { id: 1, name: 'a', date: '2024-01-20' },
-      {
-        id: 2,
-        name: 'b',
-        date: '2024-01-20',
-        availabilityStatus: 'conditional',
-      },
-    ]);
-
-    expect(cell(el, '20')?.classList.contains('availability-conditional')).toBe(
-      true
-    );
-  });
-
-  it('blocks a day whose events are all undeclared', () => {
-    const el = mountDay([
-      { id: 1, name: 'a', date: '2024-01-20' },
-      { id: 2, name: 'b', date: '2024-01-20' },
-    ]);
-
-    expect(cell(el, '20')?.classList.contains('availability-blocked')).toBe(
-      true
-    );
-  });
-
-  it('lets a declared open bucket clear an undeclared event', () => {
-    const el = mountDay([
-      { id: 1, name: 'a', date: '2024-01-20' },
-      { id: 2, name: 'b', date: '2024-01-20', availabilityStatus: 'open' },
-    ]);
-
-    expect(cell(el, '20')?.classList.contains('availability-open')).toBe(true);
   });
 
   it('marks unselectable days and labels every cell', () => {
