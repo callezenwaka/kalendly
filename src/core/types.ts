@@ -136,6 +136,36 @@ export interface CalendarTheme {
   pickerBg?: string;
   pickerShadow?: string;
   eventIndicator?: string;
+  onAccent?: string;
+  link?: string;
+
+  // Availability — traffic light
+  freeBg?: string;
+  freeFg?: string;
+  reservedBg?: string;
+  reservedFg?: string;
+  activeBg?: string;
+  activeFg?: string;
+  rangeBg?: string;
+  rangeOutline?: string;
+  inRangeBg?: string;
+  inRangeOutline?: string;
+
+  // Badges — badgeBg/badgeText are the fallback for caller-defined values
   badgeBg?: string;
   badgeText?: string;
+  badgeSuccessBg?: string;
+  badgeSuccessText?: string;
+  badgeInfoBg?: string;
+  badgeInfoText?: string;
+  badgeWarningBg?: string;
+  badgeWarningText?: string;
+  badgeDangerBg?: string;
+  badgeDangerText?: string;
+  badgeNeutralBg?: string;
+  badgeNeutralText?: string;
+  badgePositiveBg?: string;
+  badgePositiveText?: string;
+  badgeTentativeBg?: string;
+  badgeTentativeText?: string;
 }

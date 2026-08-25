@@ -21,19 +21,9 @@ afterEach(() => {
   document.body.innerHTML = '';
   // Reset theme CSS variables
   const root = document.documentElement;
-  root.style.removeProperty('--calendar-primary-color');
-  root.style.removeProperty('--calendar-secondary-color');
-  root.style.removeProperty('--calendar-tertiary-color');
-  root.style.removeProperty('--calendar-text-color');
-  root.style.removeProperty('--calendar-text-light');
-  root.style.removeProperty('--calendar-background');
-  root.style.removeProperty('--calendar-cell-hover');
-  root.style.removeProperty('--calendar-border-color');
-  root.style.removeProperty('--calendar-today-outline');
-  root.style.removeProperty('--calendar-selected-bg');
-  root.style.removeProperty('--calendar-event-indicator');
-  root.style.removeProperty('--calendar-badge-bg');
-  root.style.removeProperty('--calendar-badge-text');
+  for (const property of Array.from(root.style)) {
+    if (property.startsWith('--calendar-')) root.style.removeProperty(property);
+  }
 });
 
 // Helper: create and attach a <kal-calendar> element
@@ -1592,5 +1582,95 @@ describe('CalendarElement — open badge values', () => {
         expect(fallback).toBeLessThan(css.indexOf(`.badge.${selector}`));
       }
     );
+  });
+});
+
+describe('CalendarElement — design tokens', () => {
+  const FULL_THEME: Required<CalendarTheme> = {
+    primary: '#101010',
+    secondary: '#101011',
+    tertiary: '#101012',
+    textColor: '#101013',
+    textLight: '#101014',
+    background: '#101015',
+    cellHover: '#101016',
+    borderColor: '#101017',
+    todayOutline: '#101018',
+    selectedBg: '#101019',
+    headerBg: '#10101a',
+    popupBg: '#10101b',
+    pickerBg: '#10101c',
+    pickerShadow: '0 0 0 #10101d',
+    eventIndicator: '#10101e',
+    onAccent: '#10101f',
+    link: '#101020',
+    freeBg: '#101021',
+    freeFg: '#101022',
+    reservedBg: '#101023',
+    reservedFg: '#101024',
+    activeBg: '#101025',
+    activeFg: '#101026',
+    rangeBg: '#101027',
+    rangeOutline: '#101028',
+    inRangeBg: '#101029',
+    inRangeOutline: '#10102a',
+    badgeBg: '#10102b',
+    badgeText: '#10102c',
+    badgeSuccessBg: '#10102d',
+    badgeSuccessText: '#10102e',
+    badgeInfoBg: '#10102f',
+    badgeInfoText: '#101030',
+    badgeWarningBg: '#101031',
+    badgeWarningText: '#101032',
+    badgeDangerBg: '#101033',
+    badgeDangerText: '#101034',
+    badgeNeutralBg: '#101035',
+    badgeNeutralText: '#101036',
+    badgePositiveBg: '#101037',
+    badgePositiveText: '#101038',
+    badgeTentativeBg: '#101039',
+    badgeTentativeText: '#10103a',
+  };
+
+  it('writes one CSS variable per theme key', () => {
+    mount({ theme: FULL_THEME });
+
+    const written = Array.from(document.documentElement.style).filter(p =>
+      p.startsWith('--calendar-')
+    );
+    expect(written.length).toBe(Object.keys(FULL_THEME).length);
+  });
+
+  it('writes distinct values, so no two keys share a variable', () => {
+    mount({ theme: FULL_THEME });
+
+    const root = document.documentElement;
+    const values = Array.from(root.style)
+      .filter(p => p.startsWith('--calendar-'))
+      .map(p => root.style.getPropertyValue(p));
+    expect(new Set(values).size).toBe(values.length);
+  });
+
+  describe('stylesheet', () => {
+    const css = readFileSync(
+      resolve(__dirname, '../../../src/styles/calendar.css'),
+      'utf-8'
+    );
+    const [root, body] = css.split('}\n');
+
+    it('declares no colour literal outside :root', () => {
+      expect(body.match(/#[0-9a-fA-F]{3,8}/g)).toBeNull();
+    });
+
+    it('resolves every var() reference to a declared token', () => {
+      const declared = new Set(
+        Array.from(root.matchAll(/(--[\w-]+):/g), m => m[1])
+      );
+      const referenced = new Set(
+        Array.from(css.matchAll(/var\((--[\w-]+)\)/g), m => m[1])
+      );
+      const missing = [...referenced].filter(t => !declared.has(t));
+      expect(missing).toEqual([]);
+    });
   });
 });
