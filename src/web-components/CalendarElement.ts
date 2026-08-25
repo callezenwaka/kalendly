@@ -48,12 +48,12 @@ export class CalendarElement extends HTMLElement {
     eventIndicator: '--calendar-event-indicator',
     onAccent: '--calendar-on-accent',
     link: '--calendar-link',
-    freeBg: '--calendar-free-bg',
-    freeFg: '--calendar-free-fg',
-    reservedBg: '--calendar-reserved-bg',
-    reservedFg: '--calendar-reserved-fg',
-    activeBg: '--calendar-active-bg',
-    activeFg: '--calendar-active-fg',
+    openBg: '--calendar-open-bg',
+    openFg: '--calendar-open-fg',
+    conditionalBg: '--calendar-conditional-bg',
+    conditionalFg: '--calendar-conditional-fg',
+    blockedBg: '--calendar-blocked-bg',
+    blockedFg: '--calendar-blocked-fg',
     rangeBg: '--calendar-range-bg',
     rangeOutline: '--calendar-range-outline',
     inRangeBg: '--calendar-in-range-bg',
@@ -290,35 +290,27 @@ export class CalendarElement extends HTMLElement {
     }
   }
 
-  private static readonly BUILT_IN_BUCKETS = ['active', 'reserved', 'free'];
+  private static readonly BUILT_IN_BUCKETS = ['blocked', 'conditional', 'open'];
 
   private resolveBucket(date: Date): string {
-    if (!this.engine) return 'free';
+    if (!this.engine) return 'open';
 
     const events = this.engine.getEventsForDate(date);
-    if (events.length === 0) return 'free';
+    if (events.length === 0) return 'open';
 
-    const present = new Set(
-      events.map(event =>
-        typeof event.availabilityStatus === 'string' &&
-        event.availabilityStatus !== ''
-          ? event.availabilityStatus
-          : 'active'
-      )
+    const declared = new Set(
+      events
+        .map(event => event.availabilityStatus)
+        .filter((s): s is string => typeof s === 'string' && s !== '')
     );
+    if (declared.size === 0) return 'blocked';
 
-    // Built-ins win by severity, so a day holding both a reserved and an
-    // active booking reads active
-    for (const bucket of CalendarElement.BUILT_IN_BUCKETS) {
-      if (present.has(bucket)) return bucket;
-    }
+    const byPrecedence = [
+      ...CalendarElement.BUILT_IN_BUCKETS,
+      ...Object.keys(this._availabilityColors ?? {}),
+    ];
 
-    // Caller-defined buckets fall back to the order they were declared in
-    for (const bucket of Object.keys(this._availabilityColors ?? {})) {
-      if (present.has(bucket)) return bucket;
-    }
-
-    return 'active';
+    return byPrecedence.find(bucket => declared.has(bucket)) ?? 'blocked';
   }
 
   private isDateSelectable(date: Date): boolean {
@@ -526,7 +518,7 @@ export class CalendarElement extends HTMLElement {
 
         const slotClasses = [
           'time-grid-slot',
-          booked ? 'time-grid-slot-booked' : 'time-grid-slot-free',
+          booked ? 'time-grid-slot-blocked' : 'time-grid-slot-open',
           isRangeStart ? 'time-grid-slot-range-start' : '',
           isRangeEnd ? 'time-grid-slot-range-end' : '',
           isInRange ? 'time-grid-slot-in-range' : '',

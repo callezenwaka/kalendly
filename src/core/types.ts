@@ -27,7 +27,7 @@ export interface CalendarEvent {
   // Availability bucket. Distinct from `status`: this is the caller's own
   // state mapped down to an opaque label for the availability layer, so
   // internal detail never reaches the calendar.
-  availabilityStatus?: Open<'free' | 'reserved' | 'active'>;
+  availabilityStatus?: Open<'open' | 'conditional' | 'blocked'>;
 
   // Collaboration
   attendees?: string[];
@@ -145,12 +145,12 @@ export interface CalendarTheme {
   link?: string;
 
   // Availability — traffic light
-  freeBg?: string;
-  freeFg?: string;
-  reservedBg?: string;
-  reservedFg?: string;
-  activeBg?: string;
-  activeFg?: string;
+  openBg?: string;
+  openFg?: string;
+  conditionalBg?: string;
+  conditionalFg?: string;
+  blockedBg?: string;
+  blockedFg?: string;
   rangeBg?: string;
   rangeOutline?: string;
   inRangeBg?: string;

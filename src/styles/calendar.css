@@ -59,12 +59,12 @@
 
   /* Availability — traffic light */
   --availability-color: transparent;
-  --calendar-free-bg: var(--kal-green-100);
-  --calendar-free-fg: var(--kal-green-600);
-  --calendar-reserved-bg: var(--kal-amber-100);
-  --calendar-reserved-fg: var(--kal-amber-600);
-  --calendar-active-bg: var(--kal-red-100);
-  --calendar-active-fg: var(--kal-red-600);
+  --calendar-open-bg: var(--kal-green-100);
+  --calendar-open-fg: var(--kal-green-600);
+  --calendar-conditional-bg: var(--kal-amber-100);
+  --calendar-conditional-fg: var(--kal-amber-600);
+  --calendar-blocked-bg: var(--kal-red-100);
+  --calendar-blocked-fg: var(--kal-red-600);
   --calendar-range-bg: var(--kal-green-600);
   --calendar-range-outline: var(--kal-green-700);
   --calendar-in-range-bg: var(--kal-green-200);
@@ -477,39 +477,39 @@
   font-weight: 500;
 }
 
-.time-grid-slot-booked {
-  background-color: var(--calendar-active-bg);
-  color: var(--calendar-active-fg);
+.time-grid-slot-blocked {
+  background-color: var(--calendar-blocked-bg);
+  color: var(--calendar-blocked-fg);
 }
 
-.time-grid-slot-free {
-  background-color: var(--calendar-free-bg);
-  color: var(--calendar-free-fg);
+.time-grid-slot-open {
+  background-color: var(--calendar-open-bg);
+  color: var(--calendar-open-fg);
 }
 
 /* Availability mode */
-.calendar-table td.availability-free {
-  background-color: var(--calendar-free-bg);
+.calendar-table td.availability-open {
+  background-color: var(--calendar-open-bg);
 }
 
-.calendar-table td.availability-free::after {
-  background-color: var(--calendar-free-fg);
+.calendar-table td.availability-open::after {
+  background-color: var(--calendar-open-fg);
 }
 
-.calendar-table td.availability-reserved {
-  background-color: var(--calendar-reserved-bg);
+.calendar-table td.availability-conditional {
+  background-color: var(--calendar-conditional-bg);
 }
 
-.calendar-table td.availability-reserved::after {
-  background-color: var(--calendar-reserved-fg);
+.calendar-table td.availability-conditional::after {
+  background-color: var(--calendar-conditional-fg);
 }
 
-.calendar-table td.availability-active {
-  background-color: var(--calendar-active-bg);
+.calendar-table td.availability-blocked {
+  background-color: var(--calendar-blocked-bg);
 }
 
-.calendar-table td.availability-active::after {
-  background-color: var(--calendar-active-fg);
+.calendar-table td.availability-blocked::after {
+  background-color: var(--calendar-blocked-fg);
 }
 
 /* Caller-defined buckets paint from an inline custom property */
