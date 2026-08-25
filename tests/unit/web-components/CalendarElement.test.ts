@@ -32,6 +32,8 @@ afterEach(() => {
   root.style.removeProperty('--calendar-today-outline');
   root.style.removeProperty('--calendar-selected-bg');
   root.style.removeProperty('--calendar-event-indicator');
+  root.style.removeProperty('--calendar-badge-bg');
+  root.style.removeProperty('--calendar-badge-text');
 });
 
 // Helper: create and attach a <kal-calendar> element
@@ -495,6 +497,8 @@ describe('CalendarElement', () => {
           todayOutline: '#fbbf24',
           selectedBg: '#dbeafe',
           eventIndicator: '#10b981',
+          badgeBg: '#1f2937',
+          badgeText: '#e5e7eb',
         },
       });
       const root = document.documentElement;
@@ -503,6 +507,12 @@ describe('CalendarElement', () => {
       );
       expect(root.style.getPropertyValue('--calendar-event-indicator')).toBe(
         '#10b981'
+      );
+      expect(root.style.getPropertyValue('--calendar-badge-bg')).toBe(
+        '#1f2937'
+      );
+      expect(root.style.getPropertyValue('--calendar-badge-text')).toBe(
+        '#e5e7eb'
       );
     });
 

@@ -136,4 +136,6 @@ export interface CalendarTheme {
   pickerBg?: string;
   pickerShadow?: string;
   eventIndicator?: string;
+  badgeBg?: string;
+  badgeText?: string;
 }

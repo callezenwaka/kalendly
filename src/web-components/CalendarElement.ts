@@ -46,6 +46,8 @@ export class CalendarElement extends HTMLElement {
     pickerBg: '--calendar-picker-bg',
     pickerShadow: '--calendar-picker-shadow',
     eventIndicator: '--calendar-event-indicator',
+    badgeBg: '--calendar-badge-bg',
+    badgeText: '--calendar-badge-text',
   };
 
   private engine: CalendarEngine | null = null;

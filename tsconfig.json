@@ -11,6 +11,7 @@
     "module": "Node16",
     "moduleResolution": "node16",
     "resolveJsonModule": true,
+    "types": ["node"],
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
@@ -22,6 +23,6 @@
       "@/core/*": ["./src/core/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tests/**/*.ts"],
   "exclude": ["node_modules", "dist", "examples", "__tests__"]
 }
