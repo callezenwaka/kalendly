@@ -600,10 +600,12 @@ export class CalendarElement extends HTMLElement {
 
       const isHourBooked = (hour: number): boolean =>
         events.some(event => {
-          if (!event.startTime || !event.endTime) return true;
+          if (!event.startTime) return true;
+
           const from = startHour(event.startTime);
-          const to = startHour(event.endTime);
+          const to = event.endTime ? startHour(event.endTime) : 24;
           if (from === null || to === null) return true;
+
           return hour >= from && hour < to;
         });
 

@@ -2198,7 +2198,7 @@ describe('CalendarElement — heading attribute', () => {
 describe('CalendarElement — malformed times', () => {
   const BASE = new Date('2024-01-15');
 
-  function slotsFor(startTime: string, endTime: string): number {
+  function slotsFor(startTime: string, endTime?: string): number {
     const el = mount({
       events: [
         {
@@ -2206,7 +2206,7 @@ describe('CalendarElement — malformed times', () => {
           name: 'a',
           date: '2024-01-15',
           startTime,
-          endTime,
+          ...(endTime === undefined ? {} : { endTime }),
           availabilityStatus: 'blocked',
         },
       ],
@@ -2228,6 +2228,33 @@ describe('CalendarElement — malformed times', () => {
 
   it('still books only the stated hours for a valid range', () => {
     expect(slotsFor('09:00', '11:00')).toBe(2);
+  });
+
+  it('books from the start to the end of the day when no end is given', () => {
+    expect(slotsFor('09:00')).toBe(15);
+    expect(slotsFor('00:00')).toBe(24);
+    expect(slotsFor('23:00')).toBe(1);
+  });
+
+  it('leaves the hours before an open-ended start available', () => {
+    const el = mount({
+      events: [
+        {
+          id: 1,
+          name: 'a',
+          date: '2024-01-15',
+          startTime: '09:00',
+          availabilityStatus: 'blocked',
+        },
+      ],
+      initialDate: BASE,
+      availabilityMode: 'time',
+    });
+    Array.from(el.querySelectorAll('td'))
+      .find(td => td.textContent?.trim() === '15')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(el.querySelectorAll('.time-grid-slot-open').length).toBe(9);
   });
 });
 
