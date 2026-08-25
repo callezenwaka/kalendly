@@ -23,6 +23,7 @@ export class CalendarElement extends HTMLElement {
     'min-year',
     'max-year',
     'week-starts-on',
+    'heading',
     'title',
     'use-short-month-names',
     'availability-mode',
@@ -219,6 +220,23 @@ export class CalendarElement extends HTMLElement {
     this.reaction(() => this.reinit());
   }
 
+  private get headingText(): string | null {
+    const heading = this.getAttribute('heading');
+    if (heading !== null) return heading;
+
+    const title = this.getAttribute('title');
+    if (title !== null && !CalendarElement.titleDeprecationWarned) {
+      CalendarElement.titleDeprecationWarned = true;
+      console.warn(
+        `<kal-calendar> the title attribute is deprecated and will be removed ` +
+          `in a future release — use heading instead. title is a global HTML ` +
+          `attribute, so the browser also renders it as a tooltip over the ` +
+          `whole calendar.`
+      );
+    }
+    return title;
+  }
+
   private get minYear(): number {
     const val = this.getAttribute('min-year');
     return val ? parseInt(val, 10) : new Date().getFullYear() - 30;
@@ -309,6 +327,8 @@ export class CalendarElement extends HTMLElement {
 
   private static readonly BUILT_IN_BUCKETS = ['blocked', 'conditional', 'open'];
 
+  private static titleDeprecationWarned = false;
+
   private get knownBuckets(): string[] {
     return [
       ...CalendarElement.BUILT_IN_BUCKETS,
@@ -382,7 +402,7 @@ export class CalendarElement extends HTMLElement {
 
     const viewModel = this.engine.getViewModel();
     const useShortMonths = this.hasAttribute('use-short-month-names');
-    const title = this.getAttribute('title');
+    const title = this.headingText;
     const minYear = this.minYear;
     const maxYear = this.maxYear;
     const availabilityMode = this.getAttribute('availability-mode');
@@ -549,12 +569,19 @@ export class CalendarElement extends HTMLElement {
     const renderNoEvents = this._renderNoEvents || defaultRenderNoEvents;
 
     const renderTimeGrid = (events: CalendarEvent[], date: Date): string => {
+      const startHour = (time: unknown): number | null => {
+        if (typeof time !== 'string') return null;
+        const hour = Number(time.split(':')[0]);
+        return Number.isInteger(hour) && hour >= 0 && hour <= 24 ? hour : null;
+      };
+
       const isHourBooked = (hour: number): boolean =>
         events.some(event => {
           if (!event.startTime || !event.endTime) return true;
-          const [startH] = (event.startTime as string).split(':').map(Number);
-          const [endH] = (event.endTime as string).split(':').map(Number);
-          return hour >= startH && hour < endH;
+          const from = startHour(event.startTime);
+          const to = startHour(event.endTime);
+          if (from === null || to === null) return true;
+          return hour >= from && hour < to;
         });
 
       const slots = Array.from({ length: 24 }, (_, hour) => {

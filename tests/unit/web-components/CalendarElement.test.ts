@@ -2150,3 +2150,83 @@ describe('CalendarElement — availability validation timing', () => {
     expect(() => el.getEngine()).not.toThrow();
   });
 });
+
+describe('CalendarElement — heading attribute', () => {
+  it('renders the heading attribute', () => {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('heading', 'Room bookings');
+    document.body.appendChild(el);
+
+    expect(el.querySelector('.calendar-title h1')?.textContent).toBe(
+      'Room bookings'
+    );
+  });
+
+  it('prefers heading when both are set', () => {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('title', 'old');
+    el.setAttribute('heading', 'new');
+    document.body.appendChild(el);
+
+    expect(el.querySelector('.calendar-title h1')?.textContent).toBe('new');
+  });
+
+  it('still renders a deprecated title, and warns once', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    (
+      CalendarElement as unknown as { titleDeprecationWarned: boolean }
+    ).titleDeprecationWarned = false;
+
+    const first = document.createElement('kal-calendar') as CalendarElement;
+    first.setAttribute('title', 'Legacy');
+    document.body.appendChild(first);
+
+    const second = document.createElement('kal-calendar') as CalendarElement;
+    second.setAttribute('title', 'Legacy too');
+    document.body.appendChild(second);
+
+    expect(first.querySelector('.calendar-title h1')?.textContent).toBe(
+      'Legacy'
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toMatch(/title attribute is deprecated/);
+
+    warn.mockRestore();
+  });
+});
+
+describe('CalendarElement — malformed times', () => {
+  const BASE = new Date('2024-01-15');
+
+  function slotsFor(startTime: string, endTime: string): number {
+    const el = mount({
+      events: [
+        {
+          id: 1,
+          name: 'a',
+          date: '2024-01-15',
+          startTime,
+          endTime,
+          availabilityStatus: 'blocked',
+        },
+      ],
+      initialDate: BASE,
+      availabilityMode: 'time',
+    });
+    Array.from(el.querySelectorAll('td'))
+      .find(td => td.textContent?.trim() === '15')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return el.querySelectorAll('.time-grid-slot-blocked').length;
+  }
+
+  it('books the whole day when a time cannot be parsed', () => {
+    expect(slotsFor('9am', '11am')).toBe(24);
+    expect(slotsFor('', '11:00')).toBe(24);
+    expect(slotsFor('09:00', 'noon')).toBe(24);
+    expect(slotsFor('25:00', '26:00')).toBe(24);
+  });
+
+  it('still books only the stated hours for a valid range', () => {
+    expect(slotsFor('09:00', '11:00')).toBe(2);
+  });
+});
