@@ -2371,3 +2371,26 @@ describe('CalendarElement — multi-month view', () => {
     expect(last.endDate.getDate()).toBe(5);
   });
 });
+
+describe('CalendarElement — multi-month loading', () => {
+  it('repeats the skeleton in every pane', () => {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', new Date('2024-01-15').toISOString());
+    el.setAttribute('availability-mode', 'day');
+    el.setAttribute('months', '2');
+    el.events = [];
+    document.body.appendChild(el);
+
+    el.loading = true;
+
+    expect(el.querySelectorAll('table').length).toBe(2);
+    expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(84);
+    el.querySelectorAll('table').forEach(table => {
+      expect(table.querySelectorAll('td.calendar-skeleton').length).toBe(42);
+    });
+
+    el.loading = false;
+    expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
+    expect(el.querySelectorAll('table').length).toBe(2);
+  });
+});

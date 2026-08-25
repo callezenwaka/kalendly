@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking Changes
+
+- **Event text is HTML-escaped.** `name`, `description`, `location`, `organizer`, `notes`, `tags`, `attendees` and the formatted time range render as text, so markup passed in those fields is no longer parsed. Use `renderEvent` to emit your own markup.
+- **`event.url` is scheme-checked.** Only `http:`, `https:`, `mailto:` and relative URLs are emitted; anything else — `javascript:`, `data:` — becomes `#`.
+- **`event.color` is validated.** Hex values and CSS colour keywords only; other values fall back to `#3b82f6`. Colours resolved through `categoryColors` were already validated and are unaffected.
+- **Every class name is flat kebab-case.** `calendar--card` → `calendar-card`, `time-grid__slot--free` → `time-grid-slot-open`, and so on. Four changed meaning as well as punctuation: `schedule--current--exam` → `calendar-cell-today`, `has--event` → `calendar-cell-has-event`, `other-month` → `calendar-cell-other-month`, `page--title` → `calendar-title`.
+- **`availability-mode` requires `availabilityStatus` on every event**, and the value must name a built-in bucket or a key of `availabilityColors`. Either violation throws, naming the offending events.
+- **Availability classes and theme keys renamed.** `availability--booked` / `--free` → `availability-blocked` / `-open`, plus the new `availability-conditional`. `CalendarTheme` keys `freeBg`, `freeFg`, `reservedBg`, `reservedFg`, `activeBg`, `activeFg` → `openBg`, `openFg`, `conditionalBg`, `conditionalFg`, `blockedBg`, `blockedFg`.
+- **`cursor: not-allowed` follows selectability**, not colour — it moved from the booked colour class onto `availability-unselectable`.
+- **Type sizes and spacing are `rem`.** The calendar now scales with the reader's root font size instead of holding a fixed pixel size. Pages that set a root font size other than 16px will see the calendar render larger or smaller to match.
+- **28 declarations changed size** when type, radius and spacing moved onto scales — mostly `9px`→`10px`, `11px`→`12px`, `13px`→`14px`, `15px`→`16px`, with one `30px`→`32px` padding. Nothing moves more than 2px, but layouts pinned to exact pixel dimensions may need a look.
+
+### Added
+
+- **Multi-state availability** — `availabilityStatus` on `CalendarEvent` with three built-in buckets: `open` (green), `conditional` (amber), `blocked` (red). Collisions on a day resolve by severity.
+- **`availabilityColors`** — recolour a built-in bucket or declare your own. Merges over the defaults, and paints the cell through an inline `--availability-color`, which takes precedence over the matching `theme` key.
+- **`selectableStatuses`** — which buckets a range may start, end or span. Defaults to `open` only.
+- **`months` attribute** — two months side by side under `availability-mode="day"`. Navigation advances one month at a time; ranges cross panes. Warns and renders one month elsewhere.
+- **`heading` attribute** — replaces `title`, which also rendered as a browser tooltip over the whole calendar. `title` still works and warns once per page.
+- **Design tokens** — every colour, type size, radius, shadow and spacing step is a custom property, in two tiers: `--kal-*` primitives and `--calendar-*` semantic roles. 26 new `CalendarTheme` keys expose the semantic layer.
+- **Open value types** — `status`, `category` and `priority` accept any string while keeping autocomplete for the documented values. Unrecognised values render with a neutral badge fill via `--calendar-badge-bg` / `--calendar-badge-text`.
+- **Core API** — `CalendarConfig.monthCount`, `CalendarViewModel.panes`, and the `CalendarPane` type. `calendarDates` remains as an alias for `panes[0].calendarDates`.
+- **`escapeHtml`, `slugifyToken`, `safeUrl`, `safeColor`** exported from `kalendly/core` for consumers writing their own `renderEvent`.
+- **`aria-label` on availability cells**, naming the bucket.
+
+### Fixed
+
+- **Malformed times no longer read as available.** `"9am"` parsed to `NaN` and every comparison against it was false, so the hour rendered free. Unparseable times now book the slot.
+- **An open-ended event no longer blocks the whole day.** `startTime` with no `endTime` blacked out all 24 slots including the hours before it began; it now books from its start hour to midnight.
+- **Selectability has one definition.** The click handler read a CSS class while the range-span check read event data; they agreed only by coincidence. Both now use the same predicate, which also stops a previous- or next-month day carrying events from being picked as a range endpoint.
+- **Multi-word badge values produce one class.** `status: 'in progress'` emitted two classes and a quote could escape the attribute.
+- Dead CSS removed — fifteen rule blocks for classes nothing rendered.
+
+### Notes
+
+- A configuration error raised while the browser is upgrading the element — declarative markup parsed before the module loads — is reported as an uncaught error rather than thrown to your code, because custom element callbacks run inside the reaction queue. The failure is kept: the next `getEngine()`, `getCurrentDate()` or `goToDate()` throws it, and setting `events` or `availabilityColors` clears it. Setting properties on an already-defined element throws where you set them.
+
 ## [0.2.1] - 2026-05-10
 
 ### Added
