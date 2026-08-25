@@ -313,9 +313,9 @@ export class CalendarElement extends HTMLElement {
           <div class="event-header">
             <div class="event-title">${escapeHtml(event.name)}</div>
             <div class="event-badges">
-              ${event.category ? `<span class="badge category-${slugifyToken(event.category)}">${escapeHtml(getCategoryLabel(event.category))}</span>` : ''}
-              ${event.priority ? `<span class="badge priority-${slugifyToken(event.priority)}">${escapeHtml(getPriorityLabel(event.priority))}</span>` : ''}
-              ${event.status && event.status !== 'scheduled' ? `<span class="badge status-${slugifyToken(event.status)}">${escapeHtml(getStatusLabel(event.status))}</span>` : ''}
+              ${event.category ? `<span class="badge category category-${slugifyToken(event.category)}">${escapeHtml(getCategoryLabel(event.category))}</span>` : ''}
+              ${event.priority ? `<span class="badge priority priority-${slugifyToken(event.priority)}">${escapeHtml(getPriorityLabel(event.priority))}</span>` : ''}
+              ${event.status && event.status !== 'scheduled' ? `<span class="badge status status-${slugifyToken(event.status)}">${escapeHtml(getStatusLabel(event.status))}</span>` : ''}
             </div>
           </div>
 

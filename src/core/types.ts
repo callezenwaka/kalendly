@@ -1,3 +1,6 @@
+// Known values keep autocomplete; any other string is still accepted
+type Open<T extends string> = T | (string & {});
+
 export interface CalendarEvent {
   id: string | number;
   name: string;
@@ -11,19 +14,15 @@ export interface CalendarEvent {
   // Display & categorization
   description?: string;
   color?: string;
-  category?:
-    | 'work'
-    | 'personal'
-    | 'meeting'
-    | 'deadline'
-    | 'appointment'
-    | 'other';
+  category?: Open<
+    'work' | 'personal' | 'meeting' | 'deadline' | 'appointment' | 'other'
+  >;
   location?: string;
   url?: string;
 
   // Status & priority
-  status?: 'scheduled' | 'completed' | 'cancelled' | 'tentative';
-  priority?: 'low' | 'medium' | 'high';
+  status?: Open<'scheduled' | 'completed' | 'cancelled' | 'tentative'>;
+  priority?: Open<'low' | 'medium' | 'high'>;
 
   // Collaboration
   attendees?: string[];

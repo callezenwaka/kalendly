@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   CalendarElement,
   defineCalendarElement,
@@ -1366,7 +1368,7 @@ describe('CalendarElement — output escaping', () => {
           id: 1,
           name: 'Meeting',
           date: '2024-01-15',
-          status: 'in progress' as CalendarEvent['status'],
+          status: 'in progress',
         },
       ],
     });
@@ -1374,7 +1376,11 @@ describe('CalendarElement — output escaping', () => {
 
     const badge = el.querySelector('.badge.status-in-progress');
     expect(badge).toBeTruthy();
-    expect(badge?.classList.length).toBe(2);
+    expect(Array.from(badge!.classList)).toEqual([
+      'badge',
+      'status',
+      'status-in-progress',
+    ]);
     expect(badge?.textContent?.trim()).toBe('IN PROGRESS');
   });
 
@@ -1502,5 +1508,79 @@ describe('CalendarElement — selectability predicate', () => {
     cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(selections.length).toBe(0);
+  });
+});
+
+describe('CalendarElement — open badge values', () => {
+  const DAY = new Date('2024-01-15');
+
+  function openDay(el: CalendarElement): void {
+    const cell = Array.from(el.querySelectorAll('td')).find(
+      td => td.textContent?.trim() === '15'
+    );
+    cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+
+  function badgesFor(event: Partial<CalendarEvent>): Element[] {
+    const el = mount({
+      initialDate: DAY,
+      events: [{ id: 1, name: 'Meeting', date: '2024-01-15', ...event }],
+    });
+    openDay(el);
+    return Array.from(el.querySelectorAll('.badge'));
+  }
+
+  it('accepts a caller-defined category and priority', () => {
+    const badges = badgesFor({ category: 'maintenance', priority: 'urgent' });
+
+    expect(Array.from(badges[0].classList)).toEqual([
+      'badge',
+      'category',
+      'category-maintenance',
+    ]);
+    expect(badges[0].textContent?.trim()).toBe('MAINTENANCE');
+    expect(Array.from(badges[1].classList)).toEqual([
+      'badge',
+      'priority',
+      'priority-urgent',
+    ]);
+    expect(badges[1].textContent?.trim()).toBe('URGENT');
+  });
+
+  it('keeps the marker class on known values', () => {
+    for (const status of ['completed', 'cancelled', 'tentative']) {
+      const badges = badgesFor({ status });
+      expect(Array.from(badges[0].classList)).toEqual([
+        'badge',
+        'status',
+        `status-${status}`,
+      ]);
+      expect(badges[0].textContent?.trim()).toBe(status.toUpperCase());
+    }
+  });
+
+  it('still renders no badge for scheduled', () => {
+    expect(badgesFor({ status: 'scheduled' })).toEqual([]);
+  });
+
+  describe('stylesheet fallback', () => {
+    const css = readFileSync(
+      resolve(__dirname, '../../../src/styles/calendar.css'),
+      'utf-8'
+    );
+    const fallback = css.indexOf('.badge.category,');
+
+    it('declares both custom properties in :root', () => {
+      expect(css).toContain('--calendar-badge-bg:');
+      expect(css).toContain('--calendar-badge-text:');
+    });
+
+    it.each(['category-meeting', 'priority-high', 'status-completed'])(
+      'precedes .badge.%s, which has equal specificity',
+      selector => {
+        expect(fallback).toBeGreaterThan(-1);
+        expect(fallback).toBeLessThan(css.indexOf(`.badge.${selector}`));
+      }
+    );
   });
 });
