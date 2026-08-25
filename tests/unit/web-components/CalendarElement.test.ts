@@ -41,6 +41,8 @@ function mount(
     renderNoEvents?: () => string;
     availabilityMode?: 'day' | 'time';
     selectable?: 'range';
+    availabilityColors?: Record<string, string>;
+    selectableStatuses?: string[];
   } = {}
 ): CalendarElement {
   const el = document.createElement('kal-calendar') as CalendarElement;
@@ -60,6 +62,10 @@ function mount(
   if (props.selectable) el.setAttribute('selectable', props.selectable);
 
   el.events = props.events ?? [];
+  if (props.availabilityColors !== undefined)
+    el.availabilityColors = props.availabilityColors;
+  if (props.selectableStatuses !== undefined)
+    el.selectableStatuses = props.selectableStatuses;
   if (props.theme !== undefined) el.theme = props.theme;
   if (props.renderEvent !== undefined) el.renderEvent = props.renderEvent;
   if (props.renderNoEvents !== undefined)
@@ -546,7 +552,7 @@ describe('CalendarElement', () => {
       { id: 1, name: 'Private Booking', date: '2024-01-15' },
     ];
 
-    it('should add availability-booked class to cells with events', () => {
+    it('should add availability-active class to cells with events', () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
@@ -555,7 +561,7 @@ describe('CalendarElement', () => {
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
-      expect(bookedCell?.classList.contains('availability-booked')).toBe(true);
+      expect(bookedCell?.classList.contains('availability-active')).toBe(true);
     });
 
     it('should add availability-free class to cells without events', () => {
@@ -580,7 +586,7 @@ describe('CalendarElement', () => {
         'td.calendar-cell-other-month'
       );
       otherMonthCells.forEach(cell => {
-        expect(cell.classList.contains('availability-booked')).toBe(false);
+        expect(cell.classList.contains('availability-active')).toBe(false);
         expect(cell.classList.contains('availability-free')).toBe(false);
       });
     });
@@ -658,7 +664,7 @@ describe('CalendarElement', () => {
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
-      expect(bookedCell?.classList.contains('availability-booked')).toBe(false);
+      expect(bookedCell?.classList.contains('availability-active')).toBe(false);
     });
   });
 
@@ -771,7 +777,7 @@ describe('CalendarElement', () => {
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
-      expect(bookedCell?.classList.contains('availability-booked')).toBe(true);
+      expect(bookedCell?.classList.contains('availability-active')).toBe(true);
     });
   });
 
@@ -1496,7 +1502,7 @@ describe('CalendarElement — selectability predicate', () => {
       td => td.textContent?.trim() === '20'
     );
 
-    cell?.classList.remove('availability-booked');
+    cell?.classList.remove('availability-active');
 
     const selections: unknown[] = [];
     el.addEventListener('cal-availability-select', e =>
@@ -1669,5 +1675,241 @@ describe('CalendarElement — design tokens', () => {
       const missing = [...referenced].filter(t => !declared.has(t));
       expect(missing).toEqual([]);
     });
+  });
+});
+
+describe('CalendarElement — multi-state availability', () => {
+  const BASE = new Date('2024-01-15');
+
+  function cell(el: CalendarElement, day: string): HTMLElement | undefined {
+    return Array.from(el.querySelectorAll('td')).find(
+      td => td.textContent?.trim() === day
+    ) as HTMLElement | undefined;
+  }
+
+  function mountDay(
+    events: CalendarEvent[],
+    extra: {
+      availabilityColors?: Record<string, string>;
+      selectableStatuses?: string[];
+    } = {}
+  ): CalendarElement {
+    return mount({
+      events,
+      initialDate: BASE,
+      availabilityMode: 'day',
+      selectable: 'range',
+      ...extra,
+    });
+  }
+
+  it('renders the same DOM as before when nothing is configured', () => {
+    const el = mountDay([{ id: 1, name: 'Private', date: '2024-01-20' }]);
+
+    expect(cell(el, '20')?.classList.contains('availability-active')).toBe(
+      true
+    );
+    expect(cell(el, '21')?.classList.contains('availability-free')).toBe(true);
+    expect(cell(el, '20')?.getAttribute('style')).toBeNull();
+  });
+
+  it('renders the three built-in buckets without a colour map', () => {
+    const el = mountDay([
+      { id: 1, name: 'a', date: '2024-01-18', availabilityStatus: 'free' },
+      { id: 2, name: 'b', date: '2024-01-19', availabilityStatus: 'reserved' },
+      { id: 3, name: 'c', date: '2024-01-20', availabilityStatus: 'active' },
+    ]);
+
+    expect(cell(el, '18')?.classList.contains('availability-free')).toBe(true);
+    expect(cell(el, '19')?.classList.contains('availability-reserved')).toBe(
+      true
+    );
+    expect(cell(el, '20')?.classList.contains('availability-active')).toBe(
+      true
+    );
+    // built-ins paint from CSS variables, so no inline style
+    expect(cell(el, '19')?.getAttribute('style')).toBeNull();
+  });
+
+  it('gives caller-defined buckets an inline colour', () => {
+    const el = mountDay(
+      [
+        {
+          id: 1,
+          name: 'a',
+          date: '2024-01-20',
+          availabilityStatus: 'maintenance',
+        },
+      ],
+      { availabilityColors: { maintenance: '#0891b2' } }
+    );
+
+    const td = cell(el, '20');
+    expect(td?.classList.contains('availability-maintenance')).toBe(true);
+    expect(td?.classList.contains('availability-status')).toBe(true);
+    expect(td?.style.getPropertyValue('--availability-color')).toBe('#0891b2');
+  });
+
+  it('overrides a built-in colour without losing the others', () => {
+    const el = mountDay(
+      [
+        {
+          id: 1,
+          name: 'a',
+          date: '2024-01-19',
+          availabilityStatus: 'reserved',
+        },
+        { id: 2, name: 'b', date: '2024-01-20', availabilityStatus: 'active' },
+      ],
+      { availabilityColors: { reserved: '#7c3aed' } }
+    );
+
+    expect(cell(el, '19')?.style.getPropertyValue('--availability-color')).toBe(
+      '#7c3aed'
+    );
+    expect(cell(el, '20')?.getAttribute('style')).toBeNull();
+  });
+
+  it('falls back to active for an unmatched bucket', () => {
+    const el = mountDay([
+      { id: 1, name: 'a', date: '2024-01-20', availabilityStatus: 'unknown' },
+    ]);
+
+    expect(cell(el, '20')?.classList.contains('availability-active')).toBe(
+      true
+    );
+  });
+
+  it('resolves built-in collisions by severity, not declaration order', () => {
+    const el = mountDay([
+      { id: 1, name: 'a', date: '2024-01-20', availabilityStatus: 'free' },
+      { id: 2, name: 'b', date: '2024-01-20', availabilityStatus: 'reserved' },
+      { id: 3, name: 'c', date: '2024-01-20', availabilityStatus: 'active' },
+    ]);
+
+    expect(cell(el, '20')?.classList.contains('availability-active')).toBe(
+      true
+    );
+  });
+
+  it('resolves caller-defined collisions by colour-map key order', () => {
+    const events: CalendarEvent[] = [
+      { id: 1, name: 'a', date: '2024-01-20', availabilityStatus: 'cleaning' },
+      {
+        id: 2,
+        name: 'b',
+        date: '2024-01-20',
+        availabilityStatus: 'maintenance',
+      },
+    ];
+
+    const first = mountDay(events, {
+      availabilityColors: { maintenance: '#111111', cleaning: '#222222' },
+    });
+    expect(
+      cell(first, '20')?.classList.contains('availability-maintenance')
+    ).toBe(true);
+
+    const second = mountDay(events, {
+      availabilityColors: { cleaning: '#222222', maintenance: '#111111' },
+    });
+    expect(
+      cell(second, '20')?.classList.contains('availability-cleaning')
+    ).toBe(true);
+  });
+
+  it('treats an event with no availabilityStatus as active', () => {
+    const el = mountDay([
+      { id: 1, name: 'a', date: '2024-01-20' },
+      { id: 2, name: 'b', date: '2024-01-20', availabilityStatus: 'reserved' },
+    ]);
+
+    expect(cell(el, '20')?.classList.contains('availability-active')).toBe(
+      true
+    );
+  });
+
+  it('marks unselectable days and labels every cell', () => {
+    const el = mountDay([
+      { id: 1, name: 'a', date: '2024-01-20', availabilityStatus: 'reserved' },
+    ]);
+
+    expect(
+      cell(el, '20')?.classList.contains('availability-unselectable')
+    ).toBe(true);
+    expect(cell(el, '20')?.getAttribute('aria-label')).toBe('reserved');
+    expect(cell(el, '21')?.getAttribute('aria-label')).toBe('free');
+    expect(
+      cell(el, '21')?.classList.contains('availability-unselectable')
+    ).toBe(false);
+  });
+
+  it('lets selectableStatuses open a booked bucket for selection', () => {
+    const el = mountDay(
+      [
+        {
+          id: 1,
+          name: 'a',
+          date: '2024-01-20',
+          availabilityStatus: 'reserved',
+        },
+        { id: 2, name: 'b', date: '2024-01-22', availabilityStatus: 'active' },
+      ],
+      { selectableStatuses: ['free', 'reserved'] }
+    );
+
+    const selections: { startDate: Date; endDate: Date }[] = [];
+    el.addEventListener('cal-availability-select', e =>
+      selections.push(
+        (e as CustomEvent).detail as { startDate: Date; endDate: Date }
+      )
+    );
+
+    cell(el, '20')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(selections.length).toBe(1);
+
+    cell(el, '22')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(selections.length).toBe(1);
+  });
+
+  it('gates endpoints and spans through the same predicate', () => {
+    const el = mountDay(
+      [{ id: 1, name: 'a', date: '2024-01-20', availabilityStatus: 'active' }],
+      { selectableStatuses: ['free'] }
+    );
+
+    const selections: { startDate: Date; endDate: Date }[] = [];
+    el.addEventListener('cal-availability-select', e =>
+      selections.push(
+        (e as CustomEvent).detail as { startDate: Date; endDate: Date }
+      )
+    );
+
+    cell(el, '18')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    cell(el, '22')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const last = selections[selections.length - 1];
+    expect(last.startDate.getDate()).toBe(22);
+    expect(last.endDate.getDate()).toBe(22);
+  });
+
+  it('does not let an injected bucket name escape the markup', () => {
+    const el = mountDay(
+      [
+        {
+          id: 1,
+          name: 'a',
+          date: '2024-01-20',
+          availabilityStatus: 'a" onmouseover="alert(1)',
+        },
+      ],
+      { availabilityColors: { 'a" onmouseover="alert(1)': 'red" onload="x' } }
+    );
+
+    const td = cell(el, '20');
+    expect(td?.getAttribute('onmouseover')).toBeNull();
+    expect(td?.getAttribute('onload')).toBeNull();
+    expect(td?.className).toContain('availability-a-onmouseover-alert-1');
+    expect(td?.style.getPropertyValue('--availability-color')).toBe('#3b82f6');
   });
 });

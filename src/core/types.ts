@@ -24,6 +24,11 @@ export interface CalendarEvent {
   status?: Open<'scheduled' | 'completed' | 'cancelled' | 'tentative'>;
   priority?: Open<'low' | 'medium' | 'high'>;
 
+  // Availability bucket. Distinct from `status`: this is the caller's own
+  // state mapped down to an opaque label for the availability layer, so
+  // internal detail never reaches the calendar.
+  availabilityStatus?: Open<'free' | 'reserved' | 'active'>;
+
   // Collaboration
   attendees?: string[];
   organizer?: string;

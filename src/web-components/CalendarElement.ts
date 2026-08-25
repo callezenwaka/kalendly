@@ -96,6 +96,8 @@ export class CalendarElement extends HTMLElement {
   private _categoryColors: CategoryColorMap | null = null;
   private _renderEvent: ((e: CalendarEvent) => string) | null = null;
   private _renderNoEvents: (() => string) | null = null;
+  private _availabilityColors: Record<string, string> | null = null;
+  private _selectableStatuses: string[] | null = null;
 
   // Selection state (availability mode — range)
   private _rangeStart: Date | null = null;
@@ -126,6 +128,24 @@ export class CalendarElement extends HTMLElement {
     if (this.engine) {
       this.engine.updateCategoryColors(val);
     }
+  }
+
+  get availabilityColors(): Record<string, string> {
+    return this._availabilityColors ?? {};
+  }
+
+  set availabilityColors(val: Record<string, string>) {
+    this._availabilityColors = val;
+    if (this.engine) this.render();
+  }
+
+  get selectableStatuses(): string[] {
+    return this._selectableStatuses ?? [];
+  }
+
+  set selectableStatuses(val: string[]) {
+    this._selectableStatuses = val;
+    if (this.engine) this.render();
   }
 
   set renderEvent(val: (e: CalendarEvent) => string) {
@@ -270,8 +290,44 @@ export class CalendarElement extends HTMLElement {
     }
   }
 
+  private static readonly BUILT_IN_BUCKETS = ['active', 'reserved', 'free'];
+
+  private resolveBucket(date: Date): string {
+    if (!this.engine) return 'free';
+
+    const events = this.engine.getEventsForDate(date);
+    if (events.length === 0) return 'free';
+
+    const present = new Set(
+      events.map(event =>
+        typeof event.availabilityStatus === 'string' &&
+        event.availabilityStatus !== ''
+          ? event.availabilityStatus
+          : 'active'
+      )
+    );
+
+    // Built-ins win by severity, so a day holding both a reserved and an
+    // active booking reads active
+    for (const bucket of CalendarElement.BUILT_IN_BUCKETS) {
+      if (present.has(bucket)) return bucket;
+    }
+
+    // Caller-defined buckets fall back to the order they were declared in
+    for (const bucket of Object.keys(this._availabilityColors ?? {})) {
+      if (present.has(bucket)) return bucket;
+    }
+
+    return 'active';
+  }
+
   private isDateSelectable(date: Date): boolean {
     if (!this.engine) return false;
+
+    if (this._selectableStatuses) {
+      return this._selectableStatuses.includes(this.resolveBucket(date));
+    }
+
     return this.engine.getEventsForDate(date).length === 0;
   }
 
@@ -616,11 +672,29 @@ export class CalendarElement extends HTMLElement {
                       ${week
                         .map((calendarDate, dayIndex) => {
                           const classes = getCellClasses(calendarDate);
+                          const cellAttrs: string[] = [];
                           if (availabilityMode && calendarDate.isCurrentMonth) {
+                            const bucket = this.resolveBucket(
+                              calendarDate.date
+                            );
+                            const custom = (this._availabilityColors ?? {})[
+                              bucket
+                            ];
+
                             classes.push(
-                              calendarDate.hasEvents
-                                ? 'availability-booked'
-                                : 'availability-free'
+                              `availability-${slugifyToken(bucket)}`
+                            );
+                            if (custom) {
+                              classes.push('availability-status');
+                              cellAttrs.push(
+                                `style="--availability-color: ${escapeHtml(safeColor(custom))}"`
+                              );
+                            }
+                            if (!this.isDateSelectable(calendarDate.date)) {
+                              classes.push('availability-unselectable');
+                            }
+                            cellAttrs.push(
+                              `aria-label="${escapeHtml(bucket)}"`
                             );
                           }
                           if (
@@ -648,6 +722,7 @@ export class CalendarElement extends HTMLElement {
                             data-date="${dateString}"
                             data-day-index="${dayIndex}"
                             data-clickable="true"
+                            ${cellAttrs.join(' ')}
                           >
                             ${calendarDate.date.getDate()}
                           </td>

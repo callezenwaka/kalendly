@@ -58,6 +58,7 @@
   --calendar-skeleton-highlight: var(--kal-gray-200);
 
   /* Availability — traffic light */
+  --availability-color: transparent;
   --calendar-free-bg: var(--kal-green-100);
   --calendar-free-fg: var(--kal-green-600);
   --calendar-reserved-bg: var(--kal-amber-100);
@@ -487,17 +488,37 @@
 }
 
 /* Availability mode */
-.calendar-table td.availability-booked {
-  background-color: var(--calendar-active-bg);
-  cursor: not-allowed;
+.calendar-table td.availability-free {
+  background-color: var(--calendar-free-bg);
 }
 
-.calendar-table td.availability-booked::after {
+.calendar-table td.availability-free::after {
+  background-color: var(--calendar-free-fg);
+}
+
+.calendar-table td.availability-reserved {
+  background-color: var(--calendar-reserved-bg);
+}
+
+.calendar-table td.availability-reserved::after {
+  background-color: var(--calendar-reserved-fg);
+}
+
+.calendar-table td.availability-active {
+  background-color: var(--calendar-active-bg);
+}
+
+.calendar-table td.availability-active::after {
   background-color: var(--calendar-active-fg);
 }
 
-.calendar-table td.availability-free {
-  background-color: var(--calendar-free-bg);
+/* Caller-defined buckets paint from an inline custom property */
+.calendar-table td.availability-status {
+  background-color: var(--availability-color);
+}
+
+.calendar-table td.availability-unselectable {
+  cursor: not-allowed;
 }
 
 .calendar-table td.availability-range-start,
