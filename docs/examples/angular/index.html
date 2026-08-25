@@ -198,7 +198,13 @@
       <button type="button" id="modeDayBtn">Day View</button>
       <button type="button" id="modeTimeBtn">Time View</button>
     </div>
-    <p class="hint">Day / Time view hides event details and shows booked vs free cells.</p>
+    <p class="hint">Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked.</p>
+
+    <div class="button-grid">
+      <button type="button" id="months1Btn" class="active">1 Month</button>
+      <button type="button" id="months2Btn">2 Months</button>
+    </div>
+    <p class="hint">Two side-by-side months, day view only. Navigation advances one month at a time, and a range can span both.</p>
 
     <hr class="divider">
 
@@ -437,15 +443,35 @@ npm install kalendly
     function setMode(mode) {
       setActiveBtn(modeBtns, `mode${mode.charAt(0).toUpperCase() + mode.slice(1)}Btn`);
       if (mode === 'Normal') {
+        cal.removeAttribute('months');
+        setActiveBtn(['months1Btn', 'months2Btn'], 'months1Btn');
         cal.removeAttribute('availability-mode');
         cal.events = normalEvents;
         log('Availability mode → off');
       } else {
+        if (mode === 'Time') {
+          cal.removeAttribute('months');
+          setActiveBtn(['months1Btn', 'months2Btn'], 'months1Btn');
+        }
         cal.setAttribute('availability-mode', mode === 'Day' ? 'day' : 'time');
         cal.events = leanEvents;
         log(`Availability mode → ${mode.toLowerCase()} (lean events, details hidden)`);
       }
     }
+
+    function setMonths(count) {
+      setActiveBtn(['months1Btn', 'months2Btn'], `months${count}Btn`);
+      if (count === 1) {
+        cal.removeAttribute('months');
+      } else {
+        if (cal.getAttribute('availability-mode') !== 'day') setMode('Day');
+        cal.setAttribute('months', '2');
+      }
+      log(`Months → ${count}`);
+    }
+
+    document.getElementById('months1Btn').addEventListener('click', () => setMonths(1));
+    document.getElementById('months2Btn').addEventListener('click', () => setMonths(2));
 
     document.getElementById('modeNormalBtn').addEventListener('click', () => setMode('Normal'));
     document.getElementById('modeDayBtn').addEventListener('click',    () => setMode('Day'));

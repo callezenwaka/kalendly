@@ -106,6 +106,7 @@ export class CalendarElement extends HTMLElement {
   private _availabilityColors: Record<string, string> | null = null;
   private _selectableStatuses: string[] | null = null;
   private _initError: Error | null = null;
+  private pendingUpdate: Promise<void> | null = null;
 
   // Selection state (availability mode — range)
   private _rangeStart: Date | null = null;
@@ -122,7 +123,6 @@ export class CalendarElement extends HTMLElement {
   set events(val: CalendarEvent[]) {
     this._initError = null;
     this._events = val;
-    this.assertStatusesDeclared();
     if (this.engine) {
       this.engine.updateEvents(val);
     }
@@ -147,7 +147,7 @@ export class CalendarElement extends HTMLElement {
   set availabilityColors(val: Record<string, string>) {
     this._initError = null;
     this._availabilityColors = val;
-    if (this.engine) this.render();
+    if (this.engine) this.scheduleRender();
   }
 
   get selectableStatuses(): string[] {
@@ -156,18 +156,18 @@ export class CalendarElement extends HTMLElement {
 
   set selectableStatuses(val: string[]) {
     this._selectableStatuses = val;
-    if (this.engine) this.render();
+    if (this.engine) this.scheduleRender();
   }
 
   set renderEvent(val: (e: CalendarEvent) => string) {
     this._renderEvent = val;
-    if (this.engine) this.render();
+    if (this.engine) this.scheduleRender();
     // ignored when availability-mode attribute is set
   }
 
   set renderNoEvents(val: () => string) {
     this._renderNoEvents = val;
-    if (this.engine) this.render();
+    if (this.engine) this.scheduleRender();
     // ignored when availability-mode attribute is set
   }
 
@@ -212,7 +212,7 @@ export class CalendarElement extends HTMLElement {
   ): void {
     if (oldVal === newVal) return;
     if (name === 'loading') {
-      this.reaction(() => this.render());
+      this.scheduleRender();
       return;
     }
     if (name === 'selectable' && newVal === null) {
@@ -223,7 +223,7 @@ export class CalendarElement extends HTMLElement {
       this._timeRangeEnd = null;
       this._timeRangeComplete = false;
     }
-    this.reaction(() => this.reinit());
+    this.reinit();
   }
 
   private get headingText(): string | null {
@@ -289,7 +289,7 @@ export class CalendarElement extends HTMLElement {
     this.applyTheme();
 
     this.unsubscribe = this.engine.subscribe(() => {
-      this.render();
+      this.scheduleRender();
     });
   }
 
@@ -297,7 +297,7 @@ export class CalendarElement extends HTMLElement {
     if (!this.engine) return;
     this.cleanup();
     this.initEngine();
-    this.render();
+    this.scheduleRender();
   }
 
   private cleanup(): void {
@@ -357,6 +357,24 @@ export class CalendarElement extends HTMLElement {
       ...CalendarElement.BUILT_IN_BUCKETS,
       ...Object.keys(this._availabilityColors ?? {}),
     ];
+  }
+
+  get updateComplete(): Promise<void> {
+    return this.pendingUpdate ?? Promise.resolve();
+  }
+
+  private scheduleRender(): void {
+    if (this.pendingUpdate) return;
+
+    this.pendingUpdate = Promise.resolve().then(() => {
+      this.pendingUpdate = null;
+      try {
+        this.render();
+      } catch (error) {
+        this._initError = error as Error;
+        throw error;
+      }
+    });
   }
 
   private rethrowInitError(): void {

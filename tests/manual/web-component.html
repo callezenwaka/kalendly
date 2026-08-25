@@ -216,6 +216,10 @@
         <button class="mode-btn" id="btn-mode-day">Day View</button>
         <button class="mode-btn full-width" id="btn-mode-time">Time View</button>
       </div>
+      <div class="mode-grid">
+        <button class="mode-btn active" id="btn-months-1">1 Month</button>
+        <button class="mode-btn" id="btn-months-2">2 Months</button>
+      </div>
       <div class="legend hidden" id="availability-legend">
         <div class="legend-item"><div class="legend-swatch open"></div> Open</div>
         <div class="legend-item"><div class="legend-swatch conditional"></div> Conditional</div>
@@ -497,17 +501,36 @@
     document.getElementById(`btn-mode-${mode}`).classList.add('active');
 
     if (mode === 'normal') {
+      el.removeAttribute('months');
       el.removeAttribute('availability-mode');
       el.events = events;
       legend.classList.add('hidden');
       log('Availability mode → off (normal calendar)', 'info');
     } else {
+      if (mode === 'time') el.removeAttribute('months');
       el.setAttribute('availability-mode', mode);
       el.events = LEAN_EVENTS;
       legend.classList.remove('hidden');
       log(`Availability mode → ${mode} (lean events, details hidden)`, 'ok');
     }
   }
+
+  function setMonths(count) {
+    ['btn-months-1', 'btn-months-2'].forEach(id =>
+      document.getElementById(id).classList.remove('active'));
+    document.getElementById(`btn-months-${count}`).classList.add('active');
+
+    if (count === 1) {
+      el.removeAttribute('months');
+    } else {
+      if (el.getAttribute('availability-mode') !== 'day') setMode('day');
+      el.setAttribute('months', '2');
+    }
+    log(`Months → ${count}`, 'ok');
+  }
+
+  document.getElementById('btn-months-1').addEventListener('click', () => setMonths(1));
+  document.getElementById('btn-months-2').addEventListener('click', () => setMonths(2));
 
   document.getElementById('btn-mode-normal').addEventListener('click', () => setMode('normal'));
   document.getElementById('btn-mode-day'   ).addEventListener('click', () => setMode('day'));

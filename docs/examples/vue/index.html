@@ -144,6 +144,7 @@
         ]);
         const mode       = ref('Normal'); // 'Normal' | 'day' | 'time'
         const selectable = ref('off');    // 'off' | 'range'
+        const months = ref(1);
         const lazyOn     = ref(false);
         const logs       = ref(['Calendar initialised']);
         const calRef     = ref(null);
@@ -169,10 +170,15 @@
           } else {
             cal.removeAttribute('selectable');
           }
+          if (months.value === 2 && mode.value === 'day') {
+            cal.setAttribute('months', '2');
+          } else {
+            cal.removeAttribute('months');
+          }
         }
 
         onMounted(syncCalendar);
-        watch([mode, selectable, normalEvents], syncCalendar);
+        watch([mode, selectable, months, normalEvents], syncCalendar);
 
         watch(lazyOn, (val) => {
           const cal = calRef.value;
@@ -279,7 +285,12 @@
               h('button', { type: 'button', class: mode.value === 'day'    ? 'active' : '', onClick: () => handleModeChange('day')    }, 'Day View'),
               h('button', { type: 'button', class: mode.value === 'time'   ? 'active' : '', onClick: () => handleModeChange('time')   }, 'Time View'),
             ]),
-            h('p', { class: 'hint' }, 'Day / Time view hides event details and shows booked vs free cells.'),
+            h('p', { class: 'hint' }, 'Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked.'),
+            h('div', { class: 'button-grid' }, [
+              h('button', { type: 'button', class: months.value === 1 ? 'active' : '', onClick: () => { months.value = 1; } }, '1 Month'),
+              h('button', { type: 'button', class: months.value === 2 ? 'active' : '', onClick: () => { months.value = 2; if (mode.value !== 'day') handleModeChange('day'); } }, '2 Months'),
+            ]),
+            h('p', { class: 'hint' }, 'Two side-by-side months, day view only. Navigation advances one month at a time, and a range can span both.'),
 
             h('hr', { class: 'divider' }),
 

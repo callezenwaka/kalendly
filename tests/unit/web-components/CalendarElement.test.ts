@@ -26,6 +26,10 @@ afterEach(() => {
   }
 });
 
+// Updates batch to a microtask, so anything that mutates the element must be
+// flushed before the DOM is read
+const flush = (): Promise<void> => Promise.resolve().then(() => undefined);
+
 // Helper: create and attach a <kal-calendar> element
 function mount(
   props: {
@@ -118,22 +122,24 @@ describe('CalendarElement', () => {
       expect(spy).toHaveBeenCalled();
     });
 
-    it('should re-initialise engine when observed attribute changes', () => {
+    it('should re-initialise engine when observed attribute changes', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'January 2024'
       );
 
       el.setAttribute('initial-date', new Date('2024-06-01').toISOString());
+      await flush();
       expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'June 2024'
       );
     });
 
-    it('should not re-initialise when attribute value is unchanged', () => {
+    it('should not re-initialise when attribute value is unchanged', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       const engine = el.getEngine();
       el.setAttribute('initial-date', el.getAttribute('initial-date')!);
+      await flush();
       // Engine instance should be the same object (no reinit)
       expect(el.getEngine()).toBe(engine);
     });
@@ -179,25 +185,28 @@ describe('CalendarElement', () => {
   });
 
   describe('Properties', () => {
-    it('should accept events set before connecting', () => {
+    it('should accept events set before connecting', async () => {
       const el = document.createElement('kal-calendar') as CalendarElement;
       el.events = MOCK_EVENTS;
+      await flush();
       document.body.appendChild(el);
       expect(el.events).toEqual(MOCK_EVENTS);
     });
 
-    it('should update engine when events property is set after connect', () => {
+    it('should update engine when events property is set after connect', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       el.events = MOCK_EVENTS;
+      await flush();
       // Click Jan 15 — popup should list events
       const cell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.querySelector('.date-popup')).toBeTruthy();
     });
 
-    it('should re-render when renderEvent property is set', () => {
+    it('should re-render when renderEvent property is set', async () => {
       const el = mount({
         events: MOCK_EVENTS,
         initialDate: new Date('2024-01-15'),
@@ -209,12 +218,13 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.innerHTML).toContain('Team Meeting');
     });
   });
 
   describe('Events', () => {
-    it('should dispatch cal-date-select on date click', () => {
+    it('should dispatch cal-date-select on date click', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       const handler = vi.fn();
       el.addEventListener('cal-date-select', handler);
@@ -223,6 +233,7 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
 
       expect(handler).toHaveBeenCalled();
       const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
@@ -230,12 +241,13 @@ describe('CalendarElement', () => {
       expect(Array.isArray(detail.events)).toBe(true);
     });
 
-    it('should dispatch cal-month-change on next button click', () => {
+    it('should dispatch cal-month-change on next button click', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       const handler = vi.fn();
       el.addEventListener('cal-month-change', handler);
 
       (el.querySelector('[data-action="next"]') as HTMLButtonElement)?.click();
+      await flush();
 
       expect(handler).toHaveBeenCalled();
       const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
@@ -243,7 +255,7 @@ describe('CalendarElement', () => {
       expect(detail.month).toBe(1); // February
     });
 
-    it('should dispatch cal-month-change on previous button click', () => {
+    it('should dispatch cal-month-change on previous button click', async () => {
       const el = mount({ initialDate: new Date('2024-03-15') });
       const handler = vi.fn();
       el.addEventListener('cal-month-change', handler);
@@ -251,13 +263,14 @@ describe('CalendarElement', () => {
       (
         el.querySelector('[data-action="previous"]') as HTMLButtonElement
       )?.click();
+      await flush();
 
       expect(handler).toHaveBeenCalled();
       const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
       expect(detail.month).toBe(1); // February
     });
 
-    it('cal-date-select should bubble', () => {
+    it('cal-date-select should bubble', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       const handler = vi.fn();
       document.body.addEventListener('cal-date-select', handler);
@@ -266,12 +279,13 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
 
       expect(handler).toHaveBeenCalled();
       document.body.removeEventListener('cal-date-select', handler);
     });
 
-    it('should show popup after date click', () => {
+    it('should show popup after date click', async () => {
       const el = mount({
         events: MOCK_EVENTS,
         initialDate: new Date('2024-01-15'),
@@ -280,49 +294,55 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.querySelector('.date-popup')).toBeTruthy();
     });
   });
 
   describe('Navigation', () => {
-    it('should navigate to next month', () => {
+    it('should navigate to next month', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'January 2024'
       );
       (el.querySelector('[data-action="next"]') as HTMLButtonElement)?.click();
+      await flush();
       expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'February 2024'
       );
     });
 
-    it('should navigate to previous month', () => {
+    it('should navigate to previous month', async () => {
       const el = mount({ initialDate: new Date('2024-03-15') });
       (
         el.querySelector('[data-action="previous"]') as HTMLButtonElement
       )?.click();
+      await flush();
       expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'February 2024'
       );
     });
 
-    it('should jump to selected month via picker', () => {
+    it('should jump to selected month via picker', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      await flush();
 
       const monthBtns = el.querySelectorAll('[data-action="select-month"]');
       if (monthBtns.length === 0) return; // Picker not rendered
       expect(monthBtns.length).toBe(12);
       (monthBtns[5] as HTMLButtonElement)?.click();
+      await flush();
 
       expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'June 2024'
       );
     });
 
-    it('should jump to year via input', () => {
+    it('should jump to year via input', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      await flush();
 
       const yearInput = el.querySelector(
         '[data-year-input]'
@@ -331,7 +351,9 @@ describe('CalendarElement', () => {
 
       yearInput.value = '2025';
       yearInput.dispatchEvent(new Event('input', { bubbles: true }));
+      await flush();
       yearInput.dispatchEvent(new Event('blur', { bubbles: true }));
+      await flush();
 
       expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'January 2025'
@@ -340,10 +362,11 @@ describe('CalendarElement', () => {
   });
 
   describe('Public API', () => {
-    it('updateEvents should update displayed events', () => {
+    it('updateEvents should update displayed events', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       expect(typeof el.updateEvents).toBe('function');
       el.updateEvents(MOCK_EVENTS);
+      await flush();
       expect(el.getEngine()).toBeDefined();
     });
 
@@ -352,18 +375,20 @@ describe('CalendarElement', () => {
       expect(el.getCurrentDate()).toBeNull();
     });
 
-    it('getCurrentDate should return selected date after click', () => {
+    it('getCurrentDate should return selected date after click', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       const cell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.getCurrentDate()).toBeInstanceOf(Date);
     });
 
-    it('goToDate should navigate to given date', () => {
+    it('goToDate should navigate to given date', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       el.goToDate(new Date('2025-06-15'));
+      await flush();
       expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
         'June 2025'
       );
@@ -402,21 +427,23 @@ describe('CalendarElement', () => {
       );
     });
 
-    it('should show long month names in picker dropdown by default', () => {
+    it('should show long month names in picker dropdown by default', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      await flush();
       const btns = el.querySelectorAll('.calendar-picker-month');
       if (btns.length === 0) return;
       expect(btns[0].textContent).toBe('January');
       expect(btns[11].textContent).toBe('December');
     });
 
-    it('should show short month names in picker dropdown when configured', () => {
+    it('should show short month names in picker dropdown when configured', async () => {
       const el = mount({
         initialDate: new Date('2024-01-15'),
         useShortMonthNames: true,
       });
       (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      await flush();
       const btns = el.querySelectorAll('.calendar-picker-month');
       if (btns.length === 0) return;
       expect(btns[0].textContent).toBe('Jan');
@@ -425,7 +452,7 @@ describe('CalendarElement', () => {
   });
 
   describe('Custom Renderers', () => {
-    it('should use custom renderEvent', () => {
+    it('should use custom renderEvent', async () => {
       const el = mount({
         events: MOCK_EVENTS,
         initialDate: new Date('2024-01-15'),
@@ -437,11 +464,12 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
 
       expect(el.innerHTML).toContain('Team Meeting - Custom');
     });
 
-    it('should use custom renderNoEvents', () => {
+    it('should use custom renderNoEvents', async () => {
       const el = mount({
         events: [],
         initialDate: new Date('2024-01-15'),
@@ -453,6 +481,7 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
 
       expect(el.innerHTML).toContain('Custom: No events!');
     });
@@ -525,7 +554,7 @@ describe('CalendarElement', () => {
       expect(() => mount()).not.toThrow();
     });
 
-    it('should update theme dynamically via updateTheme', () => {
+    it('should update theme dynamically via updateTheme', async () => {
       const el = mount({ theme: { primary: '#3b82f6' } });
       const root = document.documentElement;
       expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
@@ -596,7 +625,7 @@ describe('CalendarElement', () => {
       });
     });
 
-    it('should not open popup when a day is clicked', () => {
+    it('should not open popup when a day is clicked', async () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
@@ -606,10 +635,11 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.querySelector('.date-popup')).toBeNull();
     });
 
-    it('should still dispatch cal-date-select when a day is clicked', () => {
+    it('should still dispatch cal-date-select when a day is clicked', async () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
@@ -621,10 +651,11 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(handler).toHaveBeenCalled();
     });
 
-    it('should ignore renderEvent when availability-mode is set', () => {
+    it('should ignore renderEvent when availability-mode is set', async () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
@@ -635,10 +666,11 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.innerHTML).not.toContain('CUSTOM');
     });
 
-    it('should ignore renderNoEvents when availability-mode is set', () => {
+    it('should ignore renderNoEvents when availability-mode is set', async () => {
       const el = mount({
         events: [],
         initialDate: BOOKED_DATE,
@@ -649,21 +681,24 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.innerHTML).not.toContain('CUSTOM EMPTY');
     });
 
-    it('should restore normal behaviour when availability-mode is removed', () => {
+    it('should restore normal behaviour when availability-mode is removed', async () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
         availabilityMode: 'day',
       });
       el.removeAttribute('availability-mode');
+      await flush();
 
       const cell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.querySelector('.date-popup')).toBeTruthy();
 
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
@@ -688,7 +723,7 @@ describe('CalendarElement', () => {
       },
     ];
 
-    it('should open popup when a day is clicked', () => {
+    it('should open popup when a day is clicked', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -698,10 +733,11 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.querySelector('.date-popup')).toBeTruthy();
     });
 
-    it('should render the time grid inside the popup', () => {
+    it('should render the time grid inside the popup', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -711,11 +747,12 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.querySelector('.time-grid')).toBeTruthy();
       expect(el.querySelectorAll('.time-grid-slot').length).toBe(24);
     });
 
-    it('should mark booked hours correctly', () => {
+    it('should mark booked hours correctly', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -725,6 +762,7 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       const slots = el.querySelectorAll('.time-grid-slot');
       // 09:00 and 10:00 should be booked (startTime=09:00, endTime=11:00)
       expect(slots[9].classList.contains('time-grid-slot-blocked')).toBe(true);
@@ -734,7 +772,7 @@ describe('CalendarElement', () => {
       expect(slots[11].classList.contains('time-grid-slot-open')).toBe(true);
     });
 
-    it('should mark all hours booked for all-day events', () => {
+    it('should mark all hours booked for all-day events', async () => {
       const el = mount({
         events: [
           {
@@ -752,11 +790,12 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       const slots = el.querySelectorAll('.time-grid-slot-blocked');
       expect(slots.length).toBe(24);
     });
 
-    it('should show all hours free when no events on that day', () => {
+    it('should show all hours free when no events on that day', async () => {
       const el = mount({
         events: [],
         initialDate: BASE_DATE,
@@ -766,11 +805,12 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       const slots = el.querySelectorAll('.time-grid-slot-open');
       expect(slots.length).toBe(24);
     });
 
-    it('should not render event details in the time grid', () => {
+    it('should not render event details in the time grid', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -780,6 +820,7 @@ describe('CalendarElement', () => {
         td => td.textContent?.trim() === '15'
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       expect(el.innerHTML).not.toContain('Private');
       expect(el.querySelector('.event-card')).toBeNull();
     });
@@ -821,7 +862,7 @@ describe('CalendarElement', () => {
       );
     }
 
-    it('first click on a free day adds availability-range-start class', () => {
+    it('first click on a free day adds availability-range-start class', async () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -829,12 +870,13 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       clickDay(el, '16');
+      await flush();
       expect(
         getCell(el, '16')?.classList.contains('availability-range-start')
       ).toBe(true);
     });
 
-    it('first click fires cal-availability-select with startDate === endDate', () => {
+    it('first click fires cal-availability-select with startDate === endDate', async () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -844,6 +886,7 @@ describe('CalendarElement', () => {
       const handler = vi.fn();
       el.addEventListener('cal-availability-select', handler);
       clickDay(el, '16');
+      await flush();
 
       expect(handler).toHaveBeenCalledTimes(1);
       const { startDate, endDate } = (handler.mock.calls[0][0] as CustomEvent)
@@ -853,7 +896,7 @@ describe('CalendarElement', () => {
       expect(startDate.toDateString()).toBe(endDate.toDateString());
     });
 
-    it('second click on a later day sets range-end and in-range cells', () => {
+    it('second click on a later day sets range-end and in-range cells', async () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -861,7 +904,9 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       clickDay(el, '16');
+      await flush();
       clickDay(el, '20');
+      await flush();
 
       expect(
         getCell(el, '16')?.classList.contains('availability-range-start')
@@ -874,7 +919,7 @@ describe('CalendarElement', () => {
       ).toBe(true);
     });
 
-    it('second click fires cal-availability-select with startDate < endDate', () => {
+    it('second click fires cal-availability-select with startDate < endDate', async () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -884,7 +929,9 @@ describe('CalendarElement', () => {
       const handler = vi.fn();
       el.addEventListener('cal-availability-select', handler);
       clickDay(el, '16');
+      await flush();
       clickDay(el, '20');
+      await flush();
 
       expect(handler).toHaveBeenCalledTimes(2);
       const { startDate, endDate } = (handler.mock.calls[1][0] as CustomEvent)
@@ -892,7 +939,7 @@ describe('CalendarElement', () => {
       expect(startDate < endDate).toBe(true);
     });
 
-    it('swaps start and end when second click is before first', () => {
+    it('swaps start and end when second click is before first', async () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -902,7 +949,9 @@ describe('CalendarElement', () => {
       const handler = vi.fn();
       el.addEventListener('cal-availability-select', handler);
       clickDay(el, '20');
+      await flush();
       clickDay(el, '16');
+      await flush();
 
       const { startDate, endDate } = (handler.mock.calls[1][0] as CustomEvent)
         .detail;
@@ -915,7 +964,7 @@ describe('CalendarElement', () => {
       ).toBe(true);
     });
 
-    it('third click resets and starts a new range', () => {
+    it('third click resets and starts a new range', async () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -923,8 +972,11 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       clickDay(el, '16');
+      await flush();
       clickDay(el, '20');
+      await flush();
       clickDay(el, '22');
+      await flush();
 
       expect(
         getCell(el, '22')?.classList.contains('availability-range-start')
@@ -937,7 +989,7 @@ describe('CalendarElement', () => {
       ).toBe(false);
     });
 
-    it('clicking a booked day does not update the range', () => {
+    it('clicking a booked day does not update the range', async () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -947,10 +999,11 @@ describe('CalendarElement', () => {
       const handler = vi.fn();
       el.addEventListener('cal-availability-select', handler);
       clickDay(el, '15');
+      await flush();
       expect(handler).not.toHaveBeenCalled();
     });
 
-    it('rejects a range that spans a booked day — resets to new first click', () => {
+    it('rejects a range that spans a booked day — resets to new first click', async () => {
       // Jan 15 is booked; clicking 13 then 17 would span 15
       const el = mount({
         events: EVENTS,
@@ -961,7 +1014,9 @@ describe('CalendarElement', () => {
       const handler = vi.fn();
       el.addEventListener('cal-availability-select', handler);
       clickDay(el, '13');
+      await flush();
       clickDay(el, '17'); // spans booked day 15 — should reset
+      await flush();
 
       // Second call should have startDate === endDate (fresh first click at 17)
       const { startDate, endDate } = (handler.mock.calls[1][0] as CustomEvent)
@@ -975,7 +1030,7 @@ describe('CalendarElement', () => {
       ).toBe(true);
     });
 
-    it('removing selectable attribute clears the range', () => {
+    it('removing selectable attribute clears the range', async () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -983,7 +1038,9 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       clickDay(el, '16');
+      await flush();
       el.removeAttribute('selectable');
+      await flush();
       expect(
         getCell(el, '16')?.classList.contains('availability-range-start')
       ).toBe(false);
@@ -1017,7 +1074,7 @@ describe('CalendarElement', () => {
       )?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     }
 
-    it('free slots have data-action="select-slot" when selectable="range"', () => {
+    it('free slots have data-action="select-slot" when selectable="range"', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1025,13 +1082,14 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       openTimeGrid(el);
+      await flush();
       expect(
         el.querySelectorAll('.time-grid-slot-open[data-action="select-slot"]')
           .length
       ).toBeGreaterThan(0);
     });
 
-    it('booked slots do not have data-action="select-slot"', () => {
+    it('booked slots do not have data-action="select-slot"', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1039,6 +1097,7 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       openTimeGrid(el);
+      await flush();
       expect(
         el.querySelectorAll(
           '.time-grid-slot-blocked[data-action="select-slot"]'
@@ -1046,7 +1105,7 @@ describe('CalendarElement', () => {
       ).toBe(0);
     });
 
-    it('first click fires cal-availability-select with single slot', () => {
+    it('first click fires cal-availability-select with single slot', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1054,9 +1113,11 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       openTimeGrid(el);
+      await flush();
       const handler = vi.fn();
       el.addEventListener('cal-availability-select', handler);
       clickSlot(el, '08:00');
+      await flush();
 
       expect(handler).toHaveBeenCalledTimes(1);
       const { date, startTime, endTime } = (
@@ -1067,7 +1128,7 @@ describe('CalendarElement', () => {
       expect(endTime).toBe('09:00');
     });
 
-    it('first click adds time-grid-slot-range-start class', () => {
+    it('first click adds time-grid-slot-range-start class', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1075,11 +1136,13 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       openTimeGrid(el);
+      await flush();
       clickSlot(el, '08:00');
+      await flush();
       expect(el.querySelector('.time-grid-slot-range-start')).toBeTruthy();
     });
 
-    it('second click extends the time range', () => {
+    it('second click extends the time range', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1087,10 +1150,13 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       openTimeGrid(el);
+      await flush();
       const handler = vi.fn();
       el.addEventListener('cal-availability-select', handler);
       clickSlot(el, '08:00');
+      await flush();
       clickSlot(el, '13:00');
+      await flush();
 
       const { startTime, endTime } = (handler.mock.calls[1][0] as CustomEvent)
         .detail;
@@ -1098,7 +1164,7 @@ describe('CalendarElement', () => {
       expect(endTime).toBe('14:00');
     });
 
-    it('third click resets and starts a new time range', () => {
+    it('third click resets and starts a new time range', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1106,11 +1172,15 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       openTimeGrid(el);
+      await flush();
       const handler = vi.fn();
       el.addEventListener('cal-availability-select', handler);
       clickSlot(el, '08:00');
+      await flush();
       clickSlot(el, '13:00');
+      await flush();
       clickSlot(el, '14:00');
+      await flush();
 
       const { startTime, endTime } = (handler.mock.calls[2][0] as CustomEvent)
         .detail;
@@ -1118,7 +1188,7 @@ describe('CalendarElement', () => {
       expect(endTime).toBe('15:00');
     });
 
-    it('closing the popup clears the time range', () => {
+    it('closing the popup clears the time range', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1126,21 +1196,26 @@ describe('CalendarElement', () => {
         selectable: 'range',
       });
       openTimeGrid(el);
+      await flush();
       clickSlot(el, '08:00');
+      await flush();
       (
         el.querySelector('[data-action="close-popup"]') as HTMLButtonElement
       )?.click();
+      await flush();
       openTimeGrid(el);
+      await flush();
       expect(el.querySelector('.time-grid-slot-range-start')).toBeNull();
     });
 
-    it('free slots do not have data-action when selectable is not set', () => {
+    it('free slots do not have data-action when selectable is not set', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
         availabilityMode: 'time',
       });
       openTimeGrid(el);
+      await flush();
       expect(
         el.querySelectorAll('.time-grid-slot-open[data-action="select-slot"]')
           .length
@@ -1154,22 +1229,26 @@ describe('CalendarElement', () => {
       expect(el.loading).toBe(false);
     });
 
-    it('setting loading=true reflects as attribute', () => {
+    it('setting loading=true reflects as attribute', async () => {
       const el = mount({});
       el.loading = true;
+      await flush();
       expect(el.hasAttribute('loading')).toBe(true);
     });
 
-    it('setting loading=false removes the attribute', () => {
+    it('setting loading=false removes the attribute', async () => {
       const el = mount({});
       el.loading = true;
+      await flush();
       el.loading = false;
+      await flush();
       expect(el.hasAttribute('loading')).toBe(false);
     });
 
-    it('renders skeleton cells when loading is true', () => {
+    it('renders skeleton cells when loading is true', async () => {
       const el = mount({});
       el.loading = true;
+      await flush();
       const skeletons = el.querySelectorAll('td.calendar-skeleton');
       expect(skeletons.length).toBe(42); // 6 weeks × 7 days
     });
@@ -1179,16 +1258,17 @@ describe('CalendarElement', () => {
       expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
     });
 
-    it('skeleton cells are aria-hidden', () => {
+    it('skeleton cells are aria-hidden', async () => {
       const el = mount({});
       el.loading = true;
+      await flush();
       const skeletons = el.querySelectorAll('td.calendar-skeleton');
       skeletons.forEach(td => {
         expect(td.getAttribute('aria-hidden')).toBe('true');
       });
     });
 
-    it('suppresses popup when loading is true', () => {
+    it('suppresses popup when loading is true', async () => {
       const el = mount({
         initialDate: new Date('2024-01-15'),
         events: [{ id: 1, name: 'Test', date: '2024-01-15' }],
@@ -1196,11 +1276,13 @@ describe('CalendarElement', () => {
       Array.from(el.querySelectorAll('td'))
         .find(td => td.textContent?.trim() === '15')
         ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
       el.loading = true;
+      await flush();
       expect(el.querySelector('.date-popup')).toBeNull();
     });
 
-    it('cal-month-change fires before render on next navigation', () => {
+    it('cal-month-change fires before render on next navigation', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       let monthInEventWasOld = false;
       el.addEventListener('cal-month-change', (e: Event) => {
@@ -1212,26 +1294,30 @@ describe('CalendarElement', () => {
         }
       });
       el.querySelector<HTMLElement>('[data-action="next"]')?.click();
+      await flush();
       expect(monthInEventWasOld).toBe(true);
       // loading was set in the handler → skeleton should be visible
       expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(42);
     });
 
-    it('cal-month-change fires before render on previous navigation', () => {
+    it('cal-month-change fires before render on previous navigation', async () => {
       const el = mount({ initialDate: new Date('2024-02-15') });
       let detailMonth = -1;
       el.addEventListener('cal-month-change', (e: Event) => {
         detailMonth = (e as CustomEvent).detail.month;
       });
       el.querySelector<HTMLElement>('[data-action="previous"]')?.click();
+      await flush();
       expect(detailMonth).toBe(0); // January
     });
 
-    it('clearing loading re-renders real cells', () => {
+    it('clearing loading re-renders real cells', async () => {
       const el = mount({});
       el.loading = true;
+      await flush();
       expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(42);
       el.loading = false;
+      await flush();
       expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
       expect(el.querySelectorAll('td[data-clickable]').length).toBeGreaterThan(
         0
@@ -1245,12 +1331,13 @@ describe('CalendarElement', () => {
       expect(el.querySelector('.calendar-table')).toBeTruthy();
     });
 
-    it('should not throw on click outside a date cell', () => {
+    it('should not throw on click outside a date cell', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       const th = el.querySelector('th');
       expect(() => {
         th?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       }).not.toThrow();
+      await flush();
     });
   });
 });
@@ -1265,7 +1352,7 @@ describe('CalendarElement — output escaping', () => {
     cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   }
 
-  it('renders a script payload in event name as text', () => {
+  it('renders a script payload in event name as text', async () => {
     const el = mount({
       initialDate: DAY,
       events: [
@@ -1277,13 +1364,14 @@ describe('CalendarElement — output escaping', () => {
       ],
     });
     openDay(el);
+    await flush();
 
     const title = el.querySelector('.event-title');
     expect(title?.querySelector('script')).toBeNull();
     expect(title?.textContent).toBe('<script>alert(1)</script>');
   });
 
-  it('renders a script payload in description as text', () => {
+  it('renders a script payload in description as text', async () => {
     const el = mount({
       initialDate: DAY,
       events: [
@@ -1296,13 +1384,14 @@ describe('CalendarElement — output escaping', () => {
       ],
     });
     openDay(el);
+    await flush();
 
     const description = el.querySelector('.event-description');
     expect(description?.querySelector('img')).toBeNull();
     expect(description?.textContent).toBe('<img src=x onerror=alert(1)>');
   });
 
-  it('collapses a javascript: url to a harmless anchor', () => {
+  it('collapses a javascript: url to a harmless anchor', async () => {
     const el = mount({
       initialDate: DAY,
       events: [
@@ -1315,11 +1404,12 @@ describe('CalendarElement — output escaping', () => {
       ],
     });
     openDay(el);
+    await flush();
 
     expect(el.querySelector('.event-link')?.getAttribute('href')).toBe('#');
   });
 
-  it('preserves a legitimate url', () => {
+  it('preserves a legitimate url', async () => {
     const el = mount({
       initialDate: DAY,
       events: [
@@ -1332,13 +1422,14 @@ describe('CalendarElement — output escaping', () => {
       ],
     });
     openDay(el);
+    await flush();
 
     expect(el.querySelector('.event-link')?.getAttribute('href')).toBe(
       'https://example.com/e/1'
     );
   });
 
-  it('does not let a color escape the style attribute', () => {
+  it('does not let a color escape the style attribute', async () => {
     const el = mount({
       initialDate: DAY,
       events: [
@@ -1351,6 +1442,7 @@ describe('CalendarElement — output escaping', () => {
       ],
     });
     openDay(el);
+    await flush();
 
     const card = el.querySelector('.event-card');
     expect(card?.getAttribute('onmouseover')).toBeNull();
@@ -1368,17 +1460,19 @@ describe('CalendarElement — output escaping', () => {
     expect(heading?.textContent).toBe('<img src=x onerror=alert(1)>');
   });
 
-  it('escapes a reflected year input value', () => {
+  it('escapes a reflected year input value', async () => {
     const el = mount({ initialDate: DAY });
 
     const picker = el.querySelector(
       '[data-action="toggle-picker"]'
     ) as HTMLElement;
     picker?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
 
     (el as unknown as { yearInput: string }).yearInput =
       '" onfocus=alert(1) autofocus="';
     el.events = [];
+    await flush();
 
     const input = el.querySelector('[data-year-input]');
     expect(input?.getAttribute('onfocus')).toBeNull();
@@ -1386,7 +1480,7 @@ describe('CalendarElement — output escaping', () => {
     expect(input?.getAttribute('value')).toBe('" onfocus=alert(1) autofocus="');
   });
 
-  it('renders a multi-word status as a single class token', () => {
+  it('renders a multi-word status as a single class token', async () => {
     const el = mount({
       initialDate: DAY,
       events: [
@@ -1399,6 +1493,7 @@ describe('CalendarElement — output escaping', () => {
       ],
     });
     openDay(el);
+    await flush();
 
     const badge = el.querySelector('.badge.status-in-progress');
     expect(badge).toBeTruthy();
@@ -1410,7 +1505,7 @@ describe('CalendarElement — output escaping', () => {
     expect(badge?.textContent?.trim()).toBe('IN PROGRESS');
   });
 
-  it('escapes attendees, organizer, location and notes', () => {
+  it('escapes attendees, organizer, location and notes', async () => {
     const el = mount({
       initialDate: DAY,
       events: [
@@ -1426,6 +1521,7 @@ describe('CalendarElement — output escaping', () => {
       ],
     });
     openDay(el);
+    await flush();
 
     const card = el.querySelector('.event-card');
     expect(card?.querySelector('b')).toBeNull();
@@ -1433,7 +1529,7 @@ describe('CalendarElement — output escaping', () => {
     expect(card?.textContent).toContain('<b>Ada</b>');
   });
 
-  it('escapes tags', () => {
+  it('escapes tags', async () => {
     const el = mount({
       initialDate: DAY,
       events: [
@@ -1446,6 +1542,7 @@ describe('CalendarElement — output escaping', () => {
       ],
     });
     openDay(el);
+    await flush();
 
     const tag = el.querySelector('.event-tag');
     expect(tag?.querySelector('b')).toBeNull();
@@ -1472,7 +1569,7 @@ describe('CalendarElement — selectability predicate', () => {
     });
   }
 
-  it('treats a booked day the same as an endpoint and inside a span', () => {
+  it('treats a booked day the same as an endpoint and inside a span', async () => {
     const booked: CalendarEvent[] = [
       {
         id: 1,
@@ -1488,6 +1585,7 @@ describe('CalendarElement — selectability predicate', () => {
       endpointSelections.push((e as CustomEvent).detail)
     );
     clickDay(asEndpoint, '20');
+    await flush();
 
     expect(endpointSelections.length).toBe(0);
 
@@ -1499,7 +1597,9 @@ describe('CalendarElement — selectability predicate', () => {
       )
     );
     clickDay(inSpan, '18');
+    await flush();
     clickDay(inSpan, '22');
+    await flush();
 
     // Second click spans the booked 20th, so the range resets to the 22nd
     const last = spanSelections[spanSelections.length - 1];
@@ -1507,7 +1607,7 @@ describe('CalendarElement — selectability predicate', () => {
     expect(last.endDate.getDate()).toBe(22);
   });
 
-  it('completes a range when every day inside it is free', () => {
+  it('completes a range when every day inside it is free', async () => {
     const el = mountRange([
       {
         id: 1,
@@ -1524,14 +1624,16 @@ describe('CalendarElement — selectability predicate', () => {
     );
 
     clickDay(el, '18');
+    await flush();
     clickDay(el, '22');
+    await flush();
 
     const last = selections[selections.length - 1];
     expect(last.startDate.getDate()).toBe(18);
     expect(last.endDate.getDate()).toBe(22);
   });
 
-  it('does not read selectability back from the rendered class', () => {
+  it('does not read selectability back from the rendered class', async () => {
     const el = mountRange([
       {
         id: 1,
@@ -1551,6 +1653,7 @@ describe('CalendarElement — selectability predicate', () => {
       selections.push((e as CustomEvent).detail)
     );
     cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
 
     expect(selections.length).toBe(0);
   });
@@ -1566,17 +1669,21 @@ describe('CalendarElement — open badge values', () => {
     cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   }
 
-  function badgesFor(event: Partial<CalendarEvent>): Element[] {
+  async function badgesFor(event: Partial<CalendarEvent>): Promise<Element[]> {
     const el = mount({
       initialDate: DAY,
       events: [{ id: 1, name: 'Meeting', date: '2024-01-15', ...event }],
     });
     openDay(el);
+    await flush();
     return Array.from(el.querySelectorAll('.badge'));
   }
 
-  it('accepts a caller-defined category and priority', () => {
-    const badges = badgesFor({ category: 'maintenance', priority: 'urgent' });
+  it('accepts a caller-defined category and priority', async () => {
+    const badges = await badgesFor({
+      category: 'maintenance',
+      priority: 'urgent',
+    });
 
     expect(Array.from(badges[0].classList)).toEqual([
       'badge',
@@ -1592,9 +1699,9 @@ describe('CalendarElement — open badge values', () => {
     expect(badges[1].textContent?.trim()).toBe('URGENT');
   });
 
-  it('keeps the marker class on known values', () => {
+  it('keeps the marker class on known values', async () => {
     for (const status of ['completed', 'cancelled', 'tentative']) {
-      const badges = badgesFor({ status });
+      const badges = await badgesFor({ status });
       expect(Array.from(badges[0].classList)).toEqual([
         'badge',
         'status',
@@ -1604,8 +1711,8 @@ describe('CalendarElement — open badge values', () => {
     }
   });
 
-  it('still renders no badge for scheduled', () => {
-    expect(badgesFor({ status: 'scheduled' })).toEqual([]);
+  it('still renders no badge for scheduled', async () => {
+    expect(await badgesFor({ status: 'scheduled' })).toEqual([]);
   });
 
   describe('stylesheet fallback', () => {
@@ -1762,7 +1869,7 @@ describe('CalendarElement — multi-state availability', () => {
     expect(cell(el, '20')?.getAttribute('style')).toBeNull();
   });
 
-  function mountedThen(update: (el: CalendarElement) => void): () => void {
+  it('rejects the pending update when an event omits availabilityStatus', async () => {
     const el = mountDay([
       {
         id: 1,
@@ -1771,41 +1878,54 @@ describe('CalendarElement — multi-state availability', () => {
         availabilityStatus: 'blocked',
       },
     ]);
-    return () => update(el);
-  }
 
-  it('throws when an event omits availabilityStatus', () => {
-    expect(
-      mountedThen(el => {
-        el.events = [{ id: 7, name: 'Private', date: '2024-01-20' }];
-      })
-    ).toThrow(/requires availabilityStatus on every event.*7/s);
+    el.events = [{ id: 7, name: 'Private', date: '2024-01-20' }];
+
+    await expect(el.updateComplete).rejects.toThrow(
+      /requires availabilityStatus on every event.*7/s
+    );
   });
 
-  it('names every offending event, not just the first', () => {
-    expect(
-      mountedThen(el => {
-        el.events = [
-          { id: 7, name: 'a', date: '2024-01-20' },
-          { id: 9, name: 'b', date: '2024-01-21' },
-        ];
-      })
-    ).toThrow(/7, 9/);
+  it('names every offending event, not just the first', async () => {
+    const el = mountDay([
+      {
+        id: 1,
+        name: 'seed',
+        date: '2024-01-20',
+        availabilityStatus: 'blocked',
+      },
+    ]);
+
+    el.events = [
+      { id: 7, name: 'a', date: '2024-01-20' },
+      { id: 9, name: 'b', date: '2024-01-21' },
+    ];
+
+    await expect(el.updateComplete).rejects.toThrow(/7, 9/);
   });
 
-  it('throws when availabilityStatus names no known bucket', () => {
-    expect(
-      mountedThen(el => {
-        el.events = [
-          {
-            id: 3,
-            name: 'a',
-            date: '2024-01-20',
-            availabilityStatus: 'maintenance',
-          },
-        ];
-      })
-    ).toThrow(/Unrecognised on: 3 \(maintenance\)/);
+  it('rejects when availabilityStatus names no known bucket', async () => {
+    const el = mountDay([
+      {
+        id: 1,
+        name: 'seed',
+        date: '2024-01-20',
+        availabilityStatus: 'blocked',
+      },
+    ]);
+
+    el.events = [
+      {
+        id: 3,
+        name: 'a',
+        date: '2024-01-20',
+        availabilityStatus: 'maintenance',
+      },
+    ];
+
+    await expect(el.updateComplete).rejects.toThrow(
+      /Unrecognised on: 3 \(maintenance\)/
+    );
   });
 
   it('accepts a bucket once availabilityColors declares it', () => {
@@ -1960,7 +2080,7 @@ describe('CalendarElement — multi-state availability', () => {
     ).toBe(false);
   });
 
-  it('lets selectableStatuses reopen a claimed bucket for selection', () => {
+  it('lets selectableStatuses reopen a claimed bucket for selection', async () => {
     const el = mountDay(
       [
         {
@@ -1982,13 +2102,15 @@ describe('CalendarElement — multi-state availability', () => {
     );
 
     cell(el, '20')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
     expect(selections.length).toBe(1);
 
     cell(el, '22')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
     expect(selections.length).toBe(1);
   });
 
-  it('gates endpoints and spans through the same predicate', () => {
+  it('gates endpoints and spans through the same predicate', async () => {
     const el = mountDay(
       [{ id: 1, name: 'a', date: '2024-01-20', availabilityStatus: 'blocked' }],
       { selectableStatuses: ['open'] }
@@ -2002,7 +2124,9 @@ describe('CalendarElement — multi-state availability', () => {
     );
 
     cell(el, '18')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
     cell(el, '22')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
 
     const last = selections[selections.length - 1];
     expect(last.startDate.getDate()).toBe(22);
@@ -2060,61 +2184,74 @@ describe('CalendarElement — availability validation timing', () => {
     return captured[0];
   }
 
-  it('throws before the element is ever connected', () => {
-    const el = configure();
+  it('accepts a mode and its events set across separate statements', async () => {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    el.events = [{ id: 1, name: 'a', date: '2024-01-20' }];
+    document.body.appendChild(el);
 
-    expect(() => {
-      el.events = [{ id: 7, name: 'a', date: '2024-01-20' }];
-    }).toThrow(/Missing on: 7/);
+    // the order every integrator writes: enter the mode, then swap the data
+    el.setAttribute('availability-mode', 'day');
+    el.events = [
+      {
+        id: 2,
+        name: 'b',
+        date: '2024-01-20',
+        availabilityStatus: 'blocked',
+      },
+    ];
 
-    expect(el.isConnected).toBe(false);
+    await expect(el.updateComplete).resolves.toBeUndefined();
+    expect(el.querySelector('td.availability-blocked')).toBeTruthy();
   });
 
-  it('stores the failure when availability-mode is applied to events already set', () => {
+  it('rejects when the mode is applied and the events are never corrected', async () => {
     const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
     el.events = [{ id: 7, name: 'a', date: '2024-01-20' }];
     document.body.appendChild(el);
 
-    const reported = captureReactionError(() =>
-      el.setAttribute('availability-mode', 'day')
-    );
+    el.setAttribute('availability-mode', 'day');
 
-    expect(reported.message).toMatch(/Missing on: 7/);
+    await expect(el.updateComplete).rejects.toThrow(/Missing on: 7/);
     expect(() => el.getEngine()).toThrow(/Missing on: 7/);
   });
 
-  it('does not throw at configuration time for an undeclared bucket', () => {
-    const el = configure();
-
-    expect(() => {
-      el.events = [
-        {
-          id: 3,
-          name: 'a',
-          date: '2024-01-20',
-          availabilityStatus: 'maintenance',
-        },
-      ];
-    }).not.toThrow();
-  });
-
-  it('accepts a bucket declared after the events', () => {
+  it('renders once for a run of configuration statements', async () => {
     const el = configure();
     el.events = [
       {
-        id: 3,
+        id: 1,
         name: 'a',
         date: '2024-01-20',
+        availabilityStatus: 'blocked',
+      },
+    ];
+    document.body.appendChild(el);
+    await el.updateComplete;
+
+    const renders: number[] = [];
+    const observer = new MutationObserver(() => renders.push(1));
+    observer.observe(el, { childList: true });
+
+    el.availabilityColors = { maintenance: '#0891b2' };
+    el.selectableStatuses = ['open', 'maintenance'];
+    el.events = [
+      {
+        id: 2,
+        name: 'b',
+        date: '2024-01-21',
         availabilityStatus: 'maintenance',
       },
     ];
-    el.availabilityColors = { maintenance: '#0891b2' };
 
-    expect(() => document.body.appendChild(el)).not.toThrow();
-    expect(el.querySelector('td.availability-maintenance')).toBeTruthy();
+    await el.updateComplete;
+    observer.disconnect();
+
+    expect(renders.length).toBe(1);
   });
 
-  it('resurfaces a failed initialisation on the next read', () => {
+  it('reports a bad configuration present at connect', async () => {
     const el = configure();
     el.events = [
       {
@@ -2132,7 +2269,7 @@ describe('CalendarElement — availability validation timing', () => {
     expect(() => el.getCurrentDate()).toThrow(/Unrecognised on/);
   });
 
-  it('clears the stored failure once the configuration is corrected', () => {
+  it('clears the stored failure once the configuration is corrected', async () => {
     const el = configure();
     el.events = [
       {
@@ -2146,15 +2283,17 @@ describe('CalendarElement — availability validation timing', () => {
     captureReactionError(() => document.body.appendChild(el));
 
     el.availabilityColors = { maintenance: '#0891b2' };
+    await el.updateComplete;
 
     expect(() => el.getEngine()).not.toThrow();
   });
 });
 
 describe('CalendarElement — heading attribute', () => {
-  it('renders the heading attribute', () => {
+  it('renders the heading attribute', async () => {
     const el = document.createElement('kal-calendar') as CalendarElement;
     el.setAttribute('heading', 'Room bookings');
+    await flush();
     document.body.appendChild(el);
 
     expect(el.querySelector('.calendar-title h1')?.textContent).toBe(
@@ -2162,16 +2301,18 @@ describe('CalendarElement — heading attribute', () => {
     );
   });
 
-  it('prefers heading when both are set', () => {
+  it('prefers heading when both are set', async () => {
     const el = document.createElement('kal-calendar') as CalendarElement;
     el.setAttribute('title', 'old');
+    await flush();
     el.setAttribute('heading', 'new');
+    await flush();
     document.body.appendChild(el);
 
     expect(el.querySelector('.calendar-title h1')?.textContent).toBe('new');
   });
 
-  it('still renders a deprecated title, and warns once', () => {
+  it('still renders a deprecated title, and warns once', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     (
       CalendarElement as unknown as { titleDeprecationWarned: boolean }
@@ -2179,10 +2320,12 @@ describe('CalendarElement — heading attribute', () => {
 
     const first = document.createElement('kal-calendar') as CalendarElement;
     first.setAttribute('title', 'Legacy');
+    await flush();
     document.body.appendChild(first);
 
     const second = document.createElement('kal-calendar') as CalendarElement;
     second.setAttribute('title', 'Legacy too');
+    await flush();
     document.body.appendChild(second);
 
     expect(first.querySelector('.calendar-title h1')?.textContent).toBe(
@@ -2198,7 +2341,10 @@ describe('CalendarElement — heading attribute', () => {
 describe('CalendarElement — malformed times', () => {
   const BASE = new Date('2024-01-15');
 
-  function slotsFor(startTime: string, endTime?: string): number {
+  async function slotsFor(
+    startTime: string,
+    endTime?: string
+  ): Promise<number> {
     const el = mount({
       events: [
         {
@@ -2216,27 +2362,36 @@ describe('CalendarElement — malformed times', () => {
     Array.from(el.querySelectorAll('td'))
       .find(td => td.textContent?.trim() === '15')
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
     return el.querySelectorAll('.time-grid-slot-blocked').length;
   }
 
-  it('books the whole day when a time cannot be parsed', () => {
-    expect(slotsFor('9am', '11am')).toBe(24);
-    expect(slotsFor('', '11:00')).toBe(24);
-    expect(slotsFor('09:00', 'noon')).toBe(24);
-    expect(slotsFor('25:00', '26:00')).toBe(24);
+  it('books the whole day when a time cannot be parsed', async () => {
+    expect(await slotsFor('9am', '11am')).toBe(24);
+    await flush();
+    expect(await slotsFor('', '11:00')).toBe(24);
+    await flush();
+    expect(await slotsFor('09:00', 'noon')).toBe(24);
+    await flush();
+    expect(await slotsFor('25:00', '26:00')).toBe(24);
+    await flush();
   });
 
-  it('still books only the stated hours for a valid range', () => {
-    expect(slotsFor('09:00', '11:00')).toBe(2);
+  it('still books only the stated hours for a valid range', async () => {
+    expect(await slotsFor('09:00', '11:00')).toBe(2);
+    await flush();
   });
 
-  it('books from the start to the end of the day when no end is given', () => {
-    expect(slotsFor('09:00')).toBe(15);
-    expect(slotsFor('00:00')).toBe(24);
-    expect(slotsFor('23:00')).toBe(1);
+  it('books from the start to the end of the day when no end is given', async () => {
+    expect(await slotsFor('09:00')).toBe(15);
+    await flush();
+    expect(await slotsFor('00:00')).toBe(24);
+    await flush();
+    expect(await slotsFor('23:00')).toBe(1);
+    await flush();
   });
 
-  it('leaves the hours before an open-ended start available', () => {
+  it('leaves the hours before an open-ended start available', async () => {
     const el = mount({
       events: [
         {
@@ -2253,6 +2408,7 @@ describe('CalendarElement — malformed times', () => {
     Array.from(el.querySelectorAll('td'))
       .find(td => td.textContent?.trim() === '15')
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
 
     expect(el.querySelectorAll('.time-grid-slot-open').length).toBe(9);
   });
@@ -2288,12 +2444,16 @@ describe('CalendarElement — multi-month view', () => {
     expect(captions).toEqual(['January 2024', 'February 2024']);
   });
 
-  it('rolls the second pane into the next year', () => {
+  it('rolls the second pane into the next year', async () => {
     const el = document.createElement('kal-calendar') as CalendarElement;
     el.setAttribute('initial-date', new Date('2024-12-10').toISOString());
+    await flush();
     el.setAttribute('availability-mode', 'day');
+    await flush();
     el.setAttribute('months', '2');
+    await flush();
     el.events = [];
+    await flush();
     document.body.appendChild(el);
 
     const captions = Array.from(
@@ -2302,9 +2462,10 @@ describe('CalendarElement — multi-month view', () => {
     expect(captions).toEqual(['December 2024', 'January 2025']);
   });
 
-  it('advances by one month, not by pane count', () => {
+  it('advances by one month, not by pane count', async () => {
     const el = mountMonths('2');
     el.querySelector<HTMLElement>('[data-action="next"]')?.click();
+    await flush();
 
     const captions = Array.from(
       el.querySelectorAll('.calendar-pane-caption')
@@ -2333,13 +2494,18 @@ describe('CalendarElement — multi-month view', () => {
     expect(mountMonths('lots').querySelectorAll('table').length).toBe(1);
   });
 
-  it('selects a range spanning both panes', () => {
+  it('selects a range spanning both panes', async () => {
     const el = document.createElement('kal-calendar') as CalendarElement;
     el.setAttribute('initial-date', BASE.toISOString());
+    await flush();
     el.setAttribute('availability-mode', 'day');
+    await flush();
     el.setAttribute('selectable', 'range');
+    await flush();
     el.setAttribute('months', '2');
+    await flush();
     el.events = [];
+    await flush();
     document.body.appendChild(el);
 
     const selections: { startDate: Date; endDate: Date }[] = [];
@@ -2350,7 +2516,10 @@ describe('CalendarElement — multi-month view', () => {
     );
 
     // each click re-renders, so the panes must be re-queried between them
-    const clickDayInPane = (paneIndex: number, day: string): void => {
+    const clickDayInPane = async (
+      paneIndex: number,
+      day: string
+    ): Promise<void> => {
       const pane = el.querySelectorAll('.calendar-pane')[paneIndex];
       const cell = Array.from(pane.querySelectorAll('td')).find(
         td =>
@@ -2359,10 +2528,11 @@ describe('CalendarElement — multi-month view', () => {
       );
       expect(cell).toBeTruthy();
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
     };
 
-    clickDayInPane(0, '20');
-    clickDayInPane(1, '5');
+    await clickDayInPane(0, '20');
+    await clickDayInPane(1, '5');
 
     const last = selections[selections.length - 1];
     expect(last.startDate.getMonth()).toBe(0);
@@ -2373,15 +2543,20 @@ describe('CalendarElement — multi-month view', () => {
 });
 
 describe('CalendarElement — multi-month loading', () => {
-  it('repeats the skeleton in every pane', () => {
+  it('repeats the skeleton in every pane', async () => {
     const el = document.createElement('kal-calendar') as CalendarElement;
     el.setAttribute('initial-date', new Date('2024-01-15').toISOString());
+    await flush();
     el.setAttribute('availability-mode', 'day');
+    await flush();
     el.setAttribute('months', '2');
+    await flush();
     el.events = [];
+    await flush();
     document.body.appendChild(el);
 
     el.loading = true;
+    await flush();
 
     expect(el.querySelectorAll('table').length).toBe(2);
     expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(84);
@@ -2390,6 +2565,7 @@ describe('CalendarElement — multi-month loading', () => {
     });
 
     el.loading = false;
+    await flush();
     expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
     expect(el.querySelectorAll('table').length).toBe(2);
   });
