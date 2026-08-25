@@ -80,6 +80,14 @@ export interface CalendarConfig {
   maxYear?: number;
   weekStartsOn?: 0 | 1;
   categoryColors?: CategoryColorMap;
+  monthCount?: number;
+}
+
+export interface CalendarPane {
+  year: number;
+  month: number;
+  monthAndYearText: string;
+  calendarDates: CalendarDate[][];
 }
 
 export interface CalendarActions {
@@ -107,6 +115,7 @@ export interface CalendarViewModel extends CalendarState {
   years: number[];
   monthAndYearText: string;
   scheduleDay: string;
+  panes: CalendarPane[];
   calendarDates: CalendarDate[][];
   popupPositionClass: string;
 }

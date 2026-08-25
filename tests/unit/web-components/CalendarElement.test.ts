@@ -2230,3 +2230,117 @@ describe('CalendarElement — malformed times', () => {
     expect(slotsFor('09:00', '11:00')).toBe(2);
   });
 });
+
+describe('CalendarElement — multi-month view', () => {
+  const BASE = new Date('2024-01-15');
+
+  function mountMonths(
+    months: string,
+    mode: 'day' | 'time' | null = 'day'
+  ): CalendarElement {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    if (mode) el.setAttribute('availability-mode', mode);
+    el.setAttribute('months', months);
+    el.events = [];
+    document.body.appendChild(el);
+    return el;
+  }
+
+  it('renders one table by default', () => {
+    expect(mountMonths('1').querySelectorAll('table').length).toBe(1);
+  });
+
+  it('renders two consecutive months', () => {
+    const el = mountMonths('2');
+    const captions = Array.from(
+      el.querySelectorAll('.calendar-pane-caption')
+    ).map(node => node.textContent?.trim());
+
+    expect(el.querySelectorAll('table').length).toBe(2);
+    expect(captions).toEqual(['January 2024', 'February 2024']);
+  });
+
+  it('rolls the second pane into the next year', () => {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', new Date('2024-12-10').toISOString());
+    el.setAttribute('availability-mode', 'day');
+    el.setAttribute('months', '2');
+    el.events = [];
+    document.body.appendChild(el);
+
+    const captions = Array.from(
+      el.querySelectorAll('.calendar-pane-caption')
+    ).map(node => node.textContent?.trim());
+    expect(captions).toEqual(['December 2024', 'January 2025']);
+  });
+
+  it('advances by one month, not by pane count', () => {
+    const el = mountMonths('2');
+    el.querySelector<HTMLElement>('[data-action="next"]')?.click();
+
+    const captions = Array.from(
+      el.querySelectorAll('.calendar-pane-caption')
+    ).map(node => node.textContent?.trim());
+    expect(captions).toEqual(['February 2024', 'March 2024']);
+  });
+
+  it('shows no caption for a single pane', () => {
+    expect(mountMonths('1').querySelector('.calendar-pane-caption')).toBeNull();
+  });
+
+  it('falls back to one pane outside day mode, with a warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const el = mountMonths('2', 'time');
+
+    expect(el.querySelectorAll('table').length).toBe(1);
+    expect(warn.mock.calls[0][0]).toMatch(/only supported with/);
+    warn.mockRestore();
+  });
+
+  it('clamps beyond two panes', () => {
+    expect(mountMonths('5').querySelectorAll('table').length).toBe(2);
+  });
+
+  it('ignores a non-numeric months attribute', () => {
+    expect(mountMonths('lots').querySelectorAll('table').length).toBe(1);
+  });
+
+  it('selects a range spanning both panes', () => {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    el.setAttribute('availability-mode', 'day');
+    el.setAttribute('selectable', 'range');
+    el.setAttribute('months', '2');
+    el.events = [];
+    document.body.appendChild(el);
+
+    const selections: { startDate: Date; endDate: Date }[] = [];
+    el.addEventListener('cal-availability-select', e =>
+      selections.push(
+        (e as CustomEvent).detail as { startDate: Date; endDate: Date }
+      )
+    );
+
+    // each click re-renders, so the panes must be re-queried between them
+    const clickDayInPane = (paneIndex: number, day: string): void => {
+      const pane = el.querySelectorAll('.calendar-pane')[paneIndex];
+      const cell = Array.from(pane.querySelectorAll('td')).find(
+        td =>
+          td.textContent?.trim() === day &&
+          !td.classList.contains('calendar-cell-other-month')
+      );
+      expect(cell).toBeTruthy();
+      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    };
+
+    clickDayInPane(0, '20');
+    clickDayInPane(1, '5');
+
+    const last = selections[selections.length - 1];
+    expect(last.startDate.getMonth()).toBe(0);
+    expect(last.startDate.getDate()).toBe(20);
+    expect(last.endDate.getMonth()).toBe(1);
+    expect(last.endDate.getDate()).toBe(5);
+  });
+});

@@ -10,7 +10,12 @@ import {
   MONTHS_FULL,
   MONTHS,
 } from '../core';
-import type { CalendarEvent, CalendarTheme, CategoryColorMap } from '../core';
+import type {
+  CalendarEvent,
+  CalendarTheme,
+  CalendarPane,
+  CategoryColorMap,
+} from '../core';
 
 const isSameDay = (a: Date, b: Date): boolean =>
   a.getFullYear() === b.getFullYear() &&
@@ -24,6 +29,7 @@ export class CalendarElement extends HTMLElement {
     'max-year',
     'week-starts-on',
     'heading',
+    'months',
     'title',
     'use-short-month-names',
     'availability-mode',
@@ -237,6 +243,22 @@ export class CalendarElement extends HTMLElement {
     return title;
   }
 
+  private get monthCount(): number {
+    const requested = Number(this.getAttribute('months') ?? 1);
+    if (!Number.isInteger(requested) || requested < 1) return 1;
+
+    if (requested > 1 && this.getAttribute('availability-mode') !== 'day') {
+      console.warn(
+        `<kal-calendar> months="${requested}" is only supported with ` +
+          `availability-mode="day" — rendering a single month. Popup ` +
+          `positioning has no notion of which grid a cell is in.`
+      );
+      return 1;
+    }
+
+    return Math.min(requested, 2);
+  }
+
   private get minYear(): number {
     const val = this.getAttribute('min-year');
     return val ? parseInt(val, 10) : new Date().getFullYear() - 30;
@@ -260,6 +282,7 @@ export class CalendarElement extends HTMLElement {
       maxYear: this.maxYear,
       weekStartsOn,
       categoryColors: this._categoryColors ?? undefined,
+      monthCount: this.monthCount,
     });
 
     this.actions = this.engine.getActions();
@@ -627,6 +650,112 @@ export class CalendarElement extends HTMLElement {
       return `<div class="time-grid">${slots.join('')}</div>`;
     };
 
+    const multiMonth = viewModel.panes.length > 1;
+
+    const renderPane = (pane: CalendarPane): string => `
+        <div class="calendar-pane">
+          ${
+            multiMonth
+              ? `<div class="calendar-pane-caption">${escapeHtml(pane.monthAndYearText)}</div>`
+              : ''
+          }
+            <table class="calendar-table calendar-table-bordered">
+              <thead>
+                <tr>
+                  ${viewModel.days.map(day => `<th>${day.slice(0, 3)}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody data-calendar-body>
+                ${
+                  isLoading
+                    ? Array.from(
+                        { length: 6 },
+                        () =>
+                          `<tr>${Array.from(
+                            { length: 7 },
+                            () =>
+                              `<td class="calendar-skeleton" aria-hidden="true"></td>`
+                          ).join('')}</tr>`
+                      ).join('')
+                    : pane.calendarDates
+                        .map(
+                          week => `
+                      <tr>
+                        ${week
+                          .map((calendarDate, dayIndex) => {
+                            const classes = getCellClasses(calendarDate);
+                            const cellAttrs: string[] = [];
+                            if (
+                              availabilityMode &&
+                              calendarDate.isCurrentMonth
+                            ) {
+                              const bucket = this.resolveBucket(
+                                calendarDate.date
+                              );
+                              const custom = (this._availabilityColors ?? {})[
+                                bucket
+                              ];
+
+                              classes.push(
+                                `availability-${slugifyToken(bucket)}`
+                              );
+                              if (custom) {
+                                classes.push('availability-status');
+                                cellAttrs.push(
+                                  `style="--availability-color: ${escapeHtml(safeColor(custom))}"`
+                                );
+                              }
+                              if (!this.isDateSelectable(calendarDate.date)) {
+                                classes.push('availability-unselectable');
+                              }
+                              cellAttrs.push(
+                                `aria-label="${escapeHtml(bucket)}"`
+                              );
+                            }
+                            if (
+                              availabilityMode === 'day' &&
+                              selectable &&
+                              calendarDate.isCurrentMonth
+                            ) {
+                              const d = calendarDate.date;
+                              if (
+                                this._rangeStart &&
+                                isSameDay(d, this._rangeStart)
+                              )
+                                classes.push('availability-range-start');
+                              if (
+                                this._rangeEnd &&
+                                isSameDay(d, this._rangeEnd)
+                              )
+                                classes.push('availability-range-end');
+                              if (this._rangeStart && this._rangeEnd) {
+                                if (d > this._rangeStart && d < this._rangeEnd)
+                                  classes.push('availability-in-range');
+                              }
+                            }
+                            const dateString = calendarDate.date.toISOString();
+                            return `
+                            <td
+                              class="${classes.join(' ')}"
+                              data-date="${dateString}"
+                              data-day-index="${dayIndex}"
+                              data-clickable="true"
+                              ${cellAttrs.join(' ')}
+                            >
+                              ${calendarDate.date.getDate()}
+                            </td>
+                          `;
+                          })
+                          .join('')}
+                      </tr>
+                    `
+                        )
+                        .join('')
+                }
+              </tbody>
+            </table>
+        </div>
+      `;
     const html = `
       ${
         title
@@ -725,95 +854,9 @@ export class CalendarElement extends HTMLElement {
             </button>
           </div>
 
-          <table class="calendar-table calendar-table-bordered">
-            <thead>
-              <tr>
-                ${viewModel.days.map(day => `<th>${day.slice(0, 3)}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody data-calendar-body>
-              ${
-                isLoading
-                  ? Array.from(
-                      { length: 6 },
-                      () =>
-                        `<tr>${Array.from(
-                          { length: 7 },
-                          () =>
-                            `<td class="calendar-skeleton" aria-hidden="true"></td>`
-                        ).join('')}</tr>`
-                    ).join('')
-                  : viewModel.calendarDates
-                      .map(
-                        week => `
-                    <tr>
-                      ${week
-                        .map((calendarDate, dayIndex) => {
-                          const classes = getCellClasses(calendarDate);
-                          const cellAttrs: string[] = [];
-                          if (availabilityMode && calendarDate.isCurrentMonth) {
-                            const bucket = this.resolveBucket(
-                              calendarDate.date
-                            );
-                            const custom = (this._availabilityColors ?? {})[
-                              bucket
-                            ];
-
-                            classes.push(
-                              `availability-${slugifyToken(bucket)}`
-                            );
-                            if (custom) {
-                              classes.push('availability-status');
-                              cellAttrs.push(
-                                `style="--availability-color: ${escapeHtml(safeColor(custom))}"`
-                              );
-                            }
-                            if (!this.isDateSelectable(calendarDate.date)) {
-                              classes.push('availability-unselectable');
-                            }
-                            cellAttrs.push(
-                              `aria-label="${escapeHtml(bucket)}"`
-                            );
-                          }
-                          if (
-                            availabilityMode === 'day' &&
-                            selectable &&
-                            calendarDate.isCurrentMonth
-                          ) {
-                            const d = calendarDate.date;
-                            if (
-                              this._rangeStart &&
-                              isSameDay(d, this._rangeStart)
-                            )
-                              classes.push('availability-range-start');
-                            if (this._rangeEnd && isSameDay(d, this._rangeEnd))
-                              classes.push('availability-range-end');
-                            if (this._rangeStart && this._rangeEnd) {
-                              if (d > this._rangeStart && d < this._rangeEnd)
-                                classes.push('availability-in-range');
-                            }
-                          }
-                          const dateString = calendarDate.date.toISOString();
-                          return `
-                          <td
-                            class="${classes.join(' ')}"
-                            data-date="${dateString}"
-                            data-day-index="${dayIndex}"
-                            data-clickable="true"
-                            ${cellAttrs.join(' ')}
-                          >
-                            ${calendarDate.date.getDate()}
-                          </td>
-                        `;
-                        })
-                        .join('')}
-                    </tr>
-                  `
-                      )
-                      .join('')
-              }
-            </tbody>
-          </table>
+          <div class="calendar-panes">
+            ${viewModel.panes.map(renderPane).join('')}
+          </div>
 
           ${
             !isLoading && availabilityMode !== 'day' && viewModel.selectedDate

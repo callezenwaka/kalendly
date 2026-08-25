@@ -4,6 +4,7 @@ import {
   CalendarConfig,
   CalendarActions,
   CalendarViewModel,
+  CalendarPane,
   CategoryColorMap,
 } from './types';
 import {
@@ -66,11 +67,29 @@ export class CalendarEngine {
    * Get view model with computed properties
    */
   getViewModel(): CalendarViewModel {
-    const calendarDates = generateCalendarDates(
-      this.state.currentYear,
-      this.state.currentMonth,
-      this.config.events,
-      this.config.weekStartsOn
+    const panes: CalendarPane[] = Array.from(
+      { length: Math.max(1, this.config.monthCount ?? 1) },
+      (_, offset) => {
+        const anchor = new Date(
+          this.state.currentYear,
+          this.state.currentMonth + offset,
+          1
+        );
+        const year = anchor.getFullYear();
+        const month = anchor.getMonth();
+
+        return {
+          year,
+          month,
+          monthAndYearText: getMonthYearText(year, month),
+          calendarDates: generateCalendarDates(
+            year,
+            month,
+            this.config.events,
+            this.config.weekStartsOn
+          ),
+        };
+      }
     );
 
     return {
@@ -78,14 +97,12 @@ export class CalendarEngine {
       months: MONTHS,
       days: DAYS,
       years: generateYears(this.config.minYear, this.config.maxYear),
-      monthAndYearText: getMonthYearText(
-        this.state.currentYear,
-        this.state.currentMonth
-      ),
+      monthAndYearText: panes[0].monthAndYearText,
       scheduleDay: this.state.selectedDate
         ? formatDateForDisplay(this.state.selectedDate)
         : '',
-      calendarDates,
+      panes,
+      calendarDates: panes[0].calendarDates,
       popupPositionClass: getPopupPositionClass(this.state.selectedDayIndex),
     };
   }

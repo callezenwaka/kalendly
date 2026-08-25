@@ -393,6 +393,27 @@
 }
 
 /* Picker overlay for click-outside */
+.calendar-panes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--calendar-space-4);
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.calendar-pane {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.calendar-pane-caption {
+  padding: var(--calendar-space-2) 0;
+  font-size: var(--calendar-font-sm);
+  font-weight: 600;
+  text-align: center;
+  color: var(--calendar-text-color);
+}
+
 .calendar-table {
   width: 100%;
   max-width: 100%;
@@ -850,6 +871,10 @@
 }
 
 @media (max-width: 768px) {
+  .calendar-panes {
+    flex-direction: column;
+  }
+
   .calendar-content {
     margin-top: var(--calendar-space-4);
     padding: 0 var(--calendar-space-2);
