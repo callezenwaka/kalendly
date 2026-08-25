@@ -140,7 +140,7 @@
       <button type="button" id="modeDayBtn">Day View</button>
       <button type="button" id="modeTimeBtn">Time View</button>
     </div>
-    <p class="hint">Day / Time view hides event details and shows booked vs free cells.</p>
+    <p class="hint">Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked.</p>
 
     <hr class="divider">
 
@@ -161,7 +161,7 @@
     <p class="hint">Simulates per-month server fetch. Navigate months to see the skeleton loading state.</p>
   </div>
 
-  <kal-calendar id="cal" title="My Calendar"></kal-calendar>
+  <kal-calendar id="cal" heading="My Calendar"></kal-calendar>
 
   <div class="event-log">
     <h3>Event Log</h3>
@@ -200,11 +200,11 @@
     ];
 
     const leanEvents = [
-      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00' },
-      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00' },
-      { id: 12, date: thisMonth(15) },
-      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00' },
-      { id: 14, date: thisMonth(22), allDay: true },
+      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00', availabilityStatus: 'blocked' },
+      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00', availabilityStatus: 'conditional' },
+      { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
+      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
+      { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
     ];
 
     cal.events = normalEvents;

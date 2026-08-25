@@ -155,8 +155,9 @@
     .legend-swatch {
       width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0;
     }
-    .legend-swatch.booked { background: #fee2e2; border: 1px solid #dc2626; }
-    .legend-swatch.free   { background: #dcfce7; border: 1px solid #16a34a; }
+    .legend-swatch.blocked     { background: #fee2e2; border: 1px solid #dc2626; }
+    .legend-swatch.conditional { background: #fef3c7; border: 1px solid #d97706; }
+    .legend-swatch.open        { background: #dcfce7; border: 1px solid #16a34a; }
 
     .hidden { display: none; }
     .full-width { grid-column: 1 / -1; }
@@ -216,8 +217,9 @@
         <button class="mode-btn full-width" id="btn-mode-time">Time View</button>
       </div>
       <div class="legend hidden" id="availability-legend">
-        <div class="legend-item"><div class="legend-swatch booked"></div> Booked</div>
-        <div class="legend-item"><div class="legend-swatch free"></div> Available</div>
+        <div class="legend-item"><div class="legend-swatch open"></div> Open</div>
+        <div class="legend-item"><div class="legend-swatch conditional"></div> Conditional</div>
+        <div class="legend-item"><div class="legend-swatch blocked"></div> Blocked</div>
       </div>
     </div>
 
@@ -258,7 +260,7 @@
   <div class="panel">
     <kal-calendar
       id="calendar"
-      title="Web Component Test"
+      heading="Web Component Test"
     ></kal-calendar>
   </div>
 
@@ -480,11 +482,11 @@
   }
 
   const LEAN_EVENTS = [
-    { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00' },
-    { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00' },
-    { id: 12, date: thisMonth(15) },
-    { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00' },
-    { id: 14, date: thisMonth(22), allDay: true },
+    { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00', availabilityStatus: 'blocked' },
+    { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00', availabilityStatus: 'conditional' },
+    { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
+    { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
+    { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
   ];
 
   const modeBtns = ['btn-mode-normal', 'btn-mode-day', 'btn-mode-time'];

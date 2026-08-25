@@ -128,11 +128,11 @@
     }
 
     const leanEvents = [
-      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00' },
-      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00' },
-      { id: 12, date: thisMonth(15) },
-      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00' },
-      { id: 14, date: thisMonth(22), allDay: true },
+      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00', availabilityStatus: 'blocked' },
+      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00', availabilityStatus: 'conditional' },
+      { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
+      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
+      { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
     ];
 
     createApp({
