@@ -2040,16 +2040,24 @@ describe('CalendarElement — availability validation timing', () => {
     return el;
   }
 
-  function expectingReactionError(run: () => void): void {
-    const swallow = (e: ErrorEvent) => e.preventDefault();
-    window.addEventListener('error', swallow);
+  function captureReactionError(run: () => void): Error {
+    const captured: Error[] = [];
+    const capture = (e: ErrorEvent) => {
+      captured.push(e.error ?? new Error(e.message));
+      e.preventDefault();
+    };
+
+    window.addEventListener('error', capture);
     try {
       run();
-    } catch {
-      // a custom element reaction reports rather than propagates
+    } catch (thrown) {
+      captured.push(thrown as Error);
     } finally {
-      window.removeEventListener('error', swallow);
+      window.removeEventListener('error', capture);
     }
+
+    expect(captured).toHaveLength(1);
+    return captured[0];
   }
 
   it('throws before the element is ever connected', () => {
@@ -2067,8 +2075,11 @@ describe('CalendarElement — availability validation timing', () => {
     el.events = [{ id: 7, name: 'a', date: '2024-01-20' }];
     document.body.appendChild(el);
 
-    expectingReactionError(() => el.setAttribute('availability-mode', 'day'));
+    const reported = captureReactionError(() =>
+      el.setAttribute('availability-mode', 'day')
+    );
 
+    expect(reported.message).toMatch(/Missing on: 7/);
     expect(() => el.getEngine()).toThrow(/Missing on: 7/);
   });
 
@@ -2114,8 +2125,9 @@ describe('CalendarElement — availability validation timing', () => {
       },
     ];
 
-    expectingReactionError(() => document.body.appendChild(el));
+    const reported = captureReactionError(() => document.body.appendChild(el));
 
+    expect(reported.message).toMatch(/Unrecognised on: 3 \(maintenance\)/);
     expect(() => el.getEngine()).toThrow(/Unrecognised on: 3 \(maintenance\)/);
     expect(() => el.getCurrentDate()).toThrow(/Unrecognised on/);
   });
@@ -2131,7 +2143,7 @@ describe('CalendarElement — availability validation timing', () => {
       },
     ];
 
-    expectingReactionError(() => document.body.appendChild(el));
+    captureReactionError(() => document.body.appendChild(el));
 
     el.availabilityColors = { maintenance: '#0891b2' };
 
