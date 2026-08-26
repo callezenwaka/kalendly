@@ -247,15 +247,6 @@ export class CalendarElement extends HTMLElement {
     const requested = Number(this.getAttribute('months') ?? 1);
     if (!Number.isInteger(requested) || requested < 1) return 1;
 
-    if (requested > 1 && this.getAttribute('availability-mode') !== 'day') {
-      console.warn(
-        `<kal-calendar> months="${requested}" is only supported with ` +
-          `availability-mode="day" — rendering a single month. Popup ` +
-          `positioning has no notion of which grid a cell is in.`
-      );
-      return 1;
-    }
-
     return Math.min(requested, 2);
   }
 
@@ -881,7 +872,7 @@ export class CalendarElement extends HTMLElement {
           ${
             !isLoading && availabilityMode !== 'day' && viewModel.selectedDate
               ? `
-            <div class="date-popup ${viewModel.popupPositionClass}">
+            <div class="date-popup">
               <div class="popup-header">
                 <h2>${viewModel.scheduleDay}</h2>
                 <button type="button" class="popup-close" data-action="close-popup" aria-label="Close">✕</button>

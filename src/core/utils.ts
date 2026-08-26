@@ -145,18 +145,6 @@ export function generateCalendarDates(
   return dates;
 }
 
-export function getPopupPositionClass(selectedDayIndex: number | null): string {
-  if (selectedDayIndex === null) return 'popup-center-bottom';
-
-  if (selectedDayIndex < 3) {
-    return 'popup-right';
-  } else if (selectedDayIndex > 4) {
-    return 'popup-left';
-  } else {
-    return 'popup-center-bottom';
-  }
-}
-
 export function getCellClasses(calendarDate: CalendarDate): string[] {
   const classes: string[] = [];
 

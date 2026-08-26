@@ -100,15 +100,6 @@ export interface CalendarActions {
   updateTasks: () => void;
 }
 
-export interface PopupPosition {
-  class:
-    | 'popup-left'
-    | 'popup-right'
-    | 'popup-center-top'
-    | 'popup-center-bottom';
-  style?: Record<string, string | number>;
-}
-
 export interface CalendarViewModel extends CalendarState {
   months: string[];
   days: string[];
@@ -117,7 +108,6 @@ export interface CalendarViewModel extends CalendarState {
   scheduleDay: string;
   panes: CalendarPane[];
   calendarDates: CalendarDate[][];
-  popupPositionClass: string;
 }
 
 export type CalendarEventHandler = (event: CalendarEvent) => void;

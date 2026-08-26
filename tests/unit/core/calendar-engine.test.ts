@@ -146,7 +146,7 @@ describe('CalendarEngine', () => {
       expect(viewModel).toHaveProperty('years');
       expect(viewModel).toHaveProperty('monthAndYearText');
       expect(viewModel).toHaveProperty('calendarDates');
-      expect(viewModel).toHaveProperty('popupPositionClass');
+      expect(viewModel).toHaveProperty('panes');
     });
 
     it('should include all required properties', () => {
@@ -170,13 +170,6 @@ describe('CalendarEngine', () => {
       expect(Array.isArray(viewModel.calendarDates)).toBe(true);
       expect(viewModel.calendarDates.length).toBeGreaterThan(0);
       expect(Array.isArray(viewModel.calendarDates[0])).toBe(true);
-    });
-
-    it('should compute popup position class', () => {
-      const engine = new CalendarEngine({ events: [] });
-      const viewModel = engine.getViewModel();
-
-      expect(viewModel.popupPositionClass).toBe('popup-center-bottom');
     });
 
     it('should format scheduleDay correctly when date selected', () => {

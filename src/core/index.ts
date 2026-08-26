@@ -14,7 +14,6 @@ export {
   getEventsForDate,
   hasEvents,
   generateCalendarDates,
-  getPopupPositionClass,
   getCellClasses,
   formatDateForDisplay,
   getMonthYearText,

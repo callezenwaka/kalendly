@@ -11,7 +11,6 @@ import {
   generateCalendarDates,
   getEventsForDate,
   generateYears,
-  getPopupPositionClass,
   getMonthYearText,
   formatDateForDisplay,
   mergeCategoryColors,
@@ -103,7 +102,6 @@ export class CalendarEngine {
         : '',
       panes,
       calendarDates: panes[0].calendarDates,
-      popupPositionClass: getPopupPositionClass(this.state.selectedDayIndex),
     };
   }
 

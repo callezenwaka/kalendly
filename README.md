@@ -333,19 +333,19 @@ document.querySelector('kal-calendar').theme = {
 
 Primitives are set as HTML attributes:
 
-| Attribute               | Type             | Default          | Description                                         |
-| ----------------------- | ---------------- | ---------------- | --------------------------------------------------- |
-| `heading`               | `string`         | —                | Calendar heading                                    |
-| `title`                 | `string`         | —                | **Deprecated** — use `heading`                      |
-| `initial-date`          | `string`         | today            | ISO date string for initial view                    |
-| `months`                | `"1"\|"2"`       | `"1"`            | Side-by-side months; `availability-mode="day"` only |
-| `min-year`              | `string`         | currentYear - 30 | Minimum year in picker                              |
-| `max-year`              | `string`         | currentYear + 10 | Maximum year in picker                              |
-| `week-starts-on`        | `"0"\|"1"`       | `"0"`            | Week start: 0 = Sunday, 1 = Monday                  |
-| `use-short-month-names` | `string`         | —                | Present = use abbreviated month names               |
-| `availability-mode`     | `"day"\|"time"`  | —                | Hides event details; shows booked/free cells        |
-| `selectable`            | `"range"`        | —                | Enables day/slot selection (requires avail mode)    |
-| `loading`               | `boolean` (flag) | —                | Present = render skeleton shimmer cells             |
+| Attribute               | Type             | Default          | Description                                      |
+| ----------------------- | ---------------- | ---------------- | ------------------------------------------------ |
+| `heading`               | `string`         | —                | Calendar heading                                 |
+| `title`                 | `string`         | —                | **Deprecated** — use `heading`                   |
+| `initial-date`          | `string`         | today            | ISO date string for initial view                 |
+| `months`                | `"1"\|"2"`       | `"1"`            | Render two months side by side                   |
+| `min-year`              | `string`         | currentYear - 30 | Minimum year in picker                           |
+| `max-year`              | `string`         | currentYear + 10 | Maximum year in picker                           |
+| `week-starts-on`        | `"0"\|"1"`       | `"0"`            | Week start: 0 = Sunday, 1 = Monday               |
+| `use-short-month-names` | `string`         | —                | Present = use abbreviated month names            |
+| `availability-mode`     | `"day"\|"time"`  | —                | Hides event details; shows booked/free cells     |
+| `selectable`            | `"range"`        | —                | Enables day/slot selection (requires avail mode) |
+| `loading`               | `boolean` (flag) | —                | Present = render skeleton shimmer cells          |
 
 ## Properties
 
@@ -456,7 +456,7 @@ Setting `events` throws where you set it. One case cannot: markup parsed before 
 ></kal-calendar>
 ```
 
-Navigation advances one month at a time, so a range spanning a month boundary stays visible. Ranges cross panes freely. `months` applies to day mode only — elsewhere it warns and renders one month, because popup positioning has no notion of which grid a cell sits in. Panes stack vertically on narrow screens.
+Navigation advances one month at a time, so a range spanning a month boundary stays visible. Ranges cross panes freely, and it works in standard and time modes too. Panes stack vertically on narrow screens.
 
 <div align="center">
   <img src="./docs/images/day.png" alt="Availability day view — month grid with red booked cells and green free cells"/>

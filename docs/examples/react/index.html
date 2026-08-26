@@ -296,7 +296,7 @@
             h('button', { type: 'button', className: months === 1 ? 'active' : '', onClick: () => setMonths(1) }, '1 Month'),
             h('button', { type: 'button', className: months === 2 ? 'active' : '', onClick: () => { setMonths(2); if (mode !== 'day') handleModeChange('day'); } }, '2 Months'),
           ),
-          h('p', { className: 'hint' }, 'Day view only. Navigation advances one month at a time. Turn on Selectable Range to pick a range that spans both.'),
+          h('p', { className: 'hint' }, 'Navigation advances one month at a time. Turn on Selectable Range to pick a range that spans both.'),
 
           h('hr', { className: 'divider' }),
 

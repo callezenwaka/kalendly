@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multi-state availability** — `availabilityStatus` on `CalendarEvent` with three built-in buckets: `open` (green), `conditional` (amber), `blocked` (red). Collisions on a day resolve by severity.
 - **`availabilityColors`** — recolour a built-in bucket or declare your own. Merges over the defaults, and paints the cell through an inline `--availability-color`, which takes precedence over the matching `theme` key.
 - **`selectableStatuses`** — which buckets a range may start, end or span. Defaults to `open` only.
-- **`months` attribute** — two months side by side under `availability-mode="day"`. Navigation advances one month at a time; ranges cross panes. Warns and renders one month elsewhere.
+- **`months` attribute** — two months side by side, in every mode. Navigation advances one month at a time; ranges cross panes.
 - **`heading` attribute** — replaces `title`, which also rendered as a browser tooltip over the whole calendar. `title` still works and warns once per page.
 - **Design tokens** — every colour, type size, radius, shadow and spacing step is a custom property, in two tiers: `--kal-*` primitives and `--calendar-*` semantic roles. 26 new `CalendarTheme` keys expose the semantic layer.
 - **Open value types** — `status`, `category` and `priority` accept any string while keeping autocomplete for the documented values. Unrecognised values render with a neutral badge fill via `--calendar-badge-bg` / `--calendar-badge-text`.
@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Selectability has one definition.** The click handler read a CSS class while the range-span check read event data; they agreed only by coincidence. Both now use the same predicate, which also stops a previous- or next-month day carrying events from being picked as a range endpoint.
 - **Multi-word badge values produce one class.** `status: 'in progress'` emitted two classes and a quote could escape the attribute.
 - Dead CSS removed — fifteen rule blocks for classes nothing rendered.
+- `getPopupPositionClass` removed along with `CalendarViewModel.popupPositionClass` and the `PopupPosition` type. It computed a class from the day-of-week index that no CSS rule ever consumed — the popup is a centred modal — so it had no effect on where anything rendered.
 
 ### Notes
 
@@ -226,7 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Vite config with rollupTypes option to merge all .d.ts into single file
 - Improved type generation for Vue components
 
-## [0.1.2] - 2025-01-XX
+## [0.1.2] - 2026-01-11
 
 ### Added
 
@@ -260,7 +261,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - React Calendar dependency array now includes all dependencies (events, initialDate, minYear, maxYear, weekStartsOn)
 - Removed unused `selectedDayIndex` variable from React Calendar component
 
-## [0.1.1] - 2025-01-XX
+## [0.1.1] - 2025-12-31
 
 ### Added
 
@@ -276,7 +277,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Upgraded npm to support trusted publishing with OIDC
 
-## [0.1.0] - 2024-12-XX
+## [0.1.0] - 2025-12-31
 
 ### Added
 

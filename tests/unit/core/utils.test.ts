@@ -7,7 +7,6 @@ import {
   getEventsForDate,
   hasEvents,
   generateCalendarDates,
-  getPopupPositionClass,
   getCellClasses,
   formatDateForDisplay,
   getMonthYearText,
@@ -383,42 +382,6 @@ describe('Calendar Grid Generation', () => {
       otherMonthDates.forEach(date => {
         expect(date.isCurrentMonth).toBe(false);
       });
-    });
-  });
-});
-
-describe('Popup Positioning', () => {
-  describe('getPopupPositionClass', () => {
-    it('should return popup-right for dayIndex 0', () => {
-      expect(getPopupPositionClass(0)).toBe('popup-right');
-    });
-
-    it('should return popup-right for dayIndex 1', () => {
-      expect(getPopupPositionClass(1)).toBe('popup-right');
-    });
-
-    it('should return popup-right for dayIndex 2', () => {
-      expect(getPopupPositionClass(2)).toBe('popup-right');
-    });
-
-    it('should return popup-center-bottom for dayIndex 3', () => {
-      expect(getPopupPositionClass(3)).toBe('popup-center-bottom');
-    });
-
-    it('should return popup-center-bottom for dayIndex 4', () => {
-      expect(getPopupPositionClass(4)).toBe('popup-center-bottom');
-    });
-
-    it('should return popup-left for dayIndex 5', () => {
-      expect(getPopupPositionClass(5)).toBe('popup-left');
-    });
-
-    it('should return popup-left for dayIndex 6', () => {
-      expect(getPopupPositionClass(6)).toBe('popup-left');
-    });
-
-    it('should return popup-center-bottom for null', () => {
-      expect(getPopupPositionClass(null)).toBe('popup-center-bottom');
     });
   });
 });

@@ -2477,13 +2477,38 @@ describe('CalendarElement — multi-month view', () => {
     expect(mountMonths('1').querySelector('.calendar-pane-caption')).toBeNull();
   });
 
-  it('falls back to one pane outside day mode, with a warning', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const el = mountMonths('2', 'time');
+  it('renders two panes in time mode', () => {
+    expect(mountMonths('2', 'time').querySelectorAll('table').length).toBe(2);
+  });
 
-    expect(el.querySelectorAll('table').length).toBe(1);
-    expect(warn.mock.calls[0][0]).toMatch(/only supported with/);
-    warn.mockRestore();
+  it('renders two panes in standard mode', () => {
+    expect(mountMonths('2', null).querySelectorAll('table').length).toBe(2);
+  });
+
+  it('opens the popup for a day clicked in the second pane', async () => {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    el.setAttribute('months', '2');
+    el.events = [
+      { id: 1, name: 'Feb event', date: '2024-02-05' },
+      { id: 2, name: 'Jan event', date: '2024-01-20' },
+    ];
+    document.body.appendChild(el);
+    await flush();
+
+    const pane = el.querySelectorAll('.calendar-pane')[1];
+    Array.from(pane.querySelectorAll('td'))
+      .find(
+        td =>
+          td.textContent?.trim() === '5' &&
+          !td.classList.contains('calendar-cell-other-month')
+      )
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+
+    const popup = el.querySelector('.date-popup');
+    expect(popup?.textContent).toContain('Feb event');
+    expect(popup?.textContent).not.toContain('Jan event');
   });
 
   it('clamps beyond two panes', () => {
