@@ -290,7 +290,7 @@
               h('button', { type: 'button', class: months.value === 1 ? 'active' : '', onClick: () => { months.value = 1; } }, '1 Month'),
               h('button', { type: 'button', class: months.value === 2 ? 'active' : '', onClick: () => { months.value = 2; if (mode.value !== 'day') handleModeChange('day'); } }, '2 Months'),
             ]),
-            h('p', { class: 'hint' }, 'Two side-by-side months, day view only. Navigation advances one month at a time, and a range can span both.'),
+            h('p', { class: 'hint' }, 'Two side-by-side months, day view only. Navigation advances one month at a time. Turn on Selectable Range below to pick a range that spans both.'),
 
             h('hr', { class: 'divider' }),
 
@@ -313,7 +313,7 @@
 
           h('kal-calendar', {
             ref: calRef,
-            title: 'My Calendar',
+            heading: 'My Calendar',
             'onCal-date-select':         e => addLog(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`),
             'onCal-month-change':         e => { if (!lazyHandler) addLog(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`); },
             'onCal-availability-select':  handleAvailabilitySelect,

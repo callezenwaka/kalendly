@@ -292,7 +292,7 @@
             h('button', { type: 'button', className: months === 1 ? 'active' : '', onClick: () => setMonths(1) }, '1 Month'),
             h('button', { type: 'button', className: months === 2 ? 'active' : '', onClick: () => { setMonths(2); if (mode !== 'day') handleModeChange('day'); } }, '2 Months'),
           ),
-          h('p', { className: 'hint' }, 'Two side-by-side months, day view only. Navigation advances one month at a time, and a range can span both.'),
+          h('p', { className: 'hint' }, 'Two side-by-side months, day view only. Navigation advances one month at a time. Turn on Selectable Range below to pick a range that spans both.'),
 
           h('hr', { className: 'divider' }),
 
@@ -315,7 +315,7 @@
 
         h('kal-calendar', {
           ref: calRef,
-          title: 'My Calendar',
+          heading: 'My Calendar',
           'oncal-date-select': e => addLog(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`),
           'oncal-month-change': e => {
             if (!lazyOnRef.current) {
