@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-26
+
 ### Breaking Changes
 
 - **Event text is HTML-escaped.** `name`, `description`, `location`, `organizer`, `notes`, `tags`, `attendees` and the formatted time range render as text, so markup passed in those fields is no longer parsed. Use `renderEvent` to emit your own markup.
