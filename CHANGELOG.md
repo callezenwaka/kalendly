@@ -44,6 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A configuration error raised while the browser is upgrading the element — declarative markup parsed before the module loads — is reported as an uncaught error rather than thrown to your code, because custom element callbacks run inside the reaction queue. The failure is kept: the next `getEngine()`, `getCurrentDate()` or `goToDate()` throws it, and setting `events` or `availabilityColors` clears it. Setting properties on an already-defined element throws where you set them.
 
+## [0.2.2] - 2026-05-10
+
+### Added
+
+- **Dark theme support** — hard-coded colours in the stylesheet became CSS custom properties, so a dark palette can be applied without overriding rules: `--calendar-text-light`, `--calendar-cell-hover`, `--calendar-header-bg`, `--calendar-selected-bg`, `--calendar-popup-bg`, `--calendar-skeleton-base`, `--calendar-skeleton-highlight`
+- **`headerBg` and `popupBg`** on `CalendarTheme`, so the two new surfaces are reachable from the JS theming API
+- **CI workflow** running checks on push and pull request
+- **Vue integration docs** — `isCustomElement` configuration for Vite, Nuxt and webpack, plus screenshots of the day and time availability views
+
 ## [0.2.1] - 2026-05-10
 
 ### Added

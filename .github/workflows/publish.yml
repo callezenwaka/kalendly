@@ -1,35 +1,40 @@
 name: Publish to npm
 
-# Triggers on any v* tag — push the tag manually or via a release.
-# The workflow reads the tag, bumps package.json to match, builds and
-# validates everything, then commits the version bump and publishes.
-# Version bump is committed only after all checks pass — a failed build
-# or validation leaves main unchanged.
-#
-# Required secrets:
-#   AUTOMATION_TOKEN — fine-grained PAT with Contents: Read & write
-#                      + Workflows: Read & write on this repo
-#                      (used to push the version-bump commit back to main)
-#   NODE_AUTH_TOKEN  — npm access token for publishing (set in repo settings
-#                      as NPM_TOKEN, referenced below)
+# The filename must stay publish.yml — npm's trusted publisher binds to it.
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Semantic version bump'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-      id-token: write
-
     steps:
+      - name: Validate release source
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "::error::Release must be run from main. Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
+          ref: main
+          fetch-depth: 0
           token: ${{ secrets.AUTOMATION_TOKEN }}
 
       - name: Cache npm dependencies
@@ -46,11 +51,53 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Set version from tag
+      - name: Calculate next version
+        id: version
         run: |
-          TAG="${{ github.ref_name }}"
-          VERSION="${TAG#v}"
-          npm version "$VERSION" --no-git-tag-version
+          git fetch --force --tags origin
+          LATEST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+          if [[ -z "$LATEST_TAG" ]]; then
+            LATEST_TAG="v0.0.0"; HAS_PREVIOUS_TAG="false"
+          else
+            HAS_PREVIOUS_TAG="true"
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${LATEST_TAG#v}"
+          case "${{ inputs.bump }}" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+            *) echo "::error::Unsupported bump: ${{ inputs.bump }}"; exit 1 ;;
+          esac
+
+          NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          if git rev-parse "refs/tags/$NEXT_TAG" >/dev/null 2>&1; then
+            echo "::error::Release tag already exists: $NEXT_TAG"; exit 1
+          fi
+
+          {
+            echo "previous_tag=$LATEST_TAG"
+            echo "has_previous_tag=$HAS_PREVIOUS_TAG"
+            echo "tag=$NEXT_TAG"
+            echo "version=${NEXT_TAG#v}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Require release notes
+        run: |
+          NOTES="$(awk '
+            /^## \[Unreleased\]/ { found = 1; next }
+            found && /^## \[/     { exit }
+            found                 { print }
+          ' CHANGELOG.md)"
+
+          if [[ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]]; then
+            echo "::error::No entries under ## [Unreleased] in CHANGELOG.md"
+            exit 1
+          fi
+
+      - name: Set version from bump
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
 
       - name: Sync lock file
         run: npm install --package-lock-only --ignore-scripts
@@ -70,13 +117,72 @@ jobs:
       - name: Validate package
         run: npm run test:package
 
-      - name: Commit version bump
+      - name: Promote CHANGELOG entry
+        run: |
+          python3 - "${{ steps.version.outputs.version }}" "$(date -u +%Y-%m-%d)" <<'PY'
+          import pathlib, sys
+
+          version, today = sys.argv[1], sys.argv[2]
+          path = pathlib.Path('CHANGELOG.md')
+          text = path.read_text(encoding='utf-8')
+
+          heading = '## [Unreleased]'
+          if heading not in text:
+              sys.exit('CHANGELOG.md has no ## [Unreleased] heading')
+
+          path.write_text(
+              text.replace(heading, f'{heading}\n\n## [{version}] - {today}', 1),
+              encoding='utf-8',
+          )
+          PY
+
+      # Skipping an existing version lets a re-run finish the git steps after a
+      # partial failure.
+      - name: Publish to npm
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if npm view "kalendly@${VERSION}" version >/dev/null 2>&1; then
+            echo "::notice::kalendly@${VERSION} already on npm — skipping publish"
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Commit release and tag
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json
-          git commit -m "chore: bump version to ${{ github.ref_name }}"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "chore: release ${{ steps.version.outputs.tag }}"
+          git tag -a "${{ steps.version.outputs.tag }}" \
+            -m "Release ${{ steps.version.outputs.tag }}"
           git push origin HEAD:main
+          git push origin "${{ steps.version.outputs.tag }}"
 
-      - name: Publish to npm
-        run: npm publish --access public --provenance
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          NOTES_FILE="$(mktemp)"
+          awk -v v="${{ steps.version.outputs.version }}" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/       { exit }
+            found                   { print }
+          ' CHANGELOG.md > "$NOTES_FILE"
+
+          args=("$TAG" --title "$TAG" --generate-notes --notes-file "$NOTES_FILE")
+          if [[ "${{ steps.version.outputs.has_previous_tag }}" == "true" ]]; then
+            args+=(--notes-start-tag "${{ steps.version.outputs.previous_tag }}")
+          fi
+
+          gh release create "${args[@]}"
+
+      - name: Summary
+        run: |
+          {
+            echo "## Released ${{ steps.version.outputs.tag }}"
+            echo "- Previous tag: ${{ steps.version.outputs.previous_tag }}"
+            echo "- Bump: ${{ inputs.bump }}"
+            echo "- npm: https://www.npmjs.com/package/kalendly/v/${{ steps.version.outputs.version }}"
+            echo "- Release: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
+          } >> "$GITHUB_STEP_SUMMARY"
