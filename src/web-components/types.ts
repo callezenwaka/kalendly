@@ -17,12 +17,16 @@ export interface CalendarElementProps {
   categoryColors?: CategoryColorMap;
   renderEvent?: (event: CalendarEvent) => string;
   renderNoEvents?: () => string;
+  availabilityColors?: Record<string, string>;
+  selectableStatuses?: string[];
 }
 
 export interface CalendarElementInstance {
   events: CalendarEvent[];
   theme: CalendarTheme;
   categoryColors: CategoryColorMap;
+  availabilityColors: Record<string, string>;
+  selectableStatuses: string[];
   renderEvent: (event: CalendarEvent) => string;
   renderNoEvents: () => string;
   updateEvents: (events: CalendarEvent[]) => void;

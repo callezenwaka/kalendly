@@ -140,7 +140,16 @@
       <button type="button" id="modeDayBtn">Day View</button>
       <button type="button" id="modeTimeBtn">Time View</button>
     </div>
-    <p class="hint">Day / Time view hides event details and shows booked vs free cells.</p>
+    <p class="hint">Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked.</p>
+
+    <hr class="divider">
+
+    <h2>Months</h2>
+    <div class="button-grid">
+      <button type="button" id="months1Btn" class="active">1 Month</button>
+      <button type="button" id="months2Btn">2 Months</button>
+    </div>
+    <p class="hint">Navigation advances one month at a time. Turn on Selectable Range to pick a range that spans both.</p>
 
     <hr class="divider">
 
@@ -161,7 +170,7 @@
     <p class="hint">Simulates per-month server fetch. Navigate months to see the skeleton loading state.</p>
   </div>
 
-  <kal-calendar id="cal" title="My Calendar"></kal-calendar>
+  <kal-calendar id="cal" heading="My Calendar"></kal-calendar>
 
   <div class="event-log">
     <h3>Event Log</h3>
@@ -200,11 +209,11 @@
     ];
 
     const leanEvents = [
-      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00' },
-      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00' },
-      { id: 12, date: thisMonth(15) },
-      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00' },
-      { id: 14, date: thisMonth(22), allDay: true },
+      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00', availabilityStatus: 'blocked' },
+      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00', availabilityStatus: 'conditional' },
+      { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
+      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
+      { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
     ];
 
     cal.events = normalEvents;
@@ -288,15 +297,35 @@
     function setMode(mode) {
       setActiveBtn(modeBtns, `mode${mode.charAt(0).toUpperCase() + mode.slice(1)}Btn`);
       if (mode === 'Normal') {
+        cal.removeAttribute('months');
+        setActiveBtn(['months1Btn', 'months2Btn'], 'months1Btn');
         cal.removeAttribute('availability-mode');
         cal.events = normalEvents;
         log('Availability mode → off');
       } else {
+        if (mode === 'Time') {
+          cal.removeAttribute('months');
+          setActiveBtn(['months1Btn', 'months2Btn'], 'months1Btn');
+        }
         cal.setAttribute('availability-mode', mode === 'Day' ? 'day' : 'time');
         cal.events = leanEvents;
         log(`Availability mode → ${mode.toLowerCase()} (lean events, details hidden)`);
       }
     }
+
+    function setMonths(count) {
+      setActiveBtn(['months1Btn', 'months2Btn'], `months${count}Btn`);
+      if (count === 1) {
+        cal.removeAttribute('months');
+      } else {
+        if (cal.getAttribute('availability-mode') !== 'day') setMode('Day');
+        cal.setAttribute('months', '2');
+      }
+      log(`Months → ${count}`);
+    }
+
+    document.getElementById('months1Btn').addEventListener('click', () => setMonths(1));
+    document.getElementById('months2Btn').addEventListener('click', () => setMonths(2));
 
     document.getElementById('modeNormalBtn').addEventListener('click', () => setMode('Normal'));
     document.getElementById('modeDayBtn').addEventListener('click',    () => setMode('Day'));

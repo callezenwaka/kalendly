@@ -62,7 +62,7 @@ npm install kalendly
 />
 <script src="https://unpkg.com/kalendly/dist/index.umd.js"></script>
 
-<kal-calendar id="cal" title="My Calendar"></kal-calendar>
+<kal-calendar id="cal" heading="My Calendar"></kal-calendar>
 
 <script>
   const cal = document.getElementById('cal');
@@ -104,7 +104,7 @@ import 'kalendly/styles';
 function App() {
   return (
     <kal-calendar
-      title="My Calendar"
+      heading="My Calendar"
       events={events}
       oncal-date-select={e => console.log(e.detail.date)}
       oncal-month-change={e => console.log(e.detail.year, e.detail.month)}
@@ -198,7 +198,7 @@ Without this the component still renders correctly — Vue falls back to a nativ
 ```vue
 <template>
   <kal-calendar
-    title="My Calendar"
+    heading="My Calendar"
     :events="events"
     @cal-date-select="onDateSelect"
     @cal-month-change="onMonthChange"
@@ -236,7 +236,7 @@ import 'kalendly/styles';
 ```html
 <!-- app.component.html -->
 <kal-calendar
-  title="My Calendar"
+  heading="My Calendar"
   [events]="events"
   (cal-date-select)="onDateSelect($event)"
   (cal-month-change)="onMonthChange($event)"
@@ -280,7 +280,7 @@ import 'kalendly/styles';
 function App() {
   return (
     <kal-calendar
-      title="My Calendar"
+      heading="My Calendar"
       prop:events={events}
       on:cal-date-select={e => console.log(e.detail.date)}
     />
@@ -316,7 +316,7 @@ kalendly uses Light DOM — all standard CSS techniques work:
 }
 
 /* 2. Direct class overrides */
-.kalendly-calendar .calendar--card {
+.kalendly-calendar .calendar-card {
   border-radius: 12px;
 }
 ```
@@ -335,8 +335,10 @@ Primitives are set as HTML attributes:
 
 | Attribute               | Type             | Default          | Description                                      |
 | ----------------------- | ---------------- | ---------------- | ------------------------------------------------ |
-| `title`                 | `string`         | —                | Calendar title                                   |
+| `heading`               | `string`         | —                | Calendar heading                                 |
+| `title`                 | `string`         | —                | **Deprecated** — use `heading`                   |
 | `initial-date`          | `string`         | today            | ISO date string for initial view                 |
+| `months`                | `"1"\|"2"`       | `"1"`            | Render two months side by side                   |
 | `min-year`              | `string`         | currentYear - 30 | Minimum year in picker                           |
 | `max-year`              | `string`         | currentYear + 10 | Maximum year in picker                           |
 | `week-starts-on`        | `"0"\|"1"`       | `"0"`            | Week start: 0 = Sunday, 1 = Monday               |
@@ -349,16 +351,22 @@ Primitives are set as HTML attributes:
 
 Rich objects are set as JS properties (not attributes):
 
-| Property         | Type                               | Description                                       |
-| ---------------- | ---------------------------------- | ------------------------------------------------- |
-| `events`         | `CalendarEvent[]`                  | Events to display                                 |
-| `loading`        | `boolean`                          | `true` = render skeleton cells; `false` = restore |
-| `theme`          | `CalendarTheme`                    | Custom theme colors                               |
-| `categoryColors` | `CategoryColorMap`                 | Per-category color overrides                      |
-| `renderEvent`    | `(event: CalendarEvent) => string` | Custom event HTML renderer                        |
-| `renderNoEvents` | `() => string`                     | Custom empty-state HTML renderer                  |
+| Property             | Type                               | Description                                       |
+| -------------------- | ---------------------------------- | ------------------------------------------------- |
+| `events`             | `CalendarEvent[]`                  | Events to display                                 |
+| `loading`            | `boolean`                          | `true` = render skeleton cells; `false` = restore |
+| `theme`              | `CalendarTheme`                    | Custom theme colors                               |
+| `categoryColors`     | `CategoryColorMap`                 | Per-category color overrides                      |
+| `renderEvent`        | `(event: CalendarEvent) => string` | Custom event HTML renderer                        |
+| `renderNoEvents`     | `() => string`                     | Custom empty-state HTML renderer                  |
+| `availabilityColors` | `Record<string, string>`           | Colour per availability bucket                    |
+| `selectableStatuses` | `string[]`                         | Buckets a range may start, end or span            |
 
 > `renderEvent` and `renderNoEvents` are ignored when `availability-mode` is set.
+
+### Why `heading` and not `title`
+
+`title` is a global HTML attribute, so the browser renders it as a tooltip floating over the whole calendar as well as using it as the heading. `heading` does the same job without the tooltip. `title` still works and warns once per page; it will be removed in a future release.
 
 ## Custom Events
 
@@ -385,7 +393,70 @@ Hides all event details from the end user — only booked/free state is shown. D
 <kal-calendar availability-mode="day"></kal-calendar>
 ```
 
-Days with events are tinted red (booked); days without events are tinted green (free). Only cells in the current month are colour-coded — other-month cells remain grayed out. Clicking a day fires no popup and reveals no event details.
+Every event must declare `availabilityStatus`. Three buckets ship built in, coloured as a traffic light:
+
+| Bucket        | Colour | Meaning                                   |
+| ------------- | ------ | ----------------------------------------- |
+| `open`        | green  | nothing claims this day                   |
+| `conditional` | amber  | claimed, but not necessarily hard-blocked |
+| `blocked`     | red    | not available                             |
+
+```js
+cal.events = [
+  { id: 1, date: '2026-03-02', availabilityStatus: 'blocked' },
+  { id: 2, date: '2026-03-05', availabilityStatus: 'conditional' },
+];
+```
+
+Only cells in the current month are colour-coded — other-month cells remain grayed out. Clicking a day fires no popup and reveals no event details.
+
+A day holding several events resolves by severity: `blocked` beats `conditional` beats `open`, so a day with both a conditional and a blocked booking reads blocked. Precedence never depends on the order events arrive in.
+
+#### Your own buckets
+
+`availabilityColors` merges over the built-in three — override one, or add your own:
+
+```js
+cal.availabilityColors = {
+  conditional: '#7c3aed', // recolour a built-in
+  maintenance: '#0891b2', // add a bucket
+};
+cal.events = [{ id: 3, date: '2026-03-09', availabilityStatus: 'maintenance' }];
+```
+
+A bucket named in `availabilityColors` paints from an inline colour, which takes precedence over the same colour set through `theme`. The built-in three paint from CSS variables and are themeable the usual way.
+
+Caller-defined buckets resolve by the order their keys appear in `availabilityColors`.
+
+#### Which days are selectable
+
+By default only `open` days can start, end or span a range. `selectableStatuses` widens that:
+
+```js
+cal.selectableStatuses = ['open', 'conditional'];
+```
+
+#### Misconfiguration throws
+
+An event with no `availabilityStatus`, or one naming a bucket that is neither built in nor declared in `availabilityColors`, throws and names the offending events:
+
+```
+<kal-calendar> availability-mode requires availabilityStatus on every event. Missing on: 7, 9.
+```
+
+Setting `events` throws where you set it. One case cannot: markup parsed before the module defines the element configures the calendar inside a custom element upgrade, and the browser reports exceptions there as uncaught rather than passing them to your code. The failure is kept, so the next call to `getEngine()`, `getCurrentDate()` or `goToDate()` throws it, and correcting `events` or `availabilityColors` clears it.
+
+#### Two months side by side
+
+```html
+<kal-calendar
+  availability-mode="day"
+  months="2"
+  selectable="range"
+></kal-calendar>
+```
+
+Navigation advances one month at a time, so a range spanning a month boundary stays visible. Ranges cross panes freely, and it works in standard and time modes too. Panes stack vertically on narrow screens.
 
 <div align="center">
   <img src="./docs/images/day.png" alt="Availability day view — month grid with red booked cells and green free cells"/>
@@ -489,6 +560,18 @@ cal.getEngine();
 
 ## CalendarEvent Interface
 
+> **Event text renders as text.** `name`, `description`, `location`,
+> `organizer`, `notes`, `tags` and `attendees` are HTML-escaped, so markup in
+> those fields shows as characters rather than being parsed. Use `renderEvent`
+> if you need to emit your own markup. `url` accepts `http:`, `https:`,
+> `mailto:` and relative URLs; anything else becomes `#`. `color` accepts hex
+> values and CSS colour keywords.
+
+> **Custom values.** `status`, `category` and `priority` accept any string. An
+> unrecognised value renders as an uppercased badge with a neutral fill, which
+> you can style via `.badge.status-<your-value>` or recolour through
+> `--calendar-badge-bg` / `--calendar-badge-text`.
+
 ```typescript
 interface CalendarEvent {
   id: string | number;
@@ -501,18 +584,18 @@ interface CalendarEvent {
 
   description?: string;
   color?: string;
-  category?:
-    | 'work'
-    | 'personal'
-    | 'meeting'
-    | 'deadline'
-    | 'appointment'
-    | 'other';
+  // Known values keep autocomplete; any other string is accepted
+  category?: Open<
+    'work' | 'personal' | 'meeting' | 'deadline' | 'appointment' | 'other'
+  >;
   location?: string;
   url?: string;
 
-  status?: 'scheduled' | 'completed' | 'cancelled' | 'tentative';
-  priority?: 'low' | 'medium' | 'high';
+  status?: Open<'scheduled' | 'completed' | 'cancelled' | 'tentative'>;
+  priority?: Open<'low' | 'medium' | 'high'>;
+
+  // Required under availability-mode; see Availability Mode below
+  availabilityStatus?: Open<'open' | 'conditional' | 'blocked'>;
 
   attendees?: string[];
   organizer?: string;
@@ -532,25 +615,76 @@ interface CalendarEvent {
 
 ## Theming
 
-### All CSS variables
+### Design tokens
+
+Every colour, size, radius, shadow and spacing step is a custom property. Two
+tiers: `--kal-*` holds the raw palette, `--calendar-*` names what each value is
+for. Override the `--calendar-*` layer — the primitives are internal.
 
 ```css
 :root {
+  /* Brand */
   --calendar-primary-color: #fc8917;
   --calendar-secondary-color: #fca045;
   --calendar-tertiary-color: #fdb873;
+
+  /* Surfaces and text */
   --calendar-text-color: #2c3e50;
   --calendar-text-light: #6b7280;
+  --calendar-on-accent: #fff;
+  --calendar-background: #fff;
   --calendar-border-color: #dee2e6;
+  --calendar-cell-hover: #f3f4f6;
+  --calendar-header-bg: #f8f9fa;
+  --calendar-selected-bg: #eff6ff;
+  --calendar-popup-bg: #fff;
+  --calendar-picker-bg: #fff;
   --calendar-today-outline: #f7db04;
   --calendar-event-indicator: #1890ff;
-  --calendar-background: #fff;
-  --calendar-cell-hover: #f3f4f6;
-  --calendar-selected-bg: #eff6ff;
+  --calendar-input-invalid: #ef4444;
+  --calendar-link: #2563eb;
+  --calendar-skeleton-base: #f0f0f0;
+  --calendar-skeleton-highlight: #e8e8e8;
+
+  /* Availability */
+  --calendar-open-bg: #dcfce7;
+  --calendar-open-fg: #16a34a;
+  --calendar-conditional-bg: #fef3c7;
+  --calendar-conditional-fg: #d97706;
+  --calendar-blocked-bg: #fee2e2;
+  --calendar-blocked-fg: #dc2626;
+  --calendar-range-bg: #16a34a;
+  --calendar-range-outline: #15803d;
+  --calendar-in-range-bg: #bbf7d0;
+  --calendar-in-range-outline: #86efac;
+
+  /* Badges — bg/text is the fallback for caller-defined values */
+  --calendar-badge-bg: #f3f4f6;
+  --calendar-badge-text: #4b5563;
+  --calendar-badge-success-bg: #d1fae5;
+  --calendar-badge-success-text: #059669;
+  --calendar-badge-info-bg: #dbeafe;
+  --calendar-badge-info-text: #2563eb;
+  --calendar-badge-warning-bg: #fef3c7;
+  --calendar-badge-warning-text: #d97706;
+  --calendar-badge-danger-bg: #fee2e2;
+  --calendar-badge-danger-text: #dc2626;
+  --calendar-badge-neutral-bg: #f3f4f6;
+  --calendar-badge-neutral-text: #6b7280;
+  --calendar-badge-positive-bg: #dcfce7;
+  --calendar-badge-positive-text: #16a34a;
+  --calendar-badge-tentative-bg: #e0e7ff;
+  --calendar-badge-tentative-text: #4f46e5;
 }
 ```
 
+Type, radius, elevation and spacing scales are exposed the same way —
+`--calendar-font-*`, `--calendar-radius-*`, `--calendar-shadow-*` and
+`--calendar-space-*`. See `dist/styles/calendar.css` for the full set.
+
 ### JS theme property (full reference)
+
+Every `--calendar-*` colour token has a matching camelCase theme key.
 
 ```js
 cal.theme = {
@@ -559,14 +693,53 @@ cal.theme = {
   tertiary: '#93c5fd',
   textColor: '#111827',
   textLight: '#6b7280',
+  onAccent: '#ffffff',
   background: '#ffffff',
   cellHover: '#f3f4f6',
   borderColor: '#e5e7eb',
   todayOutline: '#fbbf24',
   selectedBg: '#eff6ff',
+  headerBg: '#f8f9fa',
+  popupBg: '#ffffff',
+  pickerBg: '#ffffff',
+  pickerShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
   eventIndicator: '#10b981',
+  link: '#2563eb',
+
+  // Availability
+  openBg: '#dcfce7',
+  openFg: '#16a34a',
+  conditionalBg: '#fef3c7',
+  conditionalFg: '#d97706',
+  blockedBg: '#fee2e2',
+  blockedFg: '#dc2626',
+  rangeBg: '#16a34a',
+  rangeOutline: '#15803d',
+  inRangeBg: '#bbf7d0',
+  inRangeOutline: '#86efac',
+
+  // Badges
+  badgeBg: '#f3f4f6',
+  badgeText: '#4b5563',
+  badgeSuccessBg: '#d1fae5',
+  badgeSuccessText: '#059669',
+  badgeInfoBg: '#dbeafe',
+  badgeInfoText: '#2563eb',
+  badgeWarningBg: '#fef3c7',
+  badgeWarningText: '#d97706',
+  badgeDangerBg: '#fee2e2',
+  badgeDangerText: '#dc2626',
+  badgeNeutralBg: '#f3f4f6',
+  badgeNeutralText: '#6b7280',
+  badgePositiveBg: '#dcfce7',
+  badgePositiveText: '#16a34a',
+  badgeTentativeBg: '#e0e7ff',
+  badgeTentativeText: '#4f46e5',
 };
 ```
+
+> `availabilityColors` writes an inline colour on the cell, so for any bucket it
+> names it takes precedence over the matching `theme` key.
 
 ### Dark theme example
 

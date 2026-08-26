@@ -3,10 +3,19 @@ import {
   getCellClasses,
   formatTimeRange,
   formatAttendees,
+  escapeHtml,
+  slugifyToken,
+  safeUrl,
+  safeColor,
   MONTHS_FULL,
   MONTHS,
 } from '../core';
-import type { CalendarEvent, CalendarTheme, CategoryColorMap } from '../core';
+import type {
+  CalendarEvent,
+  CalendarTheme,
+  CalendarPane,
+  CategoryColorMap,
+} from '../core';
 
 const isSameDay = (a: Date, b: Date): boolean =>
   a.getFullYear() === b.getFullYear() &&
@@ -19,6 +28,8 @@ export class CalendarElement extends HTMLElement {
     'min-year',
     'max-year',
     'week-starts-on',
+    'heading',
+    'months',
     'title',
     'use-short-month-names',
     'availability-mode',
@@ -42,6 +53,34 @@ export class CalendarElement extends HTMLElement {
     pickerBg: '--calendar-picker-bg',
     pickerShadow: '--calendar-picker-shadow',
     eventIndicator: '--calendar-event-indicator',
+    onAccent: '--calendar-on-accent',
+    link: '--calendar-link',
+    openBg: '--calendar-open-bg',
+    openFg: '--calendar-open-fg',
+    conditionalBg: '--calendar-conditional-bg',
+    conditionalFg: '--calendar-conditional-fg',
+    blockedBg: '--calendar-blocked-bg',
+    blockedFg: '--calendar-blocked-fg',
+    rangeBg: '--calendar-range-bg',
+    rangeOutline: '--calendar-range-outline',
+    inRangeBg: '--calendar-in-range-bg',
+    inRangeOutline: '--calendar-in-range-outline',
+    badgeBg: '--calendar-badge-bg',
+    badgeText: '--calendar-badge-text',
+    badgeSuccessBg: '--calendar-badge-success-bg',
+    badgeSuccessText: '--calendar-badge-success-text',
+    badgeInfoBg: '--calendar-badge-info-bg',
+    badgeInfoText: '--calendar-badge-info-text',
+    badgeWarningBg: '--calendar-badge-warning-bg',
+    badgeWarningText: '--calendar-badge-warning-text',
+    badgeDangerBg: '--calendar-badge-danger-bg',
+    badgeDangerText: '--calendar-badge-danger-text',
+    badgeNeutralBg: '--calendar-badge-neutral-bg',
+    badgeNeutralText: '--calendar-badge-neutral-text',
+    badgePositiveBg: '--calendar-badge-positive-bg',
+    badgePositiveText: '--calendar-badge-positive-text',
+    badgeTentativeBg: '--calendar-badge-tentative-bg',
+    badgeTentativeText: '--calendar-badge-tentative-text',
   };
 
   private engine: CalendarEngine | null = null;
@@ -64,6 +103,10 @@ export class CalendarElement extends HTMLElement {
   private _categoryColors: CategoryColorMap | null = null;
   private _renderEvent: ((e: CalendarEvent) => string) | null = null;
   private _renderNoEvents: (() => string) | null = null;
+  private _availabilityColors: Record<string, string> | null = null;
+  private _selectableStatuses: string[] | null = null;
+  private _initError: Error | null = null;
+  private pendingUpdate: Promise<void> | null = null;
 
   // Selection state (availability mode — range)
   private _rangeStart: Date | null = null;
@@ -78,6 +121,7 @@ export class CalendarElement extends HTMLElement {
   }
 
   set events(val: CalendarEvent[]) {
+    this._initError = null;
     this._events = val;
     if (this.engine) {
       this.engine.updateEvents(val);
@@ -96,15 +140,34 @@ export class CalendarElement extends HTMLElement {
     }
   }
 
+  get availabilityColors(): Record<string, string> {
+    return this._availabilityColors ?? {};
+  }
+
+  set availabilityColors(val: Record<string, string>) {
+    this._initError = null;
+    this._availabilityColors = val;
+    if (this.engine) this.scheduleRender();
+  }
+
+  get selectableStatuses(): string[] {
+    return this._selectableStatuses ?? [];
+  }
+
+  set selectableStatuses(val: string[]) {
+    this._selectableStatuses = val;
+    if (this.engine) this.scheduleRender();
+  }
+
   set renderEvent(val: (e: CalendarEvent) => string) {
     this._renderEvent = val;
-    if (this.engine) this.render();
+    if (this.engine) this.scheduleRender();
     // ignored when availability-mode attribute is set
   }
 
   set renderNoEvents(val: () => string) {
     this._renderNoEvents = val;
-    if (this.engine) this.render();
+    if (this.engine) this.scheduleRender();
     // ignored when availability-mode attribute is set
   }
 
@@ -117,10 +180,23 @@ export class CalendarElement extends HTMLElement {
     else this.removeAttribute('loading');
   }
 
+  // Custom element reactions report rather than propagate, so a failure here
+  // is kept and resurfaced at the next call the integrator makes
+  private reaction(run: () => void): void {
+    try {
+      run();
+    } catch (error) {
+      this._initError = error as Error;
+      throw error;
+    }
+  }
+
   connectedCallback(): void {
     this.classList.add('kalendly-calendar');
-    this.initEngine();
-    this.render();
+    this.reaction(() => {
+      this.initEngine();
+      this.render();
+    });
   }
 
   disconnectedCallback(): void {
@@ -136,7 +212,7 @@ export class CalendarElement extends HTMLElement {
   ): void {
     if (oldVal === newVal) return;
     if (name === 'loading') {
-      this.render();
+      this.scheduleRender();
       return;
     }
     if (name === 'selectable' && newVal === null) {
@@ -148,6 +224,30 @@ export class CalendarElement extends HTMLElement {
       this._timeRangeComplete = false;
     }
     this.reinit();
+  }
+
+  private get headingText(): string | null {
+    const heading = this.getAttribute('heading');
+    if (heading !== null) return heading;
+
+    const title = this.getAttribute('title');
+    if (title !== null && !CalendarElement.titleDeprecationWarned) {
+      CalendarElement.titleDeprecationWarned = true;
+      console.warn(
+        `<kal-calendar> the title attribute is deprecated and will be removed ` +
+          `in a future release — use heading instead. title is a global HTML ` +
+          `attribute, so the browser also renders it as a tooltip over the ` +
+          `whole calendar.`
+      );
+    }
+    return title;
+  }
+
+  private get monthCount(): number {
+    const requested = Number(this.getAttribute('months') ?? 1);
+    if (!Number.isInteger(requested) || requested < 1) return 1;
+
+    return Math.min(requested, 2);
   }
 
   private get minYear(): number {
@@ -173,13 +273,14 @@ export class CalendarElement extends HTMLElement {
       maxYear: this.maxYear,
       weekStartsOn,
       categoryColors: this._categoryColors ?? undefined,
+      monthCount: this.monthCount,
     });
 
     this.actions = this.engine.getActions();
     this.applyTheme();
 
     this.unsubscribe = this.engine.subscribe(() => {
-      this.render();
+      this.scheduleRender();
     });
   }
 
@@ -187,7 +288,7 @@ export class CalendarElement extends HTMLElement {
     if (!this.engine) return;
     this.cleanup();
     this.initEngine();
-    this.render();
+    this.scheduleRender();
   }
 
   private cleanup(): void {
@@ -238,17 +339,112 @@ export class CalendarElement extends HTMLElement {
     }
   }
 
+  private static readonly BUILT_IN_BUCKETS = ['blocked', 'conditional', 'open'];
+
+  private static titleDeprecationWarned = false;
+
+  private get knownBuckets(): string[] {
+    return [
+      ...CalendarElement.BUILT_IN_BUCKETS,
+      ...Object.keys(this._availabilityColors ?? {}),
+    ];
+  }
+
+  get updateComplete(): Promise<void> {
+    return this.pendingUpdate ?? Promise.resolve();
+  }
+
+  private scheduleRender(): void {
+    if (this.pendingUpdate) return;
+
+    this.pendingUpdate = Promise.resolve().then(() => {
+      this.pendingUpdate = null;
+      try {
+        this.render();
+      } catch (error) {
+        this._initError = error as Error;
+        throw error;
+      }
+    });
+  }
+
+  private rethrowInitError(): void {
+    if (this._initError) throw this._initError;
+  }
+
+  private assertStatusesDeclared(): void {
+    if (!this.getAttribute('availability-mode')) return;
+
+    const missing = this._events
+      .filter(
+        event =>
+          typeof event.availabilityStatus !== 'string' ||
+          event.availabilityStatus === ''
+      )
+      .map(event => String(event.id));
+
+    if (missing.length) {
+      throw new Error(
+        `<kal-calendar> availability-mode requires availabilityStatus on every ` +
+          `event. Missing on: ${missing.join(', ')}.`
+      );
+    }
+  }
+
+  private assertStatusesKnown(): void {
+    const known = new Set(this.knownBuckets);
+    const unknown = this._events
+      .filter(event => !known.has(event.availabilityStatus as string))
+      .map(event => `${event.id} (${event.availabilityStatus})`);
+
+    if (unknown.length) {
+      throw new Error(
+        `<kal-calendar> availabilityStatus must name a built-in bucket ` +
+          `(${CalendarElement.BUILT_IN_BUCKETS.join(', ')}) or a key of ` +
+          `availabilityColors. Unrecognised on: ${unknown.join(', ')}.`
+      );
+    }
+  }
+
+  private resolveBucket(date: Date): string {
+    if (!this.engine) return 'open';
+
+    const declared = new Set(
+      this.engine
+        .getEventsForDate(date)
+        .map(event => event.availabilityStatus as string)
+    );
+    if (declared.size === 0) return 'open';
+
+    return this.knownBuckets.find(bucket => declared.has(bucket)) as string;
+  }
+
+  private isDateSelectable(date: Date): boolean {
+    if (!this.engine) return false;
+
+    if (this._selectableStatuses) {
+      return this._selectableStatuses.includes(this.resolveBucket(date));
+    }
+
+    return this.engine.getEventsForDate(date).length === 0;
+  }
+
   private render(): void {
     if (!this.engine) return;
 
     const viewModel = this.engine.getViewModel();
     const useShortMonths = this.hasAttribute('use-short-month-names');
-    const title = this.getAttribute('title');
+    const title = this.headingText;
     const minYear = this.minYear;
     const maxYear = this.maxYear;
     const availabilityMode = this.getAttribute('availability-mode');
     const selectable = this.hasAttribute('selectable');
     const isLoading = this.loading;
+
+    if (availabilityMode) {
+      this.assertStatusesDeclared();
+      this.assertStatusesKnown();
+    }
 
     const today = new Date();
     const todayMonth = today.getMonth();
@@ -263,7 +459,7 @@ export class CalendarElement extends HTMLElement {
       const timeRange = formatTimeRange(event);
       const attendeesList = formatAttendees(event.attendees);
 
-      let borderColor = event.color || '#3b82f6';
+      let borderColor = safeColor(event.color || '#3b82f6');
       if (event.category) {
         borderColor = this.engine!.getCategoryColor(event.category);
       }
@@ -302,11 +498,11 @@ export class CalendarElement extends HTMLElement {
       return `
         <div class="event-card" style="border-left-color: ${borderColor}">
           <div class="event-header">
-            <div class="event-title">${event.name}</div>
+            <div class="event-title">${escapeHtml(event.name)}</div>
             <div class="event-badges">
-              ${event.category ? `<span class="badge category-${event.category}">${getCategoryLabel(event.category)}</span>` : ''}
-              ${event.priority ? `<span class="badge priority-${event.priority}">${getPriorityLabel(event.priority)}</span>` : ''}
-              ${event.status && event.status !== 'scheduled' ? `<span class="badge status-${event.status}">${getStatusLabel(event.status)}</span>` : ''}
+              ${event.category ? `<span class="badge category category-${slugifyToken(event.category)}">${escapeHtml(getCategoryLabel(event.category))}</span>` : ''}
+              ${event.priority ? `<span class="badge priority priority-${slugifyToken(event.priority)}">${escapeHtml(getPriorityLabel(event.priority))}</span>` : ''}
+              ${event.status && event.status !== 'scheduled' ? `<span class="badge status status-${slugifyToken(event.status)}">${escapeHtml(getStatusLabel(event.status))}</span>` : ''}
             </div>
           </div>
 
@@ -315,7 +511,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Time:</span>
-            <span class="event-time-value">${timeRange}</span>
+            <span class="event-time-value">${escapeHtml(timeRange)}</span>
           </div>
           `
               : ''
@@ -324,7 +520,7 @@ export class CalendarElement extends HTMLElement {
           ${
             event.description
               ? `
-          <div class="event-description">${event.description}</div>
+          <div class="event-description">${escapeHtml(event.description)}</div>
           `
               : ''
           }
@@ -334,7 +530,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Location:</span>
-            <span class="event-time-value">${event.location}</span>
+            <span class="event-time-value">${escapeHtml(event.location)}</span>
           </div>
           `
               : ''
@@ -345,7 +541,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Attendees:</span>
-            <span class="event-time-value">${attendeesList}</span>
+            <span class="event-time-value">${escapeHtml(attendeesList)}</span>
           </div>
           `
               : ''
@@ -356,7 +552,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Organizer:</span>
-            <span class="event-time-value">${event.organizer}</span>
+            <span class="event-time-value">${escapeHtml(event.organizer)}</span>
           </div>
           `
               : ''
@@ -367,7 +563,7 @@ export class CalendarElement extends HTMLElement {
               ? `
           <div class="event-time">
             <span class="event-time-label">Notes:</span>
-            <span class="event-time-value">${event.notes}</span>
+            <span class="event-time-value">${escapeHtml(event.notes)}</span>
           </div>
           `
               : ''
@@ -377,7 +573,7 @@ export class CalendarElement extends HTMLElement {
             event.url
               ? `
           <div class="event-time">
-            <a href="${event.url}" target="_blank" rel="noopener noreferrer" class="event-link">
+            <a href="${escapeHtml(safeUrl(event.url as string))}" target="_blank" rel="noopener noreferrer" class="event-link">
               View Details →
             </a>
           </div>
@@ -389,7 +585,7 @@ export class CalendarElement extends HTMLElement {
             event.tags && event.tags.length > 0
               ? `
           <div class="event-tags">
-            ${event.tags.map((tag: string) => `<span class="event-tag">${tag}</span>`).join('')}
+            ${event.tags.map((tag: string) => `<span class="event-tag">${escapeHtml(tag)}</span>`).join('')}
           </div>
           `
               : ''
@@ -405,12 +601,21 @@ export class CalendarElement extends HTMLElement {
     const renderNoEvents = this._renderNoEvents || defaultRenderNoEvents;
 
     const renderTimeGrid = (events: CalendarEvent[], date: Date): string => {
+      const startHour = (time: unknown): number | null => {
+        if (typeof time !== 'string') return null;
+        const hour = Number(time.split(':')[0]);
+        return Number.isInteger(hour) && hour >= 0 && hour <= 24 ? hour : null;
+      };
+
       const isHourBooked = (hour: number): boolean =>
         events.some(event => {
-          if (!event.startTime || !event.endTime) return true;
-          const [startH] = (event.startTime as string).split(':').map(Number);
-          const [endH] = (event.endTime as string).split(':').map(Number);
-          return hour >= startH && hour < endH;
+          if (!event.startTime) return true;
+
+          const from = startHour(event.startTime);
+          const to = event.endTime ? startHour(event.endTime) : 24;
+          if (from === null || to === null) return true;
+
+          return hour >= from && hour < to;
         });
 
       const slots = Array.from({ length: 24 }, (_, hour) => {
@@ -432,11 +637,11 @@ export class CalendarElement extends HTMLElement {
         const isInRange = inTimeRange && !isRangeStart && !isRangeEnd;
 
         const slotClasses = [
-          'time-grid__slot',
-          booked ? 'time-grid__slot--booked' : 'time-grid__slot--free',
-          isRangeStart ? 'time-grid__slot--range-start' : '',
-          isRangeEnd ? 'time-grid__slot--range-end' : '',
-          isInRange ? 'time-grid__slot--in-range' : '',
+          'time-grid-slot',
+          booked ? 'time-grid-slot-blocked' : 'time-grid-slot-open',
+          isRangeStart ? 'time-grid-slot-range-start' : '',
+          isRangeEnd ? 'time-grid-slot-range-end' : '',
+          isInRange ? 'time-grid-slot-in-range' : '',
         ]
           .filter(Boolean)
           .join(' ');
@@ -448,36 +653,142 @@ export class CalendarElement extends HTMLElement {
 
         return `
           <div class="${slotClasses}" ${slotAttrs}>
-            <span class="time-grid__label">${startTime}</span>
-            <span class="time-grid__status">${booked ? 'Booked' : 'Available'}</span>
+            <span class="time-grid-label">${startTime}</span>
+            <span class="time-grid-status">${booked ? 'Booked' : 'Available'}</span>
           </div>`;
       });
 
       return `<div class="time-grid">${slots.join('')}</div>`;
     };
 
+    const multiMonth = viewModel.panes.length > 1;
+
+    const renderPane = (pane: CalendarPane): string => `
+        <div class="calendar-pane">
+          ${
+            multiMonth
+              ? `<div class="calendar-pane-caption">${escapeHtml(pane.monthAndYearText)}</div>`
+              : ''
+          }
+            <table class="calendar-table calendar-table-bordered">
+              <thead>
+                <tr>
+                  ${viewModel.days.map(day => `<th>${day.slice(0, 3)}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody data-calendar-body>
+                ${
+                  isLoading
+                    ? Array.from(
+                        { length: 6 },
+                        () =>
+                          `<tr>${Array.from(
+                            { length: 7 },
+                            () =>
+                              `<td class="calendar-skeleton" aria-hidden="true"></td>`
+                          ).join('')}</tr>`
+                      ).join('')
+                    : pane.calendarDates
+                        .map(
+                          week => `
+                      <tr>
+                        ${week
+                          .map((calendarDate, dayIndex) => {
+                            const classes = getCellClasses(calendarDate);
+                            const cellAttrs: string[] = [];
+                            if (
+                              availabilityMode &&
+                              calendarDate.isCurrentMonth
+                            ) {
+                              const bucket = this.resolveBucket(
+                                calendarDate.date
+                              );
+                              const custom = (this._availabilityColors ?? {})[
+                                bucket
+                              ];
+
+                              classes.push(
+                                `availability-${slugifyToken(bucket)}`
+                              );
+                              if (custom) {
+                                classes.push('availability-status');
+                                cellAttrs.push(
+                                  `style="--availability-color: ${escapeHtml(safeColor(custom))}"`
+                                );
+                              }
+                              if (!this.isDateSelectable(calendarDate.date)) {
+                                classes.push('availability-unselectable');
+                              }
+                              cellAttrs.push(
+                                `aria-label="${escapeHtml(bucket)}"`
+                              );
+                            }
+                            if (
+                              availabilityMode === 'day' &&
+                              selectable &&
+                              calendarDate.isCurrentMonth
+                            ) {
+                              const d = calendarDate.date;
+                              if (
+                                this._rangeStart &&
+                                isSameDay(d, this._rangeStart)
+                              )
+                                classes.push('availability-range-start');
+                              if (
+                                this._rangeEnd &&
+                                isSameDay(d, this._rangeEnd)
+                              )
+                                classes.push('availability-range-end');
+                              if (this._rangeStart && this._rangeEnd) {
+                                if (d > this._rangeStart && d < this._rangeEnd)
+                                  classes.push('availability-in-range');
+                              }
+                            }
+                            const dateString = calendarDate.date.toISOString();
+                            return `
+                            <td
+                              class="${classes.join(' ')}"
+                              data-date="${dateString}"
+                              data-day-index="${dayIndex}"
+                              data-clickable="true"
+                              ${cellAttrs.join(' ')}
+                            >
+                              ${calendarDate.date.getDate()}
+                            </td>
+                          `;
+                          })
+                          .join('')}
+                      </tr>
+                    `
+                        )
+                        .join('')
+                }
+              </tbody>
+            </table>
+        </div>
+      `;
     const html = `
       ${
         title
           ? `
-      <div class="page--title">
-        <h1>${title}</h1>
+      <div class="calendar-title">
+        <h1>${escapeHtml(title)}</h1>
       </div>
       `
           : ''
       }
 
-      <div class="calendar--content">
-        <div class="calendar--card">
-          <div class="calendar--nav-header">
-            <button type="button" class="calendar--nav-arrow" data-action="previous" aria-label="Previous month">
+      <div class="calendar-content">
+        <div class="calendar-card">
+          <div class="calendar-nav-header">
+            <button type="button" class="calendar-nav-arrow" data-action="previous" aria-label="Previous month">
               &#8249;
             </button>
 
-            <div class="calendar--picker-container" data-picker-container>
+            <div class="calendar-picker-container" data-picker-container>
               <button
                 type="button"
-                class="calendar--picker-btn"
+                class="calendar-picker-btn"
                 data-action="toggle-picker"
                 aria-expanded="${this.pickerOpen ? 'true' : 'false'}"
                 aria-haspopup="true"
@@ -487,38 +798,38 @@ export class CalendarElement extends HTMLElement {
                     ? `${MONTHS[viewModel.currentMonth]} ${viewModel.currentYear}`
                     : viewModel.monthAndYearText
                 }
-                <span class="calendar--picker-chevron">&#9662;</span>
+                <span class="calendar-picker-chevron">&#9662;</span>
               </button>
 
               ${
                 this.pickerOpen
                   ? `
-                <div class="calendar--picker-dropdown">
-                  <div class="calendar--picker-year-row">
+                <div class="calendar-picker-dropdown">
+                  <div class="calendar-picker-year-row">
                     <button
                       type="button"
-                      class="calendar--picker-year-arrow"
+                      class="calendar-picker-year-arrow"
                       data-action="year-prev"
                       ${viewModel.currentYear <= minYear ? 'disabled' : ''}
                       aria-label="Previous year"
                     >&#8249;</button>
                     <input
                       type="text"
-                      class="calendar--picker-year-input${!this.yearInputValid ? ' invalid' : ''}"
-                      value="${this.yearInput || viewModel.currentYear}"
+                      class="calendar-picker-year-input${!this.yearInputValid ? ' invalid' : ''}"
+                      value="${escapeHtml(this.yearInput || viewModel.currentYear)}"
                       data-year-input
                       aria-label="Year"
                     />
                     <button
                       type="button"
-                      class="calendar--picker-year-arrow"
+                      class="calendar-picker-year-arrow"
                       data-action="year-next"
                       ${viewModel.currentYear >= maxYear ? 'disabled' : ''}
                       aria-label="Next year"
                     >&#8250;</button>
                   </div>
 
-                  <div class="calendar--picker-months">
+                  <div class="calendar-picker-months">
                     ${(useShortMonths ? MONTHS : MONTHS_FULL)
                       .map((month, index) => {
                         const isSelected = index === viewModel.currentMonth;
@@ -528,7 +839,7 @@ export class CalendarElement extends HTMLElement {
                         return `
                         <button
                           type="button"
-                          class="calendar--picker-month${isSelected ? ' selected' : ''}${isCurrent ? ' current-month' : ''}"
+                          class="calendar-picker-month${isSelected ? ' selected' : ''}${isCurrent ? ' current-month' : ''}"
                           data-action="select-month"
                           data-month="${index}"
                         >${month}</button>
@@ -544,91 +855,24 @@ export class CalendarElement extends HTMLElement {
 
             <button
               type="button"
-              class="calendar--today-btn"
+              class="calendar-today-btn"
               data-action="today"
               ${isCurrentMonth ? 'disabled' : ''}
             >Today</button>
 
-            <button type="button" class="calendar--nav-arrow" data-action="next" aria-label="Next month">
+            <button type="button" class="calendar-nav-arrow" data-action="next" aria-label="Next month">
               &#8250;
             </button>
           </div>
 
-          <table class="calendar--table calendar--table--bordered">
-            <thead>
-              <tr>
-                ${viewModel.days.map(day => `<th>${day.slice(0, 3)}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody data-calendar-body>
-              ${
-                isLoading
-                  ? Array.from(
-                      { length: 6 },
-                      () =>
-                        `<tr>${Array.from(
-                          { length: 7 },
-                          () =>
-                            `<td class="calendar--skeleton" aria-hidden="true"></td>`
-                        ).join('')}</tr>`
-                    ).join('')
-                  : viewModel.calendarDates
-                      .map(
-                        week => `
-                    <tr>
-                      ${week
-                        .map((calendarDate, dayIndex) => {
-                          const classes = getCellClasses(calendarDate);
-                          if (availabilityMode && calendarDate.isCurrentMonth) {
-                            classes.push(
-                              calendarDate.hasEvents
-                                ? 'availability--booked'
-                                : 'availability--free'
-                            );
-                          }
-                          if (
-                            availabilityMode === 'day' &&
-                            selectable &&
-                            calendarDate.isCurrentMonth
-                          ) {
-                            const d = calendarDate.date;
-                            if (
-                              this._rangeStart &&
-                              isSameDay(d, this._rangeStart)
-                            )
-                              classes.push('availability--range-start');
-                            if (this._rangeEnd && isSameDay(d, this._rangeEnd))
-                              classes.push('availability--range-end');
-                            if (this._rangeStart && this._rangeEnd) {
-                              if (d > this._rangeStart && d < this._rangeEnd)
-                                classes.push('availability--in-range');
-                            }
-                          }
-                          const dateString = calendarDate.date.toISOString();
-                          return `
-                          <td
-                            class="${classes.join(' ')}"
-                            data-date="${dateString}"
-                            data-day-index="${dayIndex}"
-                            data-clickable="true"
-                          >
-                            ${calendarDate.date.getDate()}
-                          </td>
-                        `;
-                        })
-                        .join('')}
-                    </tr>
-                  `
-                      )
-                      .join('')
-              }
-            </tbody>
-          </table>
+          <div class="calendar-panes">
+            ${viewModel.panes.map(renderPane).join('')}
+          </div>
 
           ${
             !isLoading && availabilityMode !== 'day' && viewModel.selectedDate
               ? `
-            <div class="date-popup ${viewModel.popupPositionClass}">
+            <div class="date-popup">
               <div class="popup-header">
                 <h2>${viewModel.scheduleDay}</h2>
                 <button type="button" class="popup-close" data-action="close-popup" aria-label="Close">✕</button>
@@ -686,8 +930,7 @@ export class CalendarElement extends HTMLElement {
         const isSelectable = this.hasAttribute('selectable');
 
         if (availMode === 'day' && isSelectable) {
-          const isBooked = cell.classList.contains('availability--booked');
-          if (!isBooked) {
+          if (this.isDateSelectable(date)) {
             let startDate: Date;
             let endDate: Date;
             if (this._rangeEnd !== null) {
@@ -711,7 +954,7 @@ export class CalendarElement extends HTMLElement {
               cursor.setDate(cursor.getDate() + 1);
               let blocked = false;
               while (cursor < e) {
-                if (this.engine!.getEventsForDate(cursor).length > 0) {
+                if (!this.isDateSelectable(cursor)) {
                   blocked = true;
                   break;
                 }
@@ -986,10 +1229,12 @@ export class CalendarElement extends HTMLElement {
   }
 
   getCurrentDate(): Date | null {
+    this.rethrowInitError();
     return this.engine?.getViewModel().selectedDate ?? null;
   }
 
   goToDate(date: Date): void {
+    this.rethrowInitError();
     const year = date.getFullYear();
     const month = date.getMonth();
     this.dispatchMonthChange(year, month);
@@ -997,6 +1242,7 @@ export class CalendarElement extends HTMLElement {
   }
 
   getEngine(): CalendarEngine {
+    this.rethrowInitError();
     if (!this.engine)
       throw new Error('CalendarElement is not connected to the DOM');
     return this.engine;

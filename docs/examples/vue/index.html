@@ -128,11 +128,11 @@
     }
 
     const leanEvents = [
-      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00' },
-      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00' },
-      { id: 12, date: thisMonth(15) },
-      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00' },
-      { id: 14, date: thisMonth(22), allDay: true },
+      { id: 10, date: thisMonth(8),  startTime: '09:00', endTime: '11:00', availabilityStatus: 'blocked' },
+      { id: 11, date: thisMonth(8),  startTime: '14:00', endTime: '16:00', availabilityStatus: 'conditional' },
+      { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
+      { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
+      { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
     ];
 
     createApp({
@@ -144,6 +144,7 @@
         ]);
         const mode       = ref('Normal'); // 'Normal' | 'day' | 'time'
         const selectable = ref('off');    // 'off' | 'range'
+        const months = ref(1);
         const lazyOn     = ref(false);
         const logs       = ref(['Calendar initialised']);
         const calRef     = ref(null);
@@ -169,10 +170,15 @@
           } else {
             cal.removeAttribute('selectable');
           }
+          if (months.value === 2 && mode.value === 'day') {
+            cal.setAttribute('months', '2');
+          } else {
+            cal.removeAttribute('months');
+          }
         }
 
         onMounted(syncCalendar);
-        watch([mode, selectable, normalEvents], syncCalendar);
+        watch([mode, selectable, months, normalEvents], syncCalendar);
 
         watch(lazyOn, (val) => {
           const cal = calRef.value;
@@ -279,7 +285,16 @@
               h('button', { type: 'button', class: mode.value === 'day'    ? 'active' : '', onClick: () => handleModeChange('day')    }, 'Day View'),
               h('button', { type: 'button', class: mode.value === 'time'   ? 'active' : '', onClick: () => handleModeChange('time')   }, 'Time View'),
             ]),
-            h('p', { class: 'hint' }, 'Day / Time view hides event details and shows booked vs free cells.'),
+            h('p', { class: 'hint' }, 'Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked.'),
+
+            h('hr', { class: 'divider' }),
+
+            h('h2', null, 'Months'),
+            h('div', { class: 'button-grid' }, [
+              h('button', { type: 'button', class: months.value === 1 ? 'active' : '', onClick: () => { months.value = 1; } }, '1 Month'),
+              h('button', { type: 'button', class: months.value === 2 ? 'active' : '', onClick: () => { months.value = 2; if (mode.value !== 'day') handleModeChange('day'); } }, '2 Months'),
+            ]),
+            h('p', { class: 'hint' }, 'Navigation advances one month at a time. Turn on Selectable Range to pick a range that spans both.'),
 
             h('hr', { class: 'divider' }),
 
@@ -302,7 +317,7 @@
 
           h('kal-calendar', {
             ref: calRef,
-            title: 'My Calendar',
+            heading: 'My Calendar',
             'onCal-date-select':         e => addLog(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`),
             'onCal-month-change':         e => { if (!lazyHandler) addLog(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`); },
             'onCal-availability-select':  handleAvailabilitySelect,

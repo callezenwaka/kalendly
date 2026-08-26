@@ -7,7 +7,6 @@ import {
   getEventsForDate,
   hasEvents,
   generateCalendarDates,
-  getPopupPositionClass,
   getCellClasses,
   formatDateForDisplay,
   getMonthYearText,
@@ -15,6 +14,10 @@ import {
   getCategoryColor,
   isValidHexColor,
   getDefaultEventColor,
+  escapeHtml,
+  slugifyToken,
+  safeUrl,
+  safeColor,
   DEFAULT_CATEGORY_COLORS,
   MONTHS,
   DAYS,
@@ -383,45 +386,9 @@ describe('Calendar Grid Generation', () => {
   });
 });
 
-describe('Popup Positioning', () => {
-  describe('getPopupPositionClass', () => {
-    it('should return popup-right for dayIndex 0', () => {
-      expect(getPopupPositionClass(0)).toBe('popup-right');
-    });
-
-    it('should return popup-right for dayIndex 1', () => {
-      expect(getPopupPositionClass(1)).toBe('popup-right');
-    });
-
-    it('should return popup-right for dayIndex 2', () => {
-      expect(getPopupPositionClass(2)).toBe('popup-right');
-    });
-
-    it('should return popup-center-bottom for dayIndex 3', () => {
-      expect(getPopupPositionClass(3)).toBe('popup-center-bottom');
-    });
-
-    it('should return popup-center-bottom for dayIndex 4', () => {
-      expect(getPopupPositionClass(4)).toBe('popup-center-bottom');
-    });
-
-    it('should return popup-left for dayIndex 5', () => {
-      expect(getPopupPositionClass(5)).toBe('popup-left');
-    });
-
-    it('should return popup-left for dayIndex 6', () => {
-      expect(getPopupPositionClass(6)).toBe('popup-left');
-    });
-
-    it('should return popup-center-bottom for null', () => {
-      expect(getPopupPositionClass(null)).toBe('popup-center-bottom');
-    });
-  });
-});
-
 describe('CSS Class Generation', () => {
   describe('getCellClasses', () => {
-    it('should include schedule--current--exam for today', () => {
+    it('should include calendar-cell-today for today', () => {
       const today = new Date();
       const cellDate = {
         date: today,
@@ -432,10 +399,10 @@ describe('CSS Class Generation', () => {
       };
 
       const classes = getCellClasses(cellDate);
-      expect(classes).toContain('schedule--current--exam');
+      expect(classes).toContain('calendar-cell-today');
     });
 
-    it('should include has--event when events exist', () => {
+    it('should include calendar-cell-has-event when events exist', () => {
       const cellDate = {
         date: new Date('2024-01-15'),
         isCurrentMonth: true,
@@ -445,7 +412,7 @@ describe('CSS Class Generation', () => {
       };
 
       const classes = getCellClasses(cellDate);
-      expect(classes).toContain('has--event');
+      expect(classes).toContain('calendar-cell-has-event');
     });
 
     it('should combine both classes when applicable', () => {
@@ -459,8 +426,8 @@ describe('CSS Class Generation', () => {
       };
 
       const classes = getCellClasses(cellDate);
-      expect(classes).toContain('schedule--current--exam');
-      expect(classes).toContain('has--event');
+      expect(classes).toContain('calendar-cell-today');
+      expect(classes).toContain('calendar-cell-has-event');
       expect(classes.length).toBe(2);
     });
 
@@ -697,6 +664,106 @@ describe('Category Color Functions', () => {
 
       expect(getDefaultEventColor('work', customColors)).toBe('#111111');
       expect(getDefaultEventColor('personal', customColors)).toBe('#222222');
+    });
+  });
+});
+
+describe('Sanitizers', () => {
+  describe('escapeHtml', () => {
+    it('should escape every HTML-significant character', () => {
+      expect(escapeHtml('&<>"\'')).toBe('&amp;&lt;&gt;&quot;&#39;');
+    });
+
+    it('should neutralise a script payload', () => {
+      expect(escapeHtml('<script>alert(1)</script>')).toBe(
+        '&lt;script&gt;alert(1)&lt;/script&gt;'
+      );
+    });
+
+    it('should neutralise an attribute breakout payload', () => {
+      expect(escapeHtml('" onfocus=alert(1) autofocus="')).toBe(
+        '&quot; onfocus=alert(1) autofocus=&quot;'
+      );
+    });
+
+    it('should leave safe text untouched', () => {
+      expect(escapeHtml('Team Meeting')).toBe('Team Meeting');
+    });
+
+    it('should coerce non-string values', () => {
+      expect(escapeHtml(2024)).toBe('2024');
+      expect(escapeHtml(null)).toBe('');
+      expect(escapeHtml(undefined)).toBe('');
+    });
+  });
+
+  describe('slugifyToken', () => {
+    it('should collapse whitespace into a single class token', () => {
+      expect(slugifyToken('in progress')).toBe('in-progress');
+    });
+
+    it('should trim leading and trailing separators', () => {
+      expect(slugifyToken('--Active--')).toBe('active');
+    });
+
+    it('should strip characters that could escape an attribute', () => {
+      expect(slugifyToken('a" onmouseover="x')).toBe('a-onmouseover-x');
+      expect(slugifyToken('<script>')).toBe('script');
+    });
+
+    it('should leave an already-safe token unchanged', () => {
+      expect(slugifyToken('completed')).toBe('completed');
+    });
+  });
+
+  describe('safeUrl', () => {
+    it('should allow http, https and mailto', () => {
+      expect(safeUrl('https://example.com/a?b=1')).toBe(
+        'https://example.com/a?b=1'
+      );
+      expect(safeUrl('http://example.com')).toBe('http://example.com');
+      expect(safeUrl('mailto:someone@example.com')).toBe(
+        'mailto:someone@example.com'
+      );
+    });
+
+    it('should allow relative URLs', () => {
+      expect(safeUrl('/events/1')).toBe('/events/1');
+      expect(safeUrl('#details')).toBe('#details');
+      expect(safeUrl('./local.html')).toBe('./local.html');
+      expect(safeUrl('events/1')).toBe('events/1');
+    });
+
+    it('should reject javascript and data URLs', () => {
+      expect(safeUrl('javascript:alert(1)')).toBe('#');
+      expect(safeUrl('JaVaScRiPt:alert(1)')).toBe('#');
+      expect(safeUrl('data:text/html,<script>alert(1)</script>')).toBe('#');
+      expect(safeUrl('vbscript:msgbox(1)')).toBe('#');
+    });
+
+    it('should reject scheme obfuscation with whitespace and control characters', () => {
+      expect(safeUrl('  javascript:alert(1)')).toBe('#');
+      expect(safeUrl('java script:alert(1)')).toBe('#');
+      expect(safeUrl('java\\tscript:alert(1)')).toBe('#');
+      expect(safeUrl('java\\nscript:alert(1)')).toBe('#');
+    });
+  });
+
+  describe('safeColor', () => {
+    it('should allow hex colors in both lengths', () => {
+      expect(safeColor('#fff')).toBe('#fff');
+      expect(safeColor('#3b82f6')).toBe('#3b82f6');
+    });
+
+    it('should allow bare CSS keywords', () => {
+      expect(safeColor('red')).toBe('red');
+      expect(safeColor('rebeccapurple')).toBe('rebeccapurple');
+    });
+
+    it('should reject values that could escape the style attribute', () => {
+      expect(safeColor('red" onmouseover="alert(1)')).toBe('#3b82f6');
+      expect(safeColor('red; background: url(x)')).toBe('#3b82f6');
+      expect(safeColor('')).toBe('#3b82f6');
     });
   });
 });

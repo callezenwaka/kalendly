@@ -1,3 +1,6 @@
+// Known values keep autocomplete; any other string is still accepted
+type Open<T extends string> = T | (string & {});
+
 export interface CalendarEvent {
   id: string | number;
   name: string;
@@ -11,19 +14,20 @@ export interface CalendarEvent {
   // Display & categorization
   description?: string;
   color?: string;
-  category?:
-    | 'work'
-    | 'personal'
-    | 'meeting'
-    | 'deadline'
-    | 'appointment'
-    | 'other';
+  category?: Open<
+    'work' | 'personal' | 'meeting' | 'deadline' | 'appointment' | 'other'
+  >;
   location?: string;
   url?: string;
 
   // Status & priority
-  status?: 'scheduled' | 'completed' | 'cancelled' | 'tentative';
-  priority?: 'low' | 'medium' | 'high';
+  status?: Open<'scheduled' | 'completed' | 'cancelled' | 'tentative'>;
+  priority?: Open<'low' | 'medium' | 'high'>;
+
+  // Availability bucket. Distinct from `status`: this is the caller's own
+  // state mapped down to an opaque label for the availability layer, so
+  // internal detail never reaches the calendar.
+  availabilityStatus?: Open<'open' | 'conditional' | 'blocked'>;
 
   // Collaboration
   attendees?: string[];
@@ -76,6 +80,14 @@ export interface CalendarConfig {
   maxYear?: number;
   weekStartsOn?: 0 | 1;
   categoryColors?: CategoryColorMap;
+  monthCount?: number;
+}
+
+export interface CalendarPane {
+  year: number;
+  month: number;
+  monthAndYearText: string;
+  calendarDates: CalendarDate[][];
 }
 
 export interface CalendarActions {
@@ -88,23 +100,14 @@ export interface CalendarActions {
   updateTasks: () => void;
 }
 
-export interface PopupPosition {
-  class:
-    | 'popup-left'
-    | 'popup-right'
-    | 'popup-center-top'
-    | 'popup-center-bottom';
-  style?: Record<string, string | number>;
-}
-
 export interface CalendarViewModel extends CalendarState {
   months: string[];
   days: string[];
   years: number[];
   monthAndYearText: string;
   scheduleDay: string;
+  panes: CalendarPane[];
   calendarDates: CalendarDate[][];
-  popupPositionClass: string;
 }
 
 export type CalendarEventHandler = (event: CalendarEvent) => void;
@@ -137,4 +140,36 @@ export interface CalendarTheme {
   pickerBg?: string;
   pickerShadow?: string;
   eventIndicator?: string;
+  onAccent?: string;
+  link?: string;
+
+  // Availability — traffic light
+  openBg?: string;
+  openFg?: string;
+  conditionalBg?: string;
+  conditionalFg?: string;
+  blockedBg?: string;
+  blockedFg?: string;
+  rangeBg?: string;
+  rangeOutline?: string;
+  inRangeBg?: string;
+  inRangeOutline?: string;
+
+  // Badges — badgeBg/badgeText are the fallback for caller-defined values
+  badgeBg?: string;
+  badgeText?: string;
+  badgeSuccessBg?: string;
+  badgeSuccessText?: string;
+  badgeInfoBg?: string;
+  badgeInfoText?: string;
+  badgeWarningBg?: string;
+  badgeWarningText?: string;
+  badgeDangerBg?: string;
+  badgeDangerText?: string;
+  badgeNeutralBg?: string;
+  badgeNeutralText?: string;
+  badgePositiveBg?: string;
+  badgePositiveText?: string;
+  badgeTentativeBg?: string;
+  badgeTentativeText?: string;
 }
