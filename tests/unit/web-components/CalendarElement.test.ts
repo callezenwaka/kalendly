@@ -2741,3 +2741,152 @@ describe('CalendarElement — slot duration', () => {
     warn.mockRestore();
   });
 });
+
+describe('CalendarElement — multi-day events', () => {
+  const BASE = new Date('2024-01-15');
+
+  function mountSpan(
+    events: CalendarEvent[],
+    attrs: Record<string, string> = {}
+  ): CalendarElement {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    for (const [name, value] of Object.entries(attrs))
+      el.setAttribute(name, value);
+    el.events = events;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  const cellIn = (root: Element | CalendarElement, day: string) =>
+    Array.from(root.querySelectorAll('td')).find(
+      td =>
+        td.textContent?.trim() === day &&
+        !td.classList.contains('calendar-cell-other-month')
+    );
+
+  it('colours every day a span covers', async () => {
+    const el = mountSpan(
+      [
+        {
+          id: 1,
+          name: 'stay',
+          date: '2024-01-15',
+          endDate: '2024-01-17',
+          availabilityStatus: 'blocked',
+        },
+      ],
+      { 'availability-mode': 'day' }
+    );
+    await flush();
+
+    for (const d of ['15', '16', '17']) {
+      expect(cellIn(el, d)?.classList.contains('availability-blocked')).toBe(
+        true
+      );
+    }
+    expect(cellIn(el, '18')?.classList.contains('availability-open')).toBe(
+      true
+    );
+  });
+
+  it('makes an interior day unselectable', async () => {
+    const el = mountSpan(
+      [
+        {
+          id: 1,
+          name: 'stay',
+          date: '2024-01-15',
+          endDate: '2024-01-17',
+          availabilityStatus: 'blocked',
+        },
+      ],
+      { 'availability-mode': 'day', selectable: 'range' }
+    );
+    await flush();
+
+    expect(
+      cellIn(el, '16')?.classList.contains('availability-unselectable')
+    ).toBe(true);
+  });
+
+  it('refuses a range dragged through a span', async () => {
+    const el = mountSpan(
+      [
+        {
+          id: 1,
+          name: 'stay',
+          date: '2024-01-15',
+          endDate: '2024-01-17',
+          availabilityStatus: 'blocked',
+        },
+      ],
+      { 'availability-mode': 'day', selectable: 'range' }
+    );
+    await flush();
+
+    const selections: { startDate: Date; endDate: Date }[] = [];
+    el.addEventListener('cal-availability-select', e =>
+      selections.push(
+        (e as CustomEvent).detail as { startDate: Date; endDate: Date }
+      )
+    );
+
+    cellIn(el, '13')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+    cellIn(el, '19')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+
+    // the second click resets rather than completing a range across the span
+    const last = selections[selections.length - 1];
+    expect(last.startDate.getDate()).toBe(19);
+    expect(last.endDate.getDate()).toBe(19);
+  });
+
+  it('renders a span crossing a month boundary in both panes', async () => {
+    const el = mountSpan(
+      [
+        {
+          id: 1,
+          name: 'stay',
+          date: '2024-01-30',
+          endDate: '2024-02-02',
+          availabilityStatus: 'blocked',
+        },
+      ],
+      { 'availability-mode': 'day', months: '2' }
+    );
+    await flush();
+
+    const panes = el.querySelectorAll('.calendar-pane');
+    expect(
+      cellIn(panes[0], '31')?.classList.contains('availability-blocked')
+    ).toBe(true);
+    expect(
+      cellIn(panes[1], '1')?.classList.contains('availability-blocked')
+    ).toBe(true);
+    expect(cellIn(panes[1], '3')?.classList.contains('availability-open')).toBe(
+      true
+    );
+  });
+
+  it('lists a span in the popup on each day it covers', async () => {
+    const el = mountSpan([
+      {
+        id: 1,
+        name: 'Conference',
+        date: '2024-01-15',
+        endDate: '2024-01-17',
+      },
+    ]);
+    await flush();
+
+    for (const d of ['15', '16', '17']) {
+      cellIn(el, d)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+      expect(el.querySelector('.date-popup')?.textContent).toContain(
+        'Conference'
+      );
+    }
+  });
+});

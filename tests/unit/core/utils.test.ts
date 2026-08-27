@@ -934,3 +934,89 @@ describe('Booking intervals', () => {
     });
   });
 });
+
+describe('Multi-day events', () => {
+  const day = (iso: string) => new Date(`${iso}T00:00:00`);
+  const span: CalendarEvent[] = [
+    { id: 1, name: 'stay', date: '2024-01-15', endDate: '2024-01-17' },
+  ];
+
+  it('covers the first, interior and last day', () => {
+    for (const iso of ['2024-01-15', '2024-01-16', '2024-01-17']) {
+      expect(getEventsForDate(span, day(iso))).toHaveLength(1);
+    }
+  });
+
+  it('covers neither neighbour', () => {
+    expect(getEventsForDate(span, day('2024-01-14'))).toEqual([]);
+    expect(getEventsForDate(span, day('2024-01-18'))).toEqual([]);
+  });
+
+  it('treats an absent endDate as a single day', () => {
+    const single: CalendarEvent[] = [{ id: 1, name: 'x', date: '2024-01-15' }];
+    expect(getEventsForDate(single, day('2024-01-15'))).toHaveLength(1);
+    expect(getEventsForDate(single, day('2024-01-16'))).toEqual([]);
+  });
+
+  it('includes a single-day span, where endDate equals date', () => {
+    const same: CalendarEvent[] = [
+      { id: 1, name: 'x', date: '2024-01-15', endDate: '2024-01-15' },
+    ];
+    expect(getEventsForDate(same, day('2024-01-15'))).toHaveLength(1);
+    expect(getEventsForDate(same, day('2024-01-16'))).toEqual([]);
+  });
+
+  it('throws when endDate precedes date', () => {
+    const inverted: CalendarEvent[] = [
+      { id: 7, name: 'x', date: '2024-01-17', endDate: '2024-01-15' },
+    ];
+    expect(() => getEventsForDate(inverted, day('2024-01-16'))).toThrow(
+      /event 7 has an endDate before its date/
+    );
+  });
+
+  it('throws on an unreadable endDate', () => {
+    const bad: CalendarEvent[] = [
+      { id: 9, name: 'x', date: '2024-01-15', endDate: 'next tuesday' },
+    ];
+    expect(() => getEventsForDate(bad, day('2024-01-15'))).toThrow(
+      /event 9 has an unreadable endDate/
+    );
+  });
+
+  it('repeats a span time window on every day it covers', () => {
+    const hall: CalendarEvent[] = [
+      {
+        id: 1,
+        name: 'meeting',
+        date: '2024-01-15',
+        endDate: '2024-01-17',
+        startTime: '09:00',
+        endTime: '17:00',
+      },
+      {
+        id: 2,
+        name: 'yoga',
+        date: '2024-01-16',
+        endDate: '2024-01-17',
+        startTime: '17:30',
+        endTime: '22:00',
+      },
+    ];
+
+    const booked = (iso: string) =>
+      bookedSlots(hall, day(iso)).reduce<number[]>(
+        (acc, isBooked, i) => (isBooked ? [...acc, i] : acc),
+        []
+      );
+
+    // 15th: meeting only
+    expect(booked('2024-01-15')).toEqual([9, 10, 11, 12, 13, 14, 15, 16]);
+    // 16th and 17th: meeting plus the class
+    const both = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+    expect(booked('2024-01-16')).toEqual(both);
+    expect(booked('2024-01-17')).toEqual(both);
+    // 18th: nothing
+    expect(booked('2024-01-18')).toEqual([]);
+  });
+});

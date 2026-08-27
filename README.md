@@ -515,6 +515,28 @@ Overlapping bookings merge rather than double-count, so a 09:00–17:00 meeting 
   <p><em>Time view: clicking a day opens an hourly grid — booked slots in red, available slots in green; no event details exposed</em></p>
 </div>
 
+#### Round-tripping a selection
+
+`cal-availability-select` emits an inclusive `endDate`, so a saved selection goes
+straight back as a single event — no expanding into one event per day:
+
+```js
+cal.addEventListener('cal-availability-select', async e => {
+  const { startDate, endDate } = e.detail;
+  const booking = await save({ startDate, endDate });
+
+  cal.events = [
+    ...cal.events,
+    {
+      id: booking.id,
+      date: startDate,
+      endDate,
+      availabilityStatus: 'blocked',
+    },
+  ];
+});
+```
+
 ### Selectable range
 
 Add `selectable="range"` to let the user pick a free day or time slot:
@@ -596,6 +618,19 @@ cal.getEngine();
 > `mailto:` and relative URLs; anything else becomes `#`. `color` accepts hex
 > values and CSS colour keywords.
 
+> **Multi-day events.** `endDate` is the last day of a span and is **inclusive** —
+> `date: '2026-03-03', endDate: '2026-03-05'` covers three days. That matches the
+> `endDate` `cal-availability-select` emits, so a selection can be handed straight
+> back as one event. It deliberately differs from RFC 5545, whose all-day `DTEND`
+> is exclusive; adjust if you map to iCalendar. An `endDate` before `date`, or one
+> that cannot be read, throws and names the event.
+>
+> Times on a span repeat daily: `09:00`–`17:00` across three days means that
+> window on each of the three, not one continuous block. A hall can hold a
+> 09:00–17:00 meeting and a 17:30–22:00 class on overlapping days.
+>
+> `recurring` is declared on the type but not implemented — nothing reads it.
+
 > **Custom values.** `status`, `category` and `priority` accept any string. An
 > unrecognised value renders as an uppercased badge with a neutral fill, which
 > you can style via `.badge.status-<your-value>` or recolour through
@@ -606,6 +641,8 @@ interface CalendarEvent {
   id: string | number;
   name: string;
   date: string | Date;
+
+  endDate?: string | Date; // last day of a span, inclusive
 
   startTime?: string; // e.g. "09:00"
   endTime?: string; // e.g. "10:00"

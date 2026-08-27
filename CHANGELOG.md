@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`endDate` on `CalendarEvent`** — the last day of a multi-day event, **inclusive**. One event covers a range rather than needing one per day, and because it matches the `endDate` `cal-availability-select` emits, a saved selection can be handed straight back. Matched by range rather than expanded, so ids stay unique and long spans cost nothing. Times on a span repeat daily. An `endDate` before `date`, or unreadable, throws and names the event. Deliberately differs from RFC 5545's exclusive all-day `DTEND`.
 - **`slot-duration`** — time-grid granularity in minutes, default 60. The grid renders `1440 / slot-duration` slots and `cal-availability-select` emits times on that granularity, so a vendor working in half-hours can represent and take half-hour bookings. A value that does not divide 1440 falls back to 60 with a warning.
 - `parseTimeToMinutes`, `formatMinutes`, `mergeIntervals`, `bookedSlots` and `eventInterval` exported from `kalendly/core`.
 

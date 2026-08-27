@@ -60,16 +60,39 @@ export function generateYears(minYear?: number, maxYear?: number): number[] {
   return Array.from({ length: max - min + 1 }, (_, i) => min + i);
 }
 
+// endDate is inclusive, matching the endDate cal-availability-select emits, so
+// a selection can be handed straight back as one event.
+export function eventCoversDate(event: CalendarEvent, date: Date): boolean {
+  const start = normalizeDate(new Date(event.date)).getTime();
+  const target = normalizeDate(date).getTime();
+  if (Number.isNaN(start)) return false;
+
+  if (event.endDate === undefined || event.endDate === null) {
+    return start === target;
+  }
+
+  const end = normalizeDate(new Date(event.endDate)).getTime();
+  if (Number.isNaN(end)) {
+    throw new Error(
+      `<kal-calendar> event ${event.id} has an unreadable endDate: ` +
+        `${String(event.endDate)}.`
+    );
+  }
+  if (end < start) {
+    throw new Error(
+      `<kal-calendar> event ${event.id} has an endDate before its date: ` +
+        `${String(event.endDate)} < ${String(event.date)}.`
+    );
+  }
+
+  return target >= start && target <= end;
+}
+
 export function getEventsForDate(
   events: CalendarEvent[],
   date: Date
 ): CalendarEvent[] {
-  const normalizedTargetDate = normalizeDate(date);
-
-  return events.filter(event => {
-    const eventDate = normalizeDate(new Date(event.date));
-    return eventDate.getTime() === normalizedTargetDate.getTime();
-  });
+  return events.filter(event => eventCoversDate(event, date));
 }
 
 export function hasEvents(events: CalendarEvent[], date: Date): boolean {
@@ -340,9 +363,10 @@ export function formatMinutes(total: number): string {
 // that cannot parse a time must not offer the slot.
 export function eventInterval(
   event: CalendarEvent,
-  slotDuration: number
+  slotDuration: number,
+  onDay: Date
 ): [number, number] | null {
-  const day = normalizeDate(new Date(event.date)).getTime();
+  const day = normalizeDate(onDay).getTime();
   if (Number.isNaN(day)) return null;
 
   const base = day / 60000;
@@ -384,11 +408,22 @@ export function bookedSlots(
   slotDuration: number = DEFAULT_SLOT_DURATION
 ): boolean[] {
   const base = normalizeDate(date).getTime() / 60000;
-  const merged = mergeIntervals(
-    events
-      .map(event => eventInterval(event, slotDuration))
-      .filter((interval): interval is [number, number] => interval !== null)
-  );
+
+  const previousDay = new Date(date);
+  previousDay.setDate(previousDay.getDate() - 1);
+
+  // A span's times repeat on each day it covers, so the window is anchored to
+  // the day being drawn rather than the day the span began
+  const intervals: Array<[number, number]> = [];
+  for (const event of new Set(events)) {
+    for (const day of [previousDay, date]) {
+      if (!eventCoversDate(event, day)) continue;
+      const interval = eventInterval(event, slotDuration, day);
+      if (interval) intervals.push(interval);
+    }
+  }
+
+  const merged = mergeIntervals(intervals);
 
   return Array.from(
     { length: Math.floor(MINUTES_PER_DAY / slotDuration) },
