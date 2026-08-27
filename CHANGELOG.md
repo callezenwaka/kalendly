@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-08-27
+
 ### Added
 
 - **Booking constraints — `min-date`, `max-date`, `available-days`, `available-hours`.** A vendor works fixed hours on fixed days within a bookable horizon, and until now the calendar offered all 1440 minutes of every day, forever in both directions. Saying otherwise meant authoring a blocking event for every excluded hour of every excluded day — unbounded work for a static rule. All four are optional and absent means no constraint, so nothing changes for existing consumers.
