@@ -134,6 +134,8 @@
       { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
       { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
       { id: 15, date: thisMonth(24), startTime: '22:00', endTime: '06:00', availabilityStatus: 'blocked' },
+      { id: 16, date: thisMonth(11), endDate: thisMonth(13), availabilityStatus: 'blocked' },
+      { id: 17, date: thisMonth(17), endDate: thisMonth(18), availabilityStatus: 'conditional' },
     ];
 
     createApp({
@@ -288,7 +290,7 @@
               h('button', { type: 'button', class: mode.value === 'day'    ? 'active' : '', onClick: () => handleModeChange('day')    }, 'Day View'),
               h('button', { type: 'button', class: mode.value === 'time'   ? 'active' : '', onClick: () => handleModeChange('time')   }, 'Time View'),
             ]),
-            h('p', { class: 'hint' }, 'Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked.'),
+            h('p', { class: 'hint' }, 'Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked. The sample data includes multi-day spans, so a single event covers a range of days.'),
 
             h('hr', { class: 'divider' }),
 
