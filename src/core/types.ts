@@ -141,6 +141,8 @@ export interface CalendarTheme {
   borderColor?: string;
   todayOutline?: string;
   selectedBg?: string;
+  outOfRangeBg?: string;
+  outOfRangeFg?: string;
   headerBg?: string;
   popupBg?: string;
   pickerBg?: string;

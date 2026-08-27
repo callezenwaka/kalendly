@@ -48,6 +48,8 @@
   --calendar-cell-hover: var(--kal-gray-100);
   --calendar-header-bg: var(--kal-gray-50);
   --calendar-selected-bg: var(--kal-blue-50);
+  --calendar-out-of-range-bg: var(--kal-gray-100);
+  --calendar-out-of-range-fg: var(--kal-gray-500);
   --calendar-popup-bg: var(--kal-white);
   --calendar-picker-bg: var(--kal-white);
   --calendar-today-outline: var(--kal-yellow-400);
@@ -453,6 +455,12 @@
   font-weight: 700;
 }
 
+.calendar-table td.calendar-cell-out-of-range {
+  background-color: var(--calendar-out-of-range-bg);
+  color: var(--calendar-out-of-range-fg);
+  cursor: default;
+}
+
 .calendar-table td.calendar-cell-other-month {
   color: var(--calendar-text-light);
   background-color: var(--calendar-header-bg);
@@ -521,6 +529,15 @@
 .time-grid-slot-open {
   background-color: var(--calendar-open-bg);
   color: var(--calendar-open-fg);
+}
+
+/* Outside available-hours. Placed after the open/blocked fills so it wins at
+   equal specificity, and after the selectable cursor rules so it stays inert. */
+.time-grid-slot-out-of-range,
+.time-grid-selectable .time-grid-slot-out-of-range {
+  background-color: var(--calendar-out-of-range-bg);
+  color: var(--calendar-out-of-range-fg);
+  cursor: default;
 }
 
 /* Availability mode */

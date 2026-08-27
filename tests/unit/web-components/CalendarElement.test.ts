@@ -47,6 +47,11 @@ function mount(
     selectable?: 'range';
     availabilityColors?: Record<string, string>;
     selectableStatuses?: string[];
+    minDate?: string;
+    maxDate?: string;
+    availableDays?: string;
+    availableHours?: string;
+    slotDuration?: number;
   } = {}
 ): CalendarElement {
   const el = document.createElement('kal-calendar') as CalendarElement;
@@ -64,6 +69,14 @@ function mount(
   if (props.availabilityMode)
     el.setAttribute('availability-mode', props.availabilityMode);
   if (props.selectable) el.setAttribute('selectable', props.selectable);
+  if (props.minDate !== undefined) el.setAttribute('min-date', props.minDate);
+  if (props.maxDate !== undefined) el.setAttribute('max-date', props.maxDate);
+  if (props.availableDays !== undefined)
+    el.setAttribute('available-days', props.availableDays);
+  if (props.availableHours !== undefined)
+    el.setAttribute('available-hours', props.availableHours);
+  if (props.slotDuration !== undefined)
+    el.setAttribute('slot-duration', String(props.slotDuration));
 
   el.events = props.events ?? [];
   if (props.availabilityColors !== undefined)
@@ -1749,6 +1762,8 @@ describe('CalendarElement — design tokens', () => {
     borderColor: '#101017',
     todayOutline: '#101018',
     selectedBg: '#101019',
+    outOfRangeBg: '#10103b',
+    outOfRangeFg: '#10103c',
     headerBg: '#10101a',
     popupBg: '#10101b',
     pickerBg: '#10101c',
@@ -3114,5 +3129,328 @@ describe('CalendarElement — optional event name', () => {
     await flush();
 
     expect(seen[0][0].name).toBe('Standup');
+  });
+});
+
+describe('CalendarElement — booking constraints', () => {
+  // 2024-03-10 is a Sunday; the 11th to 15th are Monday to Friday
+  const MARCH = new Date(2024, 2, 15);
+
+  const cellFor = (el: CalendarElement, day: number): HTMLElement | null =>
+    Array.from(el.querySelectorAll('td[data-date]')).find(td => {
+      const d = new Date((td as HTMLElement).dataset.date!);
+      return d.getMonth() === 2 && d.getDate() === day;
+    }) as HTMLElement | null;
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('with none of them set', () => {
+    it('leaves every day clickable', async () => {
+      const el = mount({ initialDate: MARCH });
+      await el.updateComplete;
+
+      const cells = el.querySelectorAll('td[data-date]');
+      const clickable = el.querySelectorAll('td[data-clickable="true"]');
+      expect(cells.length).toBeGreaterThan(0);
+      expect(clickable.length).toBe(cells.length);
+    });
+
+    it('marks no cell out of range', async () => {
+      const el = mount({ initialDate: MARCH });
+      await el.updateComplete;
+
+      expect(el.querySelector('.calendar-cell-out-of-range')).toBeNull();
+    });
+  });
+
+  describe('min-date / max-date', () => {
+    it('makes a day before min-date inert', async () => {
+      const el = mount({ initialDate: MARCH, minDate: '2024-03-10' });
+      await el.updateComplete;
+
+      const before = cellFor(el, 9)!;
+      expect(before.classList.contains('calendar-cell-out-of-range')).toBe(
+        true
+      );
+      expect(before.hasAttribute('data-clickable')).toBe(false);
+    });
+
+    it('treats both bounds as inclusive', async () => {
+      const el = mount({
+        initialDate: MARCH,
+        minDate: '2024-03-10',
+        maxDate: '2024-03-20',
+      });
+      await el.updateComplete;
+
+      for (const day of [10, 15, 20]) {
+        const cell = cellFor(el, day)!;
+        expect(cell.classList.contains('calendar-cell-out-of-range')).toBe(
+          false
+        );
+        expect(cell.getAttribute('data-clickable')).toBe('true');
+      }
+      expect(
+        cellFor(el, 21)!.classList.contains('calendar-cell-out-of-range')
+      ).toBe(true);
+    });
+
+    it('does not fire cal-date-select for an excluded day', async () => {
+      const el = mount({ initialDate: MARCH, minDate: '2024-03-10' });
+      await el.updateComplete;
+
+      const seen: unknown[] = [];
+      el.addEventListener('cal-date-select', e => seen.push(e));
+
+      cellFor(el, 9)!.click();
+      await flush();
+
+      expect(seen).toHaveLength(0);
+    });
+
+    it('still fires cal-date-select for a day inside the window', async () => {
+      const el = mount({ initialDate: MARCH, minDate: '2024-03-10' });
+      await el.updateComplete;
+
+      const seen: unknown[] = [];
+      el.addEventListener('cal-date-select', e => seen.push(e));
+
+      cellFor(el, 15)!.click();
+      await flush();
+
+      expect(seen).toHaveLength(1);
+    });
+
+    it('throws when min-date is after max-date', async () => {
+      const el = mount({ initialDate: MARCH, maxDate: '2024-03-10' });
+      await el.updateComplete;
+
+      el.setAttribute('min-date', '2024-03-20');
+      await expect(el.updateComplete).rejects.toThrow(
+        /min-date is after max-date/
+      );
+    });
+
+    it('throws on an unreadable bound', async () => {
+      const el = mount({ initialDate: MARCH });
+      await el.updateComplete;
+
+      el.setAttribute('min-date', 'next tuesday');
+      await expect(el.updateComplete).rejects.toThrow(
+        /min-date is unreadable: "next tuesday"/
+      );
+    });
+  });
+
+  describe('available-days', () => {
+    it('greys the weekend when weekdays are named', async () => {
+      const el = mount({ initialDate: MARCH, availableDays: '1,2,3,4,5' });
+      await el.updateComplete;
+
+      // 9th Sat, 10th Sun, 11th Mon
+      expect(
+        cellFor(el, 9)!.classList.contains('calendar-cell-out-of-range')
+      ).toBe(true);
+      expect(
+        cellFor(el, 10)!.classList.contains('calendar-cell-out-of-range')
+      ).toBe(true);
+      expect(
+        cellFor(el, 11)!.classList.contains('calendar-cell-out-of-range')
+      ).toBe(false);
+    });
+
+    it('uses getDay numbering, 0 = Sunday', async () => {
+      const el = mount({ initialDate: MARCH, availableDays: '0' });
+      await el.updateComplete;
+
+      expect(
+        cellFor(el, 10)!.classList.contains('calendar-cell-out-of-range')
+      ).toBe(false);
+      expect(
+        cellFor(el, 11)!.classList.contains('calendar-cell-out-of-range')
+      ).toBe(true);
+    });
+
+    it('throws on a value outside 0-6', async () => {
+      const el = mount({ initialDate: MARCH });
+      await el.updateComplete;
+
+      el.setAttribute('available-days', '1,7');
+      await expect(el.updateComplete).rejects.toThrow(
+        /available-days must list integers 0-6/
+      );
+    });
+
+    it('throws when empty', async () => {
+      const el = mount({ initialDate: MARCH });
+      await el.updateComplete;
+
+      el.setAttribute('available-days', '');
+      await expect(el.updateComplete).rejects.toThrow(
+        /available-days is empty/
+      );
+    });
+  });
+
+  describe('available-hours', () => {
+    const slots = (el: CalendarElement): HTMLElement[] =>
+      Array.from(el.querySelectorAll('.time-grid-slot'));
+
+    const openDay = async (el: CalendarElement): Promise<void> => {
+      cellFor(el, 15)!.click();
+      await flush();
+      await el.updateComplete;
+    };
+
+    it('greys the hours outside the window', async () => {
+      const el = mount({
+        initialDate: MARCH,
+        availabilityMode: 'time',
+        availableHours: '09:00-17:00',
+      });
+      await el.updateComplete;
+      await openDay(el);
+
+      const rendered = slots(el);
+      expect(rendered).toHaveLength(24);
+
+      const outOfRange = rendered.filter(s =>
+        s.classList.contains('time-grid-slot-out-of-range')
+      );
+      expect(outOfRange).toHaveLength(16);
+      expect(
+        rendered[9].classList.contains('time-grid-slot-out-of-range')
+      ).toBe(false);
+      expect(
+        rendered[8].classList.contains('time-grid-slot-out-of-range')
+      ).toBe(true);
+      expect(
+        rendered[16].classList.contains('time-grid-slot-out-of-range')
+      ).toBe(false);
+      expect(
+        rendered[17].classList.contains('time-grid-slot-out-of-range')
+      ).toBe(true);
+    });
+
+    it('greys a lunch break between two windows', async () => {
+      const el = mount({
+        initialDate: MARCH,
+        availabilityMode: 'time',
+        availableHours: '09:00-12:00,13:00-17:00',
+      });
+      await el.updateComplete;
+      await openDay(el);
+
+      const rendered = slots(el);
+      const closed = (i: number): boolean =>
+        rendered[i].classList.contains('time-grid-slot-out-of-range');
+
+      expect(closed(11)).toBe(false);
+      expect(closed(12)).toBe(true);
+      expect(closed(13)).toBe(false);
+    });
+
+    it('renders out-of-hours slots rather than omitting them', async () => {
+      const el = mount({
+        initialDate: MARCH,
+        availabilityMode: 'time',
+        availableHours: '09:00-17:00',
+      });
+      await el.updateComplete;
+      await openDay(el);
+
+      expect(slots(el)).toHaveLength(24);
+      expect(slots(el)[0].textContent).toContain('Closed');
+    });
+
+    it('does not fire cal-slot-select for an out-of-hours slot', async () => {
+      const el = mount({
+        initialDate: MARCH,
+        availabilityMode: 'time',
+        availableHours: '09:00-17:00',
+      });
+      await el.updateComplete;
+      await openDay(el);
+
+      const seen: unknown[] = [];
+      el.addEventListener('cal-slot-select', e => seen.push(e));
+
+      slots(el)[3].click();
+      await flush();
+      expect(seen).toHaveLength(0);
+
+      slots(el)[10].click();
+      await flush();
+      expect(seen).toHaveLength(1);
+    });
+
+    it('honours slot-duration when checking boundaries', async () => {
+      const el = mount({
+        initialDate: MARCH,
+        availabilityMode: 'time',
+        availableHours: '09:30-17:00',
+        slotDuration: 30,
+      });
+      await el.updateComplete;
+      await openDay(el);
+
+      const rendered = slots(el);
+      expect(rendered).toHaveLength(48);
+      expect(
+        rendered[19].classList.contains('time-grid-slot-out-of-range')
+      ).toBe(false);
+      expect(
+        rendered[18].classList.contains('time-grid-slot-out-of-range')
+      ).toBe(true);
+    });
+
+    it('throws when a boundary misses the slot grid', async () => {
+      const el = mount({ initialDate: MARCH, availabilityMode: 'time' });
+      await el.updateComplete;
+
+      el.setAttribute('available-hours', '09:30-17:00');
+      await expect(el.updateComplete).rejects.toThrow(
+        /does not land on a 60-minute slot boundary/
+      );
+    });
+
+    it('throws on overlapping ranges', async () => {
+      const el = mount({ initialDate: MARCH, availabilityMode: 'time' });
+      await el.updateComplete;
+
+      el.setAttribute('available-hours', '09:00-13:00,12:00-17:00');
+      await expect(el.updateComplete).rejects.toThrow(/overlap or touch/);
+    });
+  });
+
+  describe('interaction with availability buckets', () => {
+    it('cannot draw a day range across an excluded weekday', async () => {
+      const el = mount({
+        initialDate: MARCH,
+        availabilityMode: 'day',
+        selectable: 'range',
+        availableDays: '1,2,3,4,5',
+        selectableStatuses: ['open'],
+      });
+      await el.updateComplete;
+
+      const seen: Array<{ startDate: Date; endDate: Date }> = [];
+      el.addEventListener('cal-availability-select', e => {
+        seen.push((e as CustomEvent).detail);
+      });
+
+      // Friday the 8th then Monday the 11th, spanning the weekend
+      cellFor(el, 8)!.click();
+      await flush();
+      cellFor(el, 11)!.click();
+      await flush();
+
+      // the span is refused, so the second click restarts rather than completing
+      const last = seen[seen.length - 1];
+      expect(last.startDate.getDate()).toBe(11);
+      expect(last.endDate.getDate()).toBe(11);
+    });
   });
 });

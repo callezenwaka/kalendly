@@ -5,6 +5,9 @@ import {
   formatAttendees,
   bookedSlots,
   formatMinutes,
+  parseHourRanges,
+  isDateWithinWindow,
+  isDayAllowed,
   DEFAULT_SLOT_DURATION,
   MINUTES_PER_DAY,
   escapeHtml,
@@ -31,6 +34,10 @@ export class CalendarElement extends HTMLElement {
     'initial-date',
     'min-year',
     'max-year',
+    'min-date',
+    'max-date',
+    'available-days',
+    'available-hours',
     'week-starts-on',
     'heading',
     'months',
@@ -53,6 +60,8 @@ export class CalendarElement extends HTMLElement {
     borderColor: '--calendar-border-color',
     todayOutline: '--calendar-today-outline',
     selectedBg: '--calendar-selected-bg',
+    outOfRangeBg: '--calendar-out-of-range-bg',
+    outOfRangeFg: '--calendar-out-of-range-fg',
     headerBg: '--calendar-header-bg',
     popupBg: '--calendar-popup-bg',
     pickerBg: '--calendar-picker-bg',
@@ -304,6 +313,56 @@ export class CalendarElement extends HTMLElement {
     return val ? parseInt(val, 10) : new Date().getFullYear() + 10;
   }
 
+  private boundaryDate(attr: 'min-date' | 'max-date'): Date | null {
+    const val = this.getAttribute(attr);
+    if (!val) return null;
+
+    const parsed = new Date(val);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new Error(
+        `<kal-calendar> ${attr} is unreadable: "${val}". Use a value Date can ` +
+          `parse, the same as initial-date.`
+      );
+    }
+
+    return parsed;
+  }
+
+  private get availableDays(): number[] | null {
+    const val = this.getAttribute('available-days');
+    if (val === null) return null;
+
+    const parts = val
+      .split(',')
+      .map(part => part.trim())
+      .filter(Boolean);
+
+    if (parts.length === 0) {
+      throw new Error(
+        `<kal-calendar> available-days is empty. Omit the attribute to allow ` +
+          `every day, or name at least one weekday.`
+      );
+    }
+
+    return parts.map(part => {
+      const day = Number(part);
+      if (!Number.isInteger(day) || day < 0 || day > 6) {
+        throw new Error(
+          `<kal-calendar> available-days must list integers 0-6, 0 = Sunday. ` +
+            `Got "${part}".`
+        );
+      }
+      return day;
+    });
+  }
+
+  private get availableHours(): Array<[number, number]> | null {
+    const val = this.getAttribute('available-hours');
+    if (val === null) return null;
+
+    return parseHourRanges(val, this.slotDuration);
+  }
+
   private initEngine(): void {
     const initialDateAttr = this.getAttribute('initial-date');
     const initialDate = initialDateAttr ? new Date(initialDateAttr) : undefined;
@@ -463,8 +522,32 @@ export class CalendarElement extends HTMLElement {
     return this.knownBuckets.find(bucket => declared.has(bucket)) as string;
   }
 
+  private assertHorizonOrdered(): void {
+    const min = this.boundaryDate('min-date');
+    const max = this.boundaryDate('max-date');
+
+    if (min && max && min.getTime() > max.getTime()) {
+      throw new Error(
+        `<kal-calendar> min-date is after max-date: ` +
+          `"${this.getAttribute('min-date')}" > "${this.getAttribute('max-date')}".`
+      );
+    }
+  }
+
+  // Whether the vendor offers this day at all, before any event is considered.
+  private isDateOffered(date: Date): boolean {
+    return (
+      isDateWithinWindow(
+        date,
+        this.boundaryDate('min-date'),
+        this.boundaryDate('max-date')
+      ) && isDayAllowed(date, this.availableDays)
+    );
+  }
+
   private isDateSelectable(date: Date): boolean {
     if (!this.engine) return false;
+    if (!this.isDateOffered(date)) return false;
 
     if (this._selectableStatuses) {
       return this._selectableStatuses.includes(this.resolveBucket(date));
@@ -489,6 +572,13 @@ export class CalendarElement extends HTMLElement {
       this.assertStatusesDeclared();
       this.assertStatusesKnown();
     }
+
+    // Up front, not in the grid: the grid only renders once a day is open.
+    this.boundaryDate('min-date');
+    this.boundaryDate('max-date');
+    void this.availableDays;
+    void this.availableHours;
+    this.assertHorizonOrdered();
 
     const today = new Date();
     const todayMonth = today.getMonth();
@@ -659,11 +749,20 @@ export class CalendarElement extends HTMLElement {
       this.warnMissingEndTime(events);
       const booked = bookedSlots(events, date, slotDuration);
 
+      const hours = this.availableHours;
+
       const slots = booked.map((isBooked, index) => {
-        const startTime = formatMinutes(index * slotDuration);
-        const endTime = formatMinutes((index + 1) * slotDuration);
+        const slotStart = index * slotDuration;
+        const slotEnd = slotStart + slotDuration;
+        const startTime = formatMinutes(slotStart);
+        const endTime = formatMinutes(slotEnd);
+
+        const offered =
+          hours === null ||
+          hours.some(([from, to]) => slotStart >= from && slotEnd <= to);
 
         const inTimeRange =
+          offered &&
           !isBooked &&
           selectable &&
           this._timeRangeStart !== null &&
@@ -678,6 +777,7 @@ export class CalendarElement extends HTMLElement {
 
         const slotClasses = [
           'time-grid-slot',
+          offered ? '' : 'time-grid-slot-out-of-range',
           isBooked ? 'time-grid-slot-blocked' : 'time-grid-slot-open',
           isRangeStart ? 'time-grid-slot-range-start' : '',
           isRangeEnd ? 'time-grid-slot-range-end' : '',
@@ -686,15 +786,20 @@ export class CalendarElement extends HTMLElement {
           .filter(Boolean)
           .join(' ');
 
+        // No data-action outside the offered hours, so cal-slot-select stays
+        // silent for a slot the vendor never put up for sale.
         const slotAttrs =
-          `data-action="select-slot" data-start-time="${startTime}" ` +
+          `${offered ? 'data-action="select-slot" ' : ''}` +
+          `data-start-time="${startTime}" ` +
           `data-end-time="${endTime}" data-date="${date.toISOString()}" ` +
           `data-booked="${isBooked}"`;
+
+        const status = !offered ? 'Closed' : isBooked ? 'Booked' : 'Available';
 
         return `
           <div class="${slotClasses}" ${slotAttrs}>
             <span class="time-grid-label">${startTime}</span>
-            <span class="time-grid-status">${isBooked ? 'Booked' : 'Available'}</span>
+            <span class="time-grid-status">${status}</span>
           </div>`;
       });
 
@@ -799,12 +904,21 @@ export class CalendarElement extends HTMLElement {
                               }
                             }
                             const dateString = calendarDate.date.toISOString();
+                            // Not offered means not a click target at all: no
+                            // data-clickable, so neither the delegated handler
+                            // nor the hover rule ever sees the cell.
+                            const offered = this.isDateOffered(
+                              calendarDate.date
+                            );
+                            if (!offered) {
+                              classes.push('calendar-cell-out-of-range');
+                            }
                             return `
                             <td
                               class="${classes.join(' ')}"
                               data-date="${dateString}"
                               data-day-index="${dayIndex}"
-                              data-clickable="true"
+                              ${offered ? 'data-clickable="true"' : ''}
                               ${cellAttrs.join(' ')}
                             >
                               ${calendarDate.date.getDate()}

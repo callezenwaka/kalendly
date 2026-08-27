@@ -22,6 +22,9 @@ import {
   formatMinutes,
   mergeIntervals,
   bookedSlots,
+  isDateWithinWindow,
+  isDayAllowed,
+  parseHourRanges,
   DEFAULT_CATEGORY_COLORS,
   MONTHS,
   DAYS,
@@ -1018,5 +1021,141 @@ describe('Multi-day events', () => {
     expect(booked('2024-01-17')).toEqual(both);
     // 18th: nothing
     expect(booked('2024-01-18')).toEqual([]);
+  });
+});
+
+describe('isDateWithinWindow', () => {
+  const min = new Date(2024, 2, 10);
+  const max = new Date(2024, 2, 20);
+
+  it('accepts a date inside the window', () => {
+    expect(isDateWithinWindow(new Date(2024, 2, 15), min, max)).toBe(true);
+  });
+
+  it('treats both bounds as inclusive', () => {
+    expect(isDateWithinWindow(new Date(2024, 2, 10), min, max)).toBe(true);
+    expect(isDateWithinWindow(new Date(2024, 2, 20), min, max)).toBe(true);
+  });
+
+  it('rejects a date outside either bound', () => {
+    expect(isDateWithinWindow(new Date(2024, 2, 9), min, max)).toBe(false);
+    expect(isDateWithinWindow(new Date(2024, 2, 21), min, max)).toBe(false);
+  });
+
+  it('ignores the time of day on the bounds', () => {
+    const lateMin = new Date(2024, 2, 10, 23, 59);
+    expect(isDateWithinWindow(new Date(2024, 2, 10, 0, 1), lateMin, max)).toBe(
+      true
+    );
+  });
+
+  it('leaves an end unbounded when its bound is null', () => {
+    expect(isDateWithinWindow(new Date(1990, 0, 1), null, max)).toBe(true);
+    expect(isDateWithinWindow(new Date(2099, 0, 1), min, null)).toBe(true);
+    expect(isDateWithinWindow(new Date(2099, 0, 1), null, null)).toBe(true);
+  });
+
+  it('accepts only that day when the bounds are equal', () => {
+    const day = new Date(2024, 2, 15);
+    expect(isDateWithinWindow(day, day, day)).toBe(true);
+    expect(isDateWithinWindow(new Date(2024, 2, 16), day, day)).toBe(false);
+  });
+});
+
+describe('isDayAllowed', () => {
+  // 2024-03-10 is a Sunday, so this run covers getDay() 0 through 6
+  const week = Array.from({ length: 7 }, (_, i) => new Date(2024, 2, 10 + i));
+
+  it('allows every day when the list is null', () => {
+    for (const day of week) expect(isDayAllowed(day, null)).toBe(true);
+  });
+
+  it('allows only the listed weekdays', () => {
+    const weekdays = [1, 2, 3, 4, 5];
+    const allowed = week.map(day => isDayAllowed(day, weekdays));
+    expect(allowed).toEqual([false, true, true, true, true, true, false]);
+  });
+
+  it('uses getDay numbering, 0 = Sunday', () => {
+    expect(week[0].getDay()).toBe(0);
+    expect(isDayAllowed(week[0], [0])).toBe(true);
+    expect(isDayAllowed(week[1], [0])).toBe(false);
+  });
+
+  it('allows nothing when the list is empty', () => {
+    for (const day of week) expect(isDayAllowed(day, [])).toBe(false);
+  });
+});
+
+describe('parseHourRanges', () => {
+  it('parses a single range to half-open minutes', () => {
+    expect(parseHourRanges('09:00-17:00', 60)).toEqual([[540, 1020]]);
+  });
+
+  it('parses a split shift', () => {
+    expect(parseHourRanges('09:00-12:00,13:00-17:00', 60)).toEqual([
+      [540, 720],
+      [780, 1020],
+    ]);
+  });
+
+  it('tolerates whitespace around ranges', () => {
+    expect(parseHourRanges(' 09:00-12:00 , 13:00-17:00 ', 60)).toEqual([
+      [540, 720],
+      [780, 1020],
+    ]);
+  });
+
+  it('accepts a range spanning the whole day', () => {
+    expect(parseHourRanges('00:00-24:00', 60)).toEqual([[0, 1440]]);
+  });
+
+  it('accepts half-hour boundaries when slots are half-hour', () => {
+    expect(parseHourRanges('09:30-17:00', 30)).toEqual([[570, 1020]]);
+  });
+
+  it('throws when a boundary misses the slot grid', () => {
+    expect(() => parseHourRanges('09:30-17:00', 60)).toThrow(
+      /does not land on a 60-minute slot boundary/
+    );
+  });
+
+  it('throws when a range is inverted or empty', () => {
+    expect(() => parseHourRanges('17:00-09:00', 60)).toThrow(
+      /starts at or after it ends/
+    );
+    expect(() => parseHourRanges('09:00-09:00', 60)).toThrow(
+      /starts at or after it ends/
+    );
+  });
+
+  it('throws on a malformed range', () => {
+    expect(() => parseHourRanges('09:00', 60)).toThrow(/not HH:MM-HH:MM/);
+    expect(() => parseHourRanges('9am-5pm', 60)).toThrow(/unreadable time/);
+    expect(() => parseHourRanges('09:00-25:00', 60)).toThrow(/unreadable time/);
+  });
+
+  it('throws when nothing is named', () => {
+    expect(() => parseHourRanges('', 60)).toThrow(/is empty/);
+    expect(() => parseHourRanges('  ,  ', 60)).toThrow(/is empty/);
+  });
+
+  it('throws on overlapping ranges', () => {
+    expect(() => parseHourRanges('09:00-13:00,12:00-17:00', 60)).toThrow(
+      /overlap or touch/
+    );
+  });
+
+  it('throws on touching ranges, which are one window written twice', () => {
+    expect(() => parseHourRanges('09:00-12:00,12:00-17:00', 60)).toThrow(
+      /overlap or touch/
+    );
+  });
+
+  it('accepts ranges given out of order', () => {
+    expect(parseHourRanges('13:00-17:00,09:00-12:00', 60)).toEqual([
+      [780, 1020],
+      [540, 720],
+    ]);
   });
 });
