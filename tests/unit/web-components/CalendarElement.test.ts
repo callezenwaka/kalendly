@@ -2382,16 +2382,16 @@ describe('CalendarElement — malformed times', () => {
     await flush();
   });
 
-  it('books from the start to the end of the day when no end is given', async () => {
-    expect(await slotsFor('09:00')).toBe(15);
+  it('books one slot when no end is given', async () => {
+    expect(await slotsFor('09:00')).toBe(1);
     await flush();
-    expect(await slotsFor('00:00')).toBe(24);
+    expect(await slotsFor('00:00')).toBe(1);
     await flush();
     expect(await slotsFor('23:00')).toBe(1);
     await flush();
   });
 
-  it('leaves the hours before an open-ended start available', async () => {
+  it('leaves every other hour available for an open-ended start', async () => {
     const el = mount({
       events: [
         {
@@ -2410,7 +2410,7 @@ describe('CalendarElement — malformed times', () => {
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flush();
 
-    expect(el.querySelectorAll('.time-grid-slot-open').length).toBe(9);
+    expect(el.querySelectorAll('.time-grid-slot-open').length).toBe(23);
   });
 });
 
@@ -2593,5 +2593,151 @@ describe('CalendarElement — multi-month loading', () => {
     await flush();
     expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
     expect(el.querySelectorAll('table').length).toBe(2);
+  });
+});
+
+describe('CalendarElement — slot duration', () => {
+  const BASE = new Date('2024-01-15');
+
+  function mountGrid(
+    events: CalendarEvent[],
+    slotDuration?: string,
+    day = '15'
+  ): CalendarElement {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    el.setAttribute('availability-mode', 'time');
+    el.setAttribute('selectable', 'range');
+    if (slotDuration) el.setAttribute('slot-duration', slotDuration);
+    el.events = events;
+    document.body.appendChild(el);
+
+    Array.from(el.querySelectorAll('td'))
+      .find(
+        td =>
+          td.textContent?.trim() === day &&
+          !td.classList.contains('calendar-cell-other-month')
+      )
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return el;
+  }
+
+  const NIGHT: CalendarEvent[] = [
+    {
+      id: 1,
+      name: 'night',
+      date: '2024-01-15',
+      startTime: '22:00',
+      endTime: '06:00',
+      availabilityStatus: 'blocked',
+    },
+  ];
+
+  it('renders 24 slots by default', async () => {
+    const el = mountGrid([]);
+    await flush();
+    expect(el.querySelectorAll('.time-grid-slot').length).toBe(24);
+  });
+
+  it('renders 48 slots at 30 minutes, labelled on the half hour', async () => {
+    const el = mountGrid([], '30');
+    await flush();
+
+    const slots = el.querySelectorAll('.time-grid-slot');
+    expect(slots.length).toBe(48);
+    expect(slots[0].querySelector('.time-grid-label')?.textContent).toBe(
+      '00:00'
+    );
+    expect(slots[1].querySelector('.time-grid-label')?.textContent).toBe(
+      '00:30'
+    );
+  });
+
+  it('emits half-hour selections at 30 minutes', async () => {
+    const el = mountGrid([], '30');
+    await flush();
+
+    const selections: { startTime: string; endTime: string }[] = [];
+    el.addEventListener('cal-availability-select', e =>
+      selections.push(
+        (e as CustomEvent).detail as { startTime: string; endTime: string }
+      )
+    );
+
+    el.querySelectorAll<HTMLElement>(
+      '[data-action="select-slot"]'
+    )[19]?.click();
+    await flush();
+
+    expect(selections[0].startTime).toBe('09:30');
+    expect(selections[0].endTime).toBe('10:00');
+  });
+
+  it('falls back to 60 minutes for a duration that does not divide the day', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const el = mountGrid([], '50');
+    await flush();
+
+    expect(el.querySelectorAll('.time-grid-slot').length).toBe(24);
+    expect(warn.mock.calls.some(c => /slot-duration="50"/.test(c[0]))).toBe(
+      true
+    );
+    warn.mockRestore();
+  });
+
+  it('blocks the evening of the day a night booking starts', async () => {
+    const el = mountGrid(NIGHT);
+    await flush();
+
+    const blocked = Array.from(el.querySelectorAll('.time-grid-slot')).flatMap(
+      (slot, i) =>
+        slot.classList.contains('time-grid-slot-blocked') ? [i] : []
+    );
+    expect(blocked).toEqual([22, 23]);
+  });
+
+  it('blocks the morning the night booking runs into', async () => {
+    const el = mountGrid(NIGHT, undefined, '16');
+    await flush();
+
+    const blocked = Array.from(el.querySelectorAll('.time-grid-slot')).flatMap(
+      (slot, i) =>
+        slot.classList.contains('time-grid-slot-blocked') ? [i] : []
+    );
+    expect(blocked).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+
+  it('leaves the day before a night booking untouched', async () => {
+    const el = mountGrid(NIGHT, undefined, '14');
+    await flush();
+    expect(el.querySelectorAll('.time-grid-slot-blocked').length).toBe(0);
+  });
+
+  it('warns once per event when an end time is missing', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    (
+      CalendarElement as unknown as { warnedMissingEnd: Set<string> }
+    ).warnedMissingEnd.clear();
+
+    const events: CalendarEvent[] = [
+      {
+        id: 77,
+        name: 'x',
+        date: '2024-01-15',
+        startTime: '09:00',
+        availabilityStatus: 'blocked',
+      },
+    ];
+
+    const el = mountGrid(events);
+    await flush();
+    el.events = [...events];
+    await flush();
+
+    const hits = warn.mock.calls.filter(c =>
+      /event 77 has startTime/.test(c[0])
+    );
+    expect(hits.length).toBe(1);
+    warn.mockRestore();
   });
 });

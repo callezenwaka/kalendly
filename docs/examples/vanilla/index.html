@@ -153,6 +153,16 @@
 
     <hr class="divider">
 
+    <h2>Slot Length</h2>
+    <div class="button-grid">
+      <button type="button" id="slot60Btn" class="active">60 min</button>
+      <button type="button" id="slot30Btn">30 min</button>
+      <button type="button" id="slot15Btn">15 min</button>
+    </div>
+    <p class="hint">Time view only. Sets the grid granularity and the length a booking with no end time occupies.</p>
+
+    <hr class="divider">
+
     <h2>Selectable Range</h2>
     <div class="button-grid">
       <button type="button" id="selOffBtn" class="active">Off</button>
@@ -214,6 +224,7 @@
       { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
       { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
       { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
+      { id: 15, date: thisMonth(24), startTime: '22:00', endTime: '06:00', availabilityStatus: 'blocked' },
     ];
 
     cal.events = normalEvents;
@@ -333,6 +344,16 @@
 
     // ─── selectable controls ──────────────────────────────────────────────────
     const selBtns = ['selOffBtn', 'selRangeBtn'];
+
+    function setSlotDuration(minutes) {
+      setActiveBtn(['slot60Btn', 'slot30Btn', 'slot15Btn'], `slot${minutes}Btn`);
+      cal.setAttribute('slot-duration', String(minutes));
+      log(`Slot length → ${minutes} min`);
+    }
+
+    document.getElementById('slot60Btn').addEventListener('click', () => setSlotDuration(60));
+    document.getElementById('slot30Btn').addEventListener('click', () => setSlotDuration(30));
+    document.getElementById('slot15Btn').addEventListener('click', () => setSlotDuration(15));
 
     document.getElementById('selOffBtn').addEventListener('click', () => {
       setActiveBtn(selBtns, 'selOffBtn');

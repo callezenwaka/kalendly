@@ -18,6 +18,10 @@ import {
   slugifyToken,
   safeUrl,
   safeColor,
+  parseTimeToMinutes,
+  formatMinutes,
+  mergeIntervals,
+  bookedSlots,
   DEFAULT_CATEGORY_COLORS,
   MONTHS,
   DAYS,
@@ -764,6 +768,169 @@ describe('Sanitizers', () => {
       expect(safeColor('red" onmouseover="alert(1)')).toBe('#3b82f6');
       expect(safeColor('red; background: url(x)')).toBe('#3b82f6');
       expect(safeColor('')).toBe('#3b82f6');
+    });
+  });
+});
+
+describe('Booking intervals', () => {
+  const on = (date: string, hours: boolean[]) =>
+    hours.reduce<number[]>(
+      (acc, booked, i) => (booked ? [...acc, i] : acc),
+      []
+    );
+
+  describe('parseTimeToMinutes', () => {
+    it('parses valid times', () => {
+      expect(parseTimeToMinutes('00:00')).toBe(0);
+      expect(parseTimeToMinutes('09:30')).toBe(570);
+      expect(parseTimeToMinutes('24:00')).toBe(1440);
+    });
+
+    it('rejects anything it cannot read', () => {
+      for (const bad of ['9am', '', '25:00', '09:60', 'noon', '09', null]) {
+        expect(parseTimeToMinutes(bad)).toBeNull();
+      }
+    });
+  });
+
+  describe('formatMinutes', () => {
+    it('renders the end of the day as 24:00, not 00:00', () => {
+      expect(formatMinutes(0)).toBe('00:00');
+      expect(formatMinutes(570)).toBe('09:30');
+      expect(formatMinutes(1440)).toBe('24:00');
+    });
+  });
+
+  describe('mergeIntervals', () => {
+    it('merges overlapping and touching intervals', () => {
+      expect(
+        mergeIntervals([
+          [0, 10],
+          [5, 20],
+          [20, 30],
+          [40, 50],
+        ])
+      ).toEqual([
+        [0, 30],
+        [40, 50],
+      ]);
+    });
+  });
+
+  describe('bookedSlots', () => {
+    const day = (iso: string) => new Date(`${iso}T00:00:00`);
+
+    it('spreads an overnight booking across both days', () => {
+      const events: CalendarEvent[] = [
+        {
+          id: 1,
+          name: 'night',
+          date: '2024-01-15',
+          startTime: '22:00',
+          endTime: '06:00',
+        },
+      ];
+
+      expect(on('15', bookedSlots(events, day('2024-01-15')))).toEqual([
+        22, 23,
+      ]);
+      expect(on('16', bookedSlots(events, day('2024-01-16')))).toEqual([
+        0, 1, 2, 3, 4, 5,
+      ]);
+      expect(on('14', bookedSlots(events, day('2024-01-14')))).toEqual([]);
+    });
+
+    it('flows a missing end time into the next day', () => {
+      const events: CalendarEvent[] = [
+        { id: 1, name: 'late', date: '2024-01-15', startTime: '23:00' },
+      ];
+
+      // 120-minute slots: 12 a day, so 23:00-01:00 is the last slot of the
+      // 15th and the first of the 16th
+      expect(on('15', bookedSlots(events, day('2024-01-15'), 120))).toEqual([
+        11,
+      ]);
+      expect(on('16', bookedSlots(events, day('2024-01-16'), 120))).toEqual([
+        0,
+      ]);
+    });
+
+    it('books one slot when no end time is given', () => {
+      const events: CalendarEvent[] = [
+        { id: 1, name: 'x', date: '2024-01-15', startTime: '09:00' },
+      ];
+      expect(on('15', bookedSlots(events, day('2024-01-15')))).toEqual([9]);
+    });
+
+    it('books the stated hours and nothing more', () => {
+      const events: CalendarEvent[] = [
+        {
+          id: 1,
+          name: 'x',
+          date: '2024-01-15',
+          startTime: '09:00',
+          endTime: '11:00',
+        },
+      ];
+      expect(on('15', bookedSlots(events, day('2024-01-15')))).toEqual([9, 10]);
+    });
+
+    it('lets two bookings share a day without double-counting', () => {
+      const events: CalendarEvent[] = [
+        {
+          id: 1,
+          name: 'meeting',
+          date: '2024-01-15',
+          startTime: '09:00',
+          endTime: '17:00',
+        },
+        {
+          id: 2,
+          name: 'yoga',
+          date: '2024-01-15',
+          startTime: '17:30',
+          endTime: '22:00',
+        },
+      ];
+
+      expect(on('15', bookedSlots(events, day('2024-01-15')))).toEqual([
+        9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      ]);
+    });
+
+    it('books the whole day for all-day, timeless and unreadable events', () => {
+      const all = Array.from({ length: 24 }, (_, i) => i);
+
+      for (const event of [
+        { id: 1, name: 'x', date: '2024-01-15', allDay: true },
+        { id: 2, name: 'x', date: '2024-01-15' },
+        { id: 3, name: 'x', date: '2024-01-15', startTime: '9am' },
+        {
+          id: 4,
+          name: 'x',
+          date: '2024-01-15',
+          startTime: '09:00',
+          endTime: 'noon',
+        },
+      ] as CalendarEvent[]) {
+        expect(on('15', bookedSlots([event], day('2024-01-15')))).toEqual(all);
+      }
+    });
+
+    it('honours a finer grid', () => {
+      const events: CalendarEvent[] = [
+        {
+          id: 1,
+          name: 'x',
+          date: '2024-01-15',
+          startTime: '09:00',
+          endTime: '09:30',
+        },
+      ];
+
+      const slots = bookedSlots(events, day('2024-01-15'), 30);
+      expect(slots.length).toBe(48);
+      expect(on('15', slots)).toEqual([18]); // 09:00–09:30 is slot 18
     });
   });
 });

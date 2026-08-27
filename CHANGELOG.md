@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **An event with a `startTime` and no `endTime` occupies one slot**, not the rest of the day. The previous behaviour never double-booked but silently made a vendor's whole evening unsellable from one incomplete record. The library warns once naming the event; the supported fix is an end time in the data.
+
+### Added
+
+- **`slot-duration`** — time-grid granularity in minutes, default 60. The grid renders `1440 / slot-duration` slots and `cal-availability-select` emits times on that granularity, so a vendor working in half-hours can represent and take half-hour bookings. A value that does not divide 1440 falls back to 60 with a warning.
+- `parseTimeToMinutes`, `formatMinutes`, `mergeIntervals`, `bookedSlots` and `eventInterval` exported from `kalendly/core`.
+
+### Fixed
+
+- **Bookings crossing midnight blocked nothing.** A `22:00`–`06:00` booking left the whole day available, so a customer could book on top of it — from valid data, with no error. Time ranges are now absolute intervals: an `endTime` at or before its `startTime` belongs to the next day, and each day's grid shows the portion of any booking falling on that day. The grid reads the previous day's events so the morning a booking runs into is marked.
+- **Overlapping bookings double-counted.** Intervals merge before slots are tested, so a 09:00–17:00 meeting and a 17:30–22:00 class mark 09:00–22:00 once between them.
+
 ## [0.3.0] - 2026-08-26
 
 ### Breaking Changes

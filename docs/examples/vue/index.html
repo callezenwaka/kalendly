@@ -133,6 +133,7 @@
       { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
       { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
       { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
+      { id: 15, date: thisMonth(24), startTime: '22:00', endTime: '06:00', availabilityStatus: 'blocked' },
     ];
 
     createApp({
@@ -145,6 +146,7 @@
         const mode       = ref('Normal'); // 'Normal' | 'day' | 'time'
         const selectable = ref('off');    // 'off' | 'range'
         const months = ref(1);
+        const slotDuration = ref(60);
         const lazyOn     = ref(false);
         const logs       = ref(['Calendar initialised']);
         const calRef     = ref(null);
@@ -175,10 +177,11 @@
           } else {
             cal.removeAttribute('months');
           }
+          cal.setAttribute('slot-duration', String(slotDuration.value));
         }
 
         onMounted(syncCalendar);
-        watch([mode, selectable, months, normalEvents], syncCalendar);
+        watch([mode, selectable, months, slotDuration, normalEvents], syncCalendar);
 
         watch(lazyOn, (val) => {
           const cal = calRef.value;
@@ -295,6 +298,18 @@
               h('button', { type: 'button', class: months.value === 2 ? 'active' : '', onClick: () => { months.value = 2; if (mode.value !== 'day') handleModeChange('day'); } }, '2 Months'),
             ]),
             h('p', { class: 'hint' }, 'Navigation advances one month at a time. Turn on Selectable Range to pick a range that spans both.'),
+
+            h('hr', { class: 'divider' }),
+
+            h('hr', { class: 'divider' }),
+
+            h('h2', null, 'Slot Length'),
+            h('div', { class: 'button-grid' },
+              [60, 30, 15].map(m =>
+                h('button', { key: m, type: 'button', class: slotDuration.value === m ? 'active' : '', onClick: () => { slotDuration.value = m; } }, `${m} min`)
+              ),
+            ),
+            h('p', { class: 'hint' }, 'Time view only. Sets the grid granularity and the length a booking with no end time occupies.'),
 
             h('hr', { class: 'divider' }),
 
