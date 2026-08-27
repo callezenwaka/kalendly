@@ -219,6 +219,25 @@
 
     <hr class="divider">
 
+    <h2>Opening Hours</h2>
+    <div class="button-grid">
+      <button type="button" id="hoursOffBtn" class="active">All day</button>
+      <button type="button" id="hours9to5Btn">09:00&ndash;17:00</button>
+      <button type="button" id="hoursSplitBtn">Split shift</button>
+    </div>
+    <p class="hint">Time view only. Split shift is <code>09:00-12:00,13:00-17:00</code> &mdash; closed for lunch. Closed hours stay visible so an existing booking outside them is not hidden.</p>
+
+    <hr class="divider">
+
+    <h2>Opening Days</h2>
+    <div class="button-grid">
+      <button type="button" id="daysAllBtn" class="active">Every day</button>
+      <button type="button" id="daysWeekBtn">Mon&ndash;Fri</button>
+    </div>
+    <p class="hint">Excluded days are not click targets at all &mdash; no hover, no event. Combines with Opening Hours.</p>
+
+    <hr class="divider">
+
     <h2>Selectable Range</h2>
     <div class="button-grid">
       <button type="button" id="selOffBtn" class="active">Off</button>
@@ -360,6 +379,7 @@ npm install kalendly
       { id: 1, name: 'Team Standup',     date: thisMonth(10), startTime: '09:00', endTime: '09:30', category: 'meeting',  color: '#10b981', priority: 'high', location: 'Conference Room A' },
       { id: 2, name: 'Project Deadline', date: thisMonth(20), category: 'deadline', color: '#ef4444', priority: 'high' },
       { id: 3, name: 'Code Review',      date: new Date(),    startTime: '14:00', endTime: '15:00', category: 'work',     color: '#3b82f6', location: 'Virtual - Zoom' },
+      { id: 4, date: thisMonth(14), startTime: '11:00', endTime: '12:00', category: 'personal', location: 'Studio 2' },
     ];
 
     const leanEvents = [
@@ -501,6 +521,28 @@ npm install kalendly
       cal.setAttribute('slot-duration', String(minutes));
       log(`Slot length → ${minutes} min`);
     }
+
+    function setHours(kind) {
+      setActiveBtn(['hoursOffBtn', 'hours9to5Btn', 'hoursSplitBtn'], `hours${kind}Btn`);
+      const ranges = { Off: null, '9to5': '09:00-17:00', Split: '09:00-12:00,13:00-17:00' }[kind];
+      if (ranges) cal.setAttribute('available-hours', ranges);
+      else cal.removeAttribute('available-hours');
+      log(`Opening hours → ${ranges ?? 'all day'}`);
+    }
+
+    document.getElementById('hoursOffBtn').addEventListener('click', () => setHours('Off'));
+    document.getElementById('hours9to5Btn').addEventListener('click', () => setHours('9to5'));
+    document.getElementById('hoursSplitBtn').addEventListener('click', () => setHours('Split'));
+
+    function setDays(kind) {
+      setActiveBtn(['daysAllBtn', 'daysWeekBtn'], `days${kind}Btn`);
+      if (kind === 'Week') cal.setAttribute('available-days', '1,2,3,4,5');
+      else cal.removeAttribute('available-days');
+      log(`Opening days → ${kind === 'Week' ? 'Mon-Fri' : 'every day'}`);
+    }
+
+    document.getElementById('daysAllBtn').addEventListener('click', () => setDays('All'));
+    document.getElementById('daysWeekBtn').addEventListener('click', () => setDays('Week'));
 
     document.getElementById('slot60Btn').addEventListener('click', () => setSlotDuration(60));
     document.getElementById('slot30Btn').addEventListener('click', () => setSlotDuration(30));

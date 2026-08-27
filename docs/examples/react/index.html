@@ -144,10 +144,13 @@
         { id: 1, name: 'Team Standup',     date: thisMonth(10), startTime: '09:00', endTime: '09:30', category: 'meeting',  color: '#10b981', priority: 'high', location: 'Conference Room A' },
         { id: 2, name: 'Project Deadline', date: thisMonth(20), category: 'deadline', color: '#ef4444', priority: 'high' },
         { id: 3, name: 'Code Review',      date: new Date(),    startTime: '14:00', endTime: '15:00', category: 'work',     color: '#3b82f6', location: 'Virtual - Zoom' },
+        { id: 4, date: thisMonth(14), startTime: '11:00', endTime: '12:00', category: 'personal', location: 'Studio 2' },
       ]);
       const [mode, setMode]           = useState('Normal'); // 'Normal' | 'day' | 'time'
       const [months, setMonths]       = useState(1);
       const [slotDuration, setSlotDuration] = useState(60);
+      const [hours, setHours]         = useState(null);
+      const [weekdaysOnly, setWeekdaysOnly] = useState(false);
       const [selectable, setSelectable] = useState('off');  // 'off' | 'range'
       const [lazyOn, setLazyOn]       = useState(false);
       const [logs, setLogs]           = useState(['Calendar initialised']);
@@ -185,7 +188,11 @@
           cal.removeAttribute('months');
         }
         cal.setAttribute('slot-duration', String(slotDuration));
-      }, [mode, selectable, months, slotDuration, normalEvents]);
+        if (hours) cal.setAttribute('available-hours', hours);
+        else cal.removeAttribute('available-hours');
+        if (weekdaysOnly) cal.setAttribute('available-days', '1,2,3,4,5');
+        else cal.removeAttribute('available-days');
+      }, [mode, selectable, months, slotDuration, hours, weekdaysOnly, normalEvents]);
 
       // Lazy fetch handler — registered/unregistered when lazyOn changes
       useEffect(() => {
@@ -319,6 +326,26 @@
             ),
           ),
           h('p', { className: 'hint' }, 'Time view only. Sets the grid granularity and the length a booking with no end time occupies.'),
+
+          h('hr', { className: 'divider' }),
+
+          h('h2', null, 'Opening Hours'),
+          h('div', { className: 'button-grid' },
+            [['All day', null], ['09:00\u201317:00', '09:00-17:00'], ['Split shift', '09:00-12:00,13:00-17:00']].map(([label, value]) =>
+              h('button', { key: label, type: 'button', className: hours === value ? 'active' : '', onClick: () => setHours(value) }, label)
+            ),
+          ),
+          h('p', { className: 'hint' }, 'Time view only. Split shift is 09:00-12:00,13:00-17:00 \u2014 closed for lunch. Closed hours stay visible so an existing booking outside them is not hidden.'),
+
+          h('hr', { className: 'divider' }),
+
+          h('h2', null, 'Opening Days'),
+          h('div', { className: 'button-grid' },
+            [['Every day', false], ['Mon\u2013Fri', true]].map(([label, value]) =>
+              h('button', { key: label, type: 'button', className: weekdaysOnly === value ? 'active' : '', onClick: () => setWeekdaysOnly(value) }, label)
+            ),
+          ),
+          h('p', { className: 'hint' }, 'Excluded days are not click targets at all \u2014 no hover, no event. Combines with Opening Hours.'),
 
           h('hr', { className: 'divider' }),
 

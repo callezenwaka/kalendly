@@ -62,6 +62,85 @@ export function generateYears(minYear?: number, maxYear?: number): number[] {
 
 // endDate is inclusive, matching the endDate cal-availability-select emits, so
 // a selection can be handed straight back as one event.
+// "09:00-12:00,13:00-17:00" to half-open [start, end) minute intervals.
+// Throws rather than dropping a bad range: a vendor who mistypes their opening
+// hours must hear about it, not quietly stop selling the afternoon.
+export function parseHourRanges(
+  value: string,
+  slotDuration: number
+): Array<[number, number]> {
+  const parts = value
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) {
+    throw new Error(
+      `<kal-calendar> available-hours is empty. Omit the attribute to allow ` +
+        `every hour, or name at least one HH:MM-HH:MM range.`
+    );
+  }
+
+  const ranges = parts.map((part): [number, number] => {
+    const halves = part.split('-');
+    if (halves.length !== 2) {
+      throw new Error(
+        `<kal-calendar> available-hours range "${part}" is not HH:MM-HH:MM.`
+      );
+    }
+
+    const [start, end] = halves.map(half => parseTimeToMinutes(half.trim()));
+    if (start === null || end === null) {
+      throw new Error(
+        `<kal-calendar> available-hours range "${part}" has an unreadable ` +
+          `time. Use 24-hour HH:MM.`
+      );
+    }
+    if (start >= end) {
+      throw new Error(
+        `<kal-calendar> available-hours range "${part}" starts at or after ` +
+          `it ends.`
+      );
+    }
+    if (start % slotDuration !== 0 || end % slotDuration !== 0) {
+      throw new Error(
+        `<kal-calendar> available-hours range "${part}" does not land on a ` +
+          `${slotDuration}-minute slot boundary.`
+      );
+    }
+
+    return [start, end];
+  });
+
+  if (mergeIntervals(ranges).length !== ranges.length) {
+    throw new Error(
+      `<kal-calendar> available-hours ranges overlap or touch: "${value}". ` +
+        `Write each bookable window once.`
+    );
+  }
+
+  return ranges;
+}
+
+// Both bounds inclusive; either may be null to leave that end unbounded.
+export function isDateWithinWindow(
+  date: Date,
+  min: Date | null,
+  max: Date | null
+): boolean {
+  const target = normalizeDate(date).getTime();
+
+  if (min && target < normalizeDate(min).getTime()) return false;
+  if (max && target > normalizeDate(max).getTime()) return false;
+
+  return true;
+}
+
+// `days` holds getDay() values, 0 = Sunday. Null means every day is allowed.
+export function isDayAllowed(date: Date, days: number[] | null): boolean {
+  return days === null || days.includes(date.getDay());
+}
+
 export function eventCoversDate(event: CalendarEvent, date: Date): boolean {
   const start = normalizeDate(new Date(event.date)).getTime();
   const target = normalizeDate(date).getTime();

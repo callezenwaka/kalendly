@@ -3,8 +3,11 @@ type Open<T extends string> = T | (string & {});
 
 export interface CalendarEvent {
   id: string | number;
-  name: string;
   date: string | Date;
+
+  // Rendered as the event card's title. Availability mode never renders the
+  // card, so callers there need not supply one.
+  name?: string;
 
   // Last day of a multi-day event, inclusive. Absent means a single day.
   endDate?: string | Date;
@@ -138,6 +141,8 @@ export interface CalendarTheme {
   borderColor?: string;
   todayOutline?: string;
   selectedBg?: string;
+  outOfRangeBg?: string;
+  outOfRangeFg?: string;
   headerBg?: string;
   popupBg?: string;
   pickerBg?: string;
