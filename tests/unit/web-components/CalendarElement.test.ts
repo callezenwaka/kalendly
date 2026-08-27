@@ -3066,3 +3066,53 @@ describe('CalendarElement — interaction feedback', () => {
     expect(bookable.querySelector('.time-grid-selectable')).toBeTruthy();
   });
 });
+
+describe('CalendarElement — optional event name', () => {
+  const DAY = new Date('2024-01-15');
+
+  function openDayWith(event: Partial<CalendarEvent>): CalendarElement {
+    const el = mount({
+      initialDate: DAY,
+      events: [{ id: 1, date: '2024-01-15', ...event }],
+    });
+    Array.from(el.querySelectorAll('td'))
+      .find(td => td.textContent?.trim() === '15')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return el;
+  }
+
+  it('renders no title element when the name is absent', async () => {
+    const el = openDayWith({ description: 'no name here' });
+    await flush();
+
+    expect(el.querySelector('.event-card')).toBeTruthy();
+    expect(el.querySelector('.event-title')).toBeNull();
+  });
+
+  it('renders the title when a name is given', async () => {
+    const el = openDayWith({ name: 'Standup' });
+    await flush();
+
+    expect(el.querySelector('.event-title')?.textContent).toBe('Standup');
+  });
+
+  it('hands a supplied name back through cal-date-select', async () => {
+    const el = mount({
+      initialDate: DAY,
+      events: [{ id: 1, name: 'Standup', date: '2024-01-15' }],
+    });
+    await flush();
+
+    const seen: CalendarEvent[][] = [];
+    el.addEventListener('cal-date-select', e =>
+      seen.push((e as CustomEvent).detail.events as CalendarEvent[])
+    );
+
+    Array.from(el.querySelectorAll('td'))
+      .find(td => td.textContent?.trim() === '15')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+
+    expect(seen[0][0].name).toBe('Standup');
+  });
+});

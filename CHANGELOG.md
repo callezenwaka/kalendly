@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **`CalendarEvent.name` is optional.** It is read in one place — the event card's title — and availability mode never renders the card, so callers there were supplying a field the calendar guarantees never to show. An event without a name now renders a card with no title rather than an empty one. Nothing changes at runtime: events are handed back by reference, so a supplied name still round-trips through `cal-date-select`. It is breaking for TypeScript consumers _reading_ the field, which now needs a guard under `strictNullChecks`.
+
 ## [0.3.1] - 2026-08-27
 
 ### Breaking Changes

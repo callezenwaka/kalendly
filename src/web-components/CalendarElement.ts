@@ -542,7 +542,7 @@ export class CalendarElement extends HTMLElement {
       return `
         <div class="event-card" style="border-left-color: ${borderColor}">
           <div class="event-header">
-            <div class="event-title">${escapeHtml(event.name)}</div>
+            ${event.name ? `<div class="event-title">${escapeHtml(event.name)}</div>` : ''}
             <div class="event-badges">
               ${event.category ? `<span class="badge category category-${slugifyToken(event.category)}">${escapeHtml(getCategoryLabel(event.category))}</span>` : ''}
               ${event.priority ? `<span class="badge priority priority-${slugifyToken(event.priority)}">${escapeHtml(getPriorityLabel(event.priority))}</span>` : ''}

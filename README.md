@@ -637,6 +637,14 @@ cal.getEngine();
 > `mailto:` and relative URLs; anything else becomes `#`. `color` accepts hex
 > values and CSS colour keywords.
 
+> **`name` is optional.** It is rendered only as the event card's title, and
+> availability mode never renders the card — so callers there need not supply one.
+> An event without a name renders a card with no title rather than an empty one.
+> Note this is a type-level break for anyone _reading_ `name` off
+> `cal-date-select`: the field can now be absent, so `strictNullChecks` requires a
+> guard. Nothing changes at runtime — events are handed back by reference, so
+> whatever you supply comes back intact.
+
 > **Multi-day events.** `endDate` is the last day of a span and is **inclusive** —
 > `date: '2026-03-03', endDate: '2026-03-05'` covers three days. That matches the
 > `endDate` `cal-availability-select` emits, so a selection can be handed straight
@@ -658,8 +666,8 @@ cal.getEngine();
 ```typescript
 interface CalendarEvent {
   id: string | number;
-  name: string;
   date: string | Date;
+  name?: string; // event card title; omit it and no title renders
 
   endDate?: string | Date; // last day of a span, inclusive
 
