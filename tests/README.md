@@ -6,23 +6,20 @@ This directory contains comprehensive testing for the Kalendly calendar library.
 
 ```
 tests/
-├── unit/                           # Unit tests (Vitest)
-│   ├── core/                       # Core engine tests
-│   │   ├── calendar-engine.test.ts # 46 tests - CalendarEngine class
-│   │   └── utils.test.ts           # 60 tests - Utility functions
-│   ├── react/                      # React component tests
-│   │   ├── Calendar.test.tsx       # 30 tests - React Calendar
-│   │   └── DatePopup.test.tsx      # 13 tests - React DatePopup
-│   ├── vue/                        # Vue component tests
-│   │   └── Calendar.test.ts        # 25 tests - Vue Calendar
-│   └── vanilla/                    # Vanilla JS tests
-│       └── Calendar.test.ts        # 30 tests - Vanilla Calendar
-├── integration/                    # Integration tests
-│   └── package-validation.test.mjs # 24 tests - Pre-publish validation
-├── manual/                         # Manual browser testing
-│   └── vanilla.html                # Test vanilla JS implementation
-├── setup.ts                        # Vitest setup & test fixtures
-└── README.md                       # This file
+├── unit/                            # Unit tests (Vitest)
+│   ├── core/                        # Core engine tests
+│   │   ├── calendar-engine.test.ts  #  62 tests - CalendarEngine class
+│   │   └── utils.test.ts            # 101 tests - Utility functions
+│   ├── web-components/              # Custom element tests
+│   │   └── CalendarElement.test.ts  # 176 tests - <kal-calendar>
+│   └── demos/                       # Demo fixture conformance
+│       └── fixtures.test.ts         #  73 tests - docs/examples + landing
+├── integration/                     # Integration tests
+│   └── package-validation.test.mjs  # Pre-publish validation
+├── manual/                          # Manual browser testing
+│   └── web-component.html           # Every mode, control and event
+├── setup.ts                         # Vitest setup & test fixtures
+└── README.md                        # This file
 ```
 
 ## Test Types
@@ -31,7 +28,7 @@ tests/
 
 **Purpose:** Test code logic in isolation with 97%+ coverage
 
-**Total:** 204 tests across all modules
+**Total:** 412 tests across all modules
 
 **Run commands:**
 
@@ -51,19 +48,18 @@ npm run test:watch    # Watch mode (explicit)
 - Statements: 85% minimum (achieving 97.68%)
 
 **Module breakdown:**
-| Module | Tests | Coverage |
-|--------|-------|----------|
-| Core (engine) | 46 | 100% statements, 100% branches |
-| Core (utils) | 60 | 100% statements, 96.87% branches |
-| React | 43 | 96.92% statements, 83.87% branches |
-| Vue | 25 | 94.36% statements, 68.18% branches |
-| Vanilla | 30 | 97.87% statements, 86.79% branches |
+| Module | Tests |
+|--------|-------|
+| Core (engine) | 62 |
+| Core (utils) | 101 |
+| Web component | 176 |
+| Demo fixtures | 73 |
 
 ### 2. Integration Tests (Node.js)
 
 **Purpose:** Validate build artifacts before publishing to npm
 
-**Total:** 24 tests
+**Total:** 17 checks
 
 **Run command:**
 
@@ -74,7 +70,7 @@ npm run test:package
 **What it validates:**
 
 - ✅ Build artifacts exist (CJS, ESM, TypeScript definitions)
-- ✅ All modules can be imported (Vanilla, Core, React, Vue)
+- ✅ All modules can be imported
 - ✅ Package.json exports are configured correctly
 - ✅ API structure (createCalendar, CalendarEngine, etc.)
 - ✅ Bundle sizes are reasonable (<100KB)
@@ -97,18 +93,14 @@ npm run test:manual
 
 Then open in browser:
 
-- Vanilla JS: http://localhost:8080/tests/manual/vanilla.html
+- Web component: http://localhost:8080/tests/manual/web-component.html
 
-**Note:** React and Vue manual tests have been removed. For React/Vue examples, see the `examples/` directory (these are for code reference only and may not run directly in browser without a build step).
+**Note:** For framework integrations, see `docs/examples/` — one page per framework, each unbundled so it mirrors real consumer usage. Their fixtures are validated by `tests/unit/demos/fixtures.test.ts`.
 
 ## Testing Stack
 
 - **Test Runner:** Vitest (modern, fast, native ESM/TypeScript)
-- **Testing Libraries:**
-  - @testing-library/react (React component testing)
-  - @testing-library/vue (Vue component testing)
-  - @testing-library/jest-dom (Custom DOM matchers)
-- **DOM Environment:** jsdom (for unit tests)
+- **DOM Environment:** jsdom, with custom elements exercised directly
 - **Coverage:** Vitest coverage-v8
 
 ## Writing Tests
@@ -147,7 +139,7 @@ npm test calendar-engine
 npm test tests/unit/core/utils.test.ts
 
 # Run tests in watch mode for specific file
-npm test -- --watch tests/unit/react/Calendar.test.tsx
+npm test -- --watch tests/unit/web-components/CalendarElement.test.ts
 ```
 
 ## Continuous Integration
@@ -160,8 +152,8 @@ All tests run automatically on:
 
 **CI Requirements:**
 
-- ✅ All 204 unit tests must pass
-- ✅ All 24 integration tests must pass
+- ✅ All 412 unit tests must pass
+- ✅ Package validation must pass
 - ✅ Coverage thresholds must be met (85%+ lines, 80%+ branches)
 
 ## Test vs Examples vs Manual

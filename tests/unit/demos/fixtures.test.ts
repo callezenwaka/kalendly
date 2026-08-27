@@ -13,37 +13,46 @@ import {
 
 const DEMOS = resolve(__dirname, '../../../docs/examples');
 const MANUAL = resolve(__dirname, '../../manual/web-component.html');
+const LANDING = resolve(__dirname, '../../../docs/index.html');
 
 const ARRAY_NAMES = [
   'normalEvents',
   'leanEvents',
   'SAMPLE_EVENTS',
   'LEAN_EVENTS',
+  'cal.events',
 ];
 
 function extractArrays(source: string): CalendarEvent[] {
   const thisMonth = (day: number) => new Date(2024, 0, day);
+  const now = new Date(2024, 0, 1);
   const events: CalendarEvent[] = [];
 
   for (const name of ARRAY_NAMES) {
     const match = new RegExp(
-      `\\b${name}(?:\\s*,\\s*\\w+\\s*\\])?\\s*=\\s*(?:ref\\(|useState\\()?\\s*(\\[[\\s\\S]*?\\n\\s*\\])`
+      `\\b${name.replace('.', '\\.')}(?:\\s*,\\s*\\w+\\s*\\])?\\s*=\\s*(?:ref\\(|useState\\()?\\s*(\\[[\\s\\S]*?\\n\\s*\\])`
     ).exec(source);
     if (!match) continue;
 
-    const build = new Function('thisMonth', `return ${match[1]};`) as (
-      f: (d: number) => Date
+    const build = new Function('thisMonth', 'now', `return ${match[1]};`) as (
+      f: (d: number) => Date,
+      n: Date
     ) => CalendarEvent[];
-    events.push(...build(thisMonth));
+    events.push(...build(thisMonth, now));
   }
 
   return events;
 }
 
+// The landing page is a marketing preview, so it is held to the same data
+// rules but is not expected to show off an untitled card.
 const pages = [
   ...readdirSync(DEMOS, { withFileTypes: true })
     .filter(entry => entry.isDirectory())
-    .map(entry => [entry.name, resolve(DEMOS, entry.name, 'index.html')])
+    .map(
+      entry =>
+        [entry.name, resolve(DEMOS, entry.name, 'index.html'), true] as const
+    )
     .filter(([, file]) => {
       try {
         readFileSync(file, 'utf-8');
@@ -52,15 +61,16 @@ const pages = [
         return false;
       }
     }),
-  ['manual', MANUAL],
-] as Array<[string, string]>;
+  ['manual', MANUAL, true],
+  ['landing', LANDING, false],
+] as Array<[string, string, boolean]>;
 
 describe('demo fixtures', () => {
   it('finds every demo page', () => {
-    expect(pages.length).toBeGreaterThanOrEqual(7);
+    expect(pages.length).toBeGreaterThanOrEqual(8);
   });
 
-  describe.each(pages)('%s', (_name, file) => {
+  describe.each(pages)('%s', (_name, file, isFeatureDemo) => {
     const source = readFileSync(file, 'utf-8');
     const events = extractArrays(source);
 
@@ -84,14 +94,21 @@ describe('demo fixtures', () => {
       }
     });
 
-    it('ships fixtures for availability mode', () => {
+    it.runIf(isFeatureDemo)('ships fixtures for availability mode', () => {
       const lean = events.filter(e => e.availabilityStatus !== undefined);
       expect(lean.length).toBeGreaterThan(0);
     });
 
-    it('exercises the untitled-card path', () => {
+    it.runIf(isFeatureDemo)('exercises the untitled-card path', () => {
       const cards = events.filter(e => e.availabilityStatus === undefined);
       expect(cards.some(e => e.name === undefined)).toBe(true);
+    });
+
+    it('always pairs a startTime with an endTime', () => {
+      for (const event of events) {
+        if (event.startTime === undefined) continue;
+        expect(event.endTime, `event ${event.id}`).toBeDefined();
+      }
     });
 
     it('writes times the library can parse', () => {
