@@ -385,6 +385,11 @@ npm install kalendly
       log(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`);
     });
 
+    cal.addEventListener('cal-slot-select', e => {
+      const d = e.detail;
+      log(`Slot clicked: ${d.date.toDateString()} ${d.startTime}–${d.endTime} (${d.booked ? 'booked' : 'free'})`);
+    });
+
     cal.addEventListener('cal-availability-select', e => {
       const d = e.detail;
       if (d.startTime) {

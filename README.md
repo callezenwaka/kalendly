@@ -371,11 +371,12 @@ Rich objects are set as JS properties (not attributes):
 
 ## Custom Events
 
-| Event                     | `detail` shape                                                         | Description                            |
-| ------------------------- | ---------------------------------------------------------------------- | -------------------------------------- |
-| `cal-date-select`         | `{ date: Date, events: CalendarEvent[] }`                              | User clicked a date (normal mode)      |
-| `cal-month-change`        | `{ year: number, month: number }`                                      | Fires **before** the new month renders |
-| `cal-availability-select` | `{ startDate: Date, endDate: Date }` or `{ date, startTime, endTime }` | Day/slot selected in availability mode |
+| Event                     | `detail` shape                                                         | Description                                               |
+| ------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------- |
+| `cal-date-select`         | `{ date: Date, events: CalendarEvent[] }`                              | User clicked a date (normal mode)                         |
+| `cal-month-change`        | `{ year: number, month: number }`                                      | Fires **before** the new month renders                    |
+| `cal-availability-select` | `{ startDate: Date, endDate: Date }` or `{ date, startTime, endTime }` | Day/slot selected in availability mode                    |
+| `cal-slot-select`         | `{ date: Date, startTime: string, endTime: string, booked: boolean }`  | Any time slot clicked, whether or not `selectable` is set |
 
 All events bubble and are composed (cross Shadow DOM boundaries).
 
@@ -514,6 +515,24 @@ Overlapping bookings merge rather than double-count, so a 09:00–17:00 meeting 
   <img src="./docs/images/time.png" alt="Availability time view — day popup showing 24 hourly slots coloured red (booked) or green (available)"/>
   <p><em>Time view: clicking a day opens an hourly grid — booked slots in red, available slots in green; no event details exposed</em></p>
 </div>
+
+#### Reacting to a slot click
+
+`cal-slot-select` fires on every slot click, the way `cal-date-select` fires for
+every day — including booked slots, and whether or not `selectable` is set. Use it
+to drive your own booking flow without turning on range selection:
+
+```js
+cal.addEventListener('cal-slot-select', e => {
+  const { date, startTime, endTime, booked } = e.detail;
+  if (booked) return showTakenMessage(startTime);
+  openBookingForm(date, startTime, endTime);
+});
+```
+
+`selectable="range"` still governs `cal-availability-select`, the three-click
+range machine and the range highlighting. It also controls the cursor: slots only
+show a pointer when the grid can actually be booked from.
 
 #### Round-tripping a selection
 

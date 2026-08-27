@@ -258,6 +258,11 @@
         addLog(val ? 'Lazy fetch → on (navigate months to trigger)' : 'Lazy fetch → off');
       }
 
+      function handleSlotSelect(e) {
+        const d = e.detail;
+        addLog(`Slot clicked: ${d.date.toDateString()} ${d.startTime}–${d.endTime} (${d.booked ? 'booked' : 'free'})`);
+      }
+
       function handleAvailabilitySelect(e) {
         const d = e.detail;
         if (d.startTime) {
@@ -344,6 +349,7 @@
             }
           },
           'oncal-availability-select': handleAvailabilitySelect,
+          'oncal-slot-select': handleSlotSelect,
         }),
 
         h('div', { className: 'event-log' },

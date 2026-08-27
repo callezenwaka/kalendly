@@ -687,9 +687,9 @@ export class CalendarElement extends HTMLElement {
           .join(' ');
 
         const slotAttrs =
-          !isBooked && selectable
-            ? `data-action="select-slot" data-start-time="${startTime}" data-end-time="${endTime}" data-date="${date.toISOString()}"`
-            : '';
+          `data-action="select-slot" data-start-time="${startTime}" ` +
+          `data-end-time="${endTime}" data-date="${date.toISOString()}" ` +
+          `data-booked="${isBooked}"`;
 
         return `
           <div class="${slotClasses}" ${slotAttrs}>
@@ -698,7 +698,11 @@ export class CalendarElement extends HTMLElement {
           </div>`;
       });
 
-      return `<div class="time-grid">${slots.join('')}</div>`;
+      const gridClasses = selectable
+        ? 'time-grid time-grid-selectable'
+        : 'time-grid';
+
+      return `<div class="${gridClasses}">${slots.join('')}</div>`;
     };
 
     const multiMonth = viewModel.panes.length > 1;
@@ -736,6 +740,16 @@ export class CalendarElement extends HTMLElement {
                           .map((calendarDate, dayIndex) => {
                             const classes = getCellClasses(calendarDate);
                             const cellAttrs: string[] = [];
+
+                            if (
+                              viewModel.selectedDate &&
+                              isSameDay(
+                                calendarDate.date,
+                                viewModel.selectedDate
+                              )
+                            ) {
+                              classes.push('calendar-cell-selected');
+                            }
                             if (
                               availabilityMode &&
                               calendarDate.isCurrentMonth
@@ -1129,6 +1143,25 @@ export class CalendarElement extends HTMLElement {
           const slotStart = actionEl.dataset.startTime!;
           const slotEnd = actionEl.dataset.endTime!;
           const slotDate = new Date(actionEl.dataset.date!);
+          const slotBooked = actionEl.dataset.booked === 'true';
+
+          // Reported for every slot, the way cal-date-select is for every day.
+          // selectable gates the range machine below, not the click itself.
+          this.dispatchEvent(
+            new CustomEvent('cal-slot-select', {
+              bubbles: true,
+              composed: true,
+              detail: {
+                date: slotDate,
+                startTime: slotStart,
+                endTime: slotEnd,
+                booked: slotBooked,
+              },
+            })
+          );
+
+          if (slotBooked || !this.hasAttribute('selectable')) break;
+
           if (this._timeRangeComplete) {
             // State 2 → reset, start fresh
             this._timeRangeDate = slotDate;

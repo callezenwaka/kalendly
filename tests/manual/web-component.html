@@ -356,6 +356,11 @@
     log(`cal-month-change → ${year}-${String(month + 1).padStart(2, '0')}`, 'info');
   });
 
+  el.addEventListener('cal-slot-select', e => {
+    const d = e.detail;
+    log(`Slot clicked: ${d.date.toDateString()} ${d.startTime}–${d.endTime} (${d.booked ? 'booked' : 'free'})`, 'info');
+  });
+
   el.addEventListener('cal-availability-select', (e) => {
     const d = e.detail;
     if (d.startDate) {

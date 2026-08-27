@@ -13,12 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`cal-slot-select`** — fires on every time-slot click with `{ date, startTime, endTime, booked }`, mirroring how `cal-date-select` fires for every day. Slots were only click targets when `selectable` was set, so driving your own booking flow meant enabling range selection you did not want or listening for raw DOM clicks. `selectable` still gates `cal-availability-select`, the range machine and the highlighting. The payload carries a time window and a boolean, so no event detail leaks.
 - **`endDate` on `CalendarEvent`** — the last day of a multi-day event, **inclusive**. One event covers a range rather than needing one per day, and because it matches the `endDate` `cal-availability-select` emits, a saved selection can be handed straight back. Matched by range rather than expanded, so ids stay unique and long spans cost nothing. Times on a span repeat daily. An `endDate` before `date`, or unreadable, throws and names the event. Deliberately differs from RFC 5545's exclusive all-day `DTEND`.
 - **`slot-duration`** — time-grid granularity in minutes, default 60. The grid renders `1440 / slot-duration` slots and `cal-availability-select` emits times on that granularity, so a vendor working in half-hours can represent and take half-hour bookings. A value that does not divide 1440 falls back to 60 with a warning.
 - `parseTimeToMinutes`, `formatMinutes`, `mergeIntervals`, `bookedSlots` and `eventInterval` exported from `kalendly/core`.
 
 ### Fixed
 
+- **Hovering a cell did nothing in availability mode.** `.calendar-table td:hover` lost on specificity to the bucket colour rules, so cells carried `cursor: pointer` while looking completely inert. The hover rule now targets clickable cells and wins.
+- **A clicked day showed no sign of it.** No cell ever received a selected class, and `--calendar-selected-bg` was declared and never used. In standard mode the popup hid this; in day availability mode, where the popup is suppressed, a click produced nothing visible at all. The selected day is now marked, using that token.
 - **Bookings crossing midnight blocked nothing.** A `22:00`–`06:00` booking left the whole day available, so a customer could book on top of it — from valid data, with no error. Time ranges are now absolute intervals: an `endTime` at or before its `startTime` belongs to the next day, and each day's grid shows the portion of any booking falling on that day. The grid reads the previous day's events so the morning a booking runs into is marked.
 - **Overlapping bookings double-counted.** Intervals merge before slots are tested, so a 09:00–17:00 meeting and a 17:30–22:00 class mark 09:00–22:00 once between them.
 
