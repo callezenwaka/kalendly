@@ -210,6 +210,15 @@
     </div>
 
     <div class="panel">
+      <h2>Slot Length</h2>
+      <div class="btn-grid">
+        <button class="mode-btn active" id="btn-slot-60">60 min</button>
+        <button class="mode-btn" id="btn-slot-30">30 min</button>
+        <button class="mode-btn" id="btn-slot-15">15 min</button>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2>Months</h2>
       <div class="btn-grid">
         <button class="mode-btn active" id="btn-months-1">1 Month</button>
@@ -345,6 +354,11 @@
   el.addEventListener('cal-month-change', (e) => {
     const { year, month } = e.detail;
     log(`cal-month-change → ${year}-${String(month + 1).padStart(2, '0')}`, 'info');
+  });
+
+  el.addEventListener('cal-slot-select', e => {
+    const d = e.detail;
+    log(`Slot clicked: ${d.date.toDateString()} ${d.startTime}–${d.endTime} (${d.booked ? 'booked' : 'free'})`, 'info');
   });
 
   el.addEventListener('cal-availability-select', (e) => {
@@ -495,6 +509,9 @@
     { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
     { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
     { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
+    { id: 15, date: thisMonth(24), startTime: '22:00', endTime: '06:00', availabilityStatus: 'blocked' },
+    { id: 16, date: thisMonth(11), endDate: thisMonth(13), availabilityStatus: 'blocked' },
+    { id: 17, date: thisMonth(17), endDate: thisMonth(18), availabilityStatus: 'conditional' },
   ];
 
   const modeBtns = ['btn-mode-normal', 'btn-mode-day', 'btn-mode-time'];
@@ -518,6 +535,18 @@
       log(`Availability mode → ${mode} (lean events, details hidden)`, 'ok');
     }
   }
+
+  function setSlotDuration(minutes) {
+    ['btn-slot-60', 'btn-slot-30', 'btn-slot-15'].forEach(id =>
+      document.getElementById(id).classList.remove('active'));
+    document.getElementById(`btn-slot-${minutes}`).classList.add('active');
+    el.setAttribute('slot-duration', String(minutes));
+    log(`Slot length → ${minutes} min`, 'ok');
+  }
+
+  [60, 30, 15].forEach(m =>
+    document.getElementById(`btn-slot-${m}`)
+      .addEventListener('click', () => setSlotDuration(m)));
 
   function setMonths(count) {
     ['btn-months-1', 'btn-months-2'].forEach(id =>

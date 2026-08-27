@@ -1089,7 +1089,7 @@ describe('CalendarElement', () => {
       ).toBeGreaterThan(0);
     });
 
-    it('booked slots do not have data-action="select-slot"', async () => {
+    it('marks booked slots as booked in their dataset', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1099,10 +1099,9 @@ describe('CalendarElement', () => {
       openTimeGrid(el);
       await flush();
       expect(
-        el.querySelectorAll(
-          '.time-grid-slot-blocked[data-action="select-slot"]'
-        ).length
-      ).toBe(0);
+        el.querySelectorAll('.time-grid-slot-blocked[data-booked="true"]')
+          .length
+      ).toBe(2);
     });
 
     it('first click fires cal-availability-select with single slot', async () => {
@@ -1208,7 +1207,7 @@ describe('CalendarElement', () => {
       expect(el.querySelector('.time-grid-slot-range-start')).toBeNull();
     });
 
-    it('free slots do not have data-action when selectable is not set', async () => {
+    it('keeps slots clickable when selectable is not set', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1219,7 +1218,8 @@ describe('CalendarElement', () => {
       expect(
         el.querySelectorAll('.time-grid-slot-open[data-action="select-slot"]')
           .length
-      ).toBe(0);
+      ).toBeGreaterThan(0);
+      expect(el.querySelector('.time-grid-selectable')).toBeNull();
     });
   });
 
@@ -2382,16 +2382,16 @@ describe('CalendarElement — malformed times', () => {
     await flush();
   });
 
-  it('books from the start to the end of the day when no end is given', async () => {
-    expect(await slotsFor('09:00')).toBe(15);
+  it('books one slot when no end is given', async () => {
+    expect(await slotsFor('09:00')).toBe(1);
     await flush();
-    expect(await slotsFor('00:00')).toBe(24);
+    expect(await slotsFor('00:00')).toBe(1);
     await flush();
     expect(await slotsFor('23:00')).toBe(1);
     await flush();
   });
 
-  it('leaves the hours before an open-ended start available', async () => {
+  it('leaves every other hour available for an open-ended start', async () => {
     const el = mount({
       events: [
         {
@@ -2410,7 +2410,7 @@ describe('CalendarElement — malformed times', () => {
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flush();
 
-    expect(el.querySelectorAll('.time-grid-slot-open').length).toBe(9);
+    expect(el.querySelectorAll('.time-grid-slot-open').length).toBe(23);
   });
 });
 
@@ -2593,5 +2593,476 @@ describe('CalendarElement — multi-month loading', () => {
     await flush();
     expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
     expect(el.querySelectorAll('table').length).toBe(2);
+  });
+});
+
+describe('CalendarElement — slot duration', () => {
+  const BASE = new Date('2024-01-15');
+
+  function mountGrid(
+    events: CalendarEvent[],
+    slotDuration?: string,
+    day = '15'
+  ): CalendarElement {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    el.setAttribute('availability-mode', 'time');
+    el.setAttribute('selectable', 'range');
+    if (slotDuration) el.setAttribute('slot-duration', slotDuration);
+    el.events = events;
+    document.body.appendChild(el);
+
+    Array.from(el.querySelectorAll('td'))
+      .find(
+        td =>
+          td.textContent?.trim() === day &&
+          !td.classList.contains('calendar-cell-other-month')
+      )
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return el;
+  }
+
+  const NIGHT: CalendarEvent[] = [
+    {
+      id: 1,
+      name: 'night',
+      date: '2024-01-15',
+      startTime: '22:00',
+      endTime: '06:00',
+      availabilityStatus: 'blocked',
+    },
+  ];
+
+  it('renders 24 slots by default', async () => {
+    const el = mountGrid([]);
+    await flush();
+    expect(el.querySelectorAll('.time-grid-slot').length).toBe(24);
+  });
+
+  it('renders 48 slots at 30 minutes, labelled on the half hour', async () => {
+    const el = mountGrid([], '30');
+    await flush();
+
+    const slots = el.querySelectorAll('.time-grid-slot');
+    expect(slots.length).toBe(48);
+    expect(slots[0].querySelector('.time-grid-label')?.textContent).toBe(
+      '00:00'
+    );
+    expect(slots[1].querySelector('.time-grid-label')?.textContent).toBe(
+      '00:30'
+    );
+  });
+
+  it('emits half-hour selections at 30 minutes', async () => {
+    const el = mountGrid([], '30');
+    await flush();
+
+    const selections: { startTime: string; endTime: string }[] = [];
+    el.addEventListener('cal-availability-select', e =>
+      selections.push(
+        (e as CustomEvent).detail as { startTime: string; endTime: string }
+      )
+    );
+
+    el.querySelectorAll<HTMLElement>(
+      '[data-action="select-slot"]'
+    )[19]?.click();
+    await flush();
+
+    expect(selections[0].startTime).toBe('09:30');
+    expect(selections[0].endTime).toBe('10:00');
+  });
+
+  it('falls back to 60 minutes for a duration that does not divide the day', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const el = mountGrid([], '50');
+    await flush();
+
+    expect(el.querySelectorAll('.time-grid-slot').length).toBe(24);
+    expect(warn.mock.calls.some(c => /slot-duration="50"/.test(c[0]))).toBe(
+      true
+    );
+    warn.mockRestore();
+  });
+
+  it('blocks the evening of the day a night booking starts', async () => {
+    const el = mountGrid(NIGHT);
+    await flush();
+
+    const blocked = Array.from(el.querySelectorAll('.time-grid-slot')).flatMap(
+      (slot, i) =>
+        slot.classList.contains('time-grid-slot-blocked') ? [i] : []
+    );
+    expect(blocked).toEqual([22, 23]);
+  });
+
+  it('blocks the morning the night booking runs into', async () => {
+    const el = mountGrid(NIGHT, undefined, '16');
+    await flush();
+
+    const blocked = Array.from(el.querySelectorAll('.time-grid-slot')).flatMap(
+      (slot, i) =>
+        slot.classList.contains('time-grid-slot-blocked') ? [i] : []
+    );
+    expect(blocked).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+
+  it('leaves the day before a night booking untouched', async () => {
+    const el = mountGrid(NIGHT, undefined, '14');
+    await flush();
+    expect(el.querySelectorAll('.time-grid-slot-blocked').length).toBe(0);
+  });
+
+  it('warns once per event when an end time is missing', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    (
+      CalendarElement as unknown as { warnedMissingEnd: Set<string> }
+    ).warnedMissingEnd.clear();
+
+    const events: CalendarEvent[] = [
+      {
+        id: 77,
+        name: 'x',
+        date: '2024-01-15',
+        startTime: '09:00',
+        availabilityStatus: 'blocked',
+      },
+    ];
+
+    const el = mountGrid(events);
+    await flush();
+    el.events = [...events];
+    await flush();
+
+    const hits = warn.mock.calls.filter(c =>
+      /event 77 has startTime/.test(c[0])
+    );
+    expect(hits.length).toBe(1);
+    warn.mockRestore();
+  });
+});
+
+describe('CalendarElement — multi-day events', () => {
+  const BASE = new Date('2024-01-15');
+
+  function mountSpan(
+    events: CalendarEvent[],
+    attrs: Record<string, string> = {}
+  ): CalendarElement {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    for (const [name, value] of Object.entries(attrs))
+      el.setAttribute(name, value);
+    el.events = events;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  const cellIn = (root: Element | CalendarElement, day: string) =>
+    Array.from(root.querySelectorAll('td')).find(
+      td =>
+        td.textContent?.trim() === day &&
+        !td.classList.contains('calendar-cell-other-month')
+    );
+
+  it('colours every day a span covers', async () => {
+    const el = mountSpan(
+      [
+        {
+          id: 1,
+          name: 'stay',
+          date: '2024-01-15',
+          endDate: '2024-01-17',
+          availabilityStatus: 'blocked',
+        },
+      ],
+      { 'availability-mode': 'day' }
+    );
+    await flush();
+
+    for (const d of ['15', '16', '17']) {
+      expect(cellIn(el, d)?.classList.contains('availability-blocked')).toBe(
+        true
+      );
+    }
+    expect(cellIn(el, '18')?.classList.contains('availability-open')).toBe(
+      true
+    );
+  });
+
+  it('makes an interior day unselectable', async () => {
+    const el = mountSpan(
+      [
+        {
+          id: 1,
+          name: 'stay',
+          date: '2024-01-15',
+          endDate: '2024-01-17',
+          availabilityStatus: 'blocked',
+        },
+      ],
+      { 'availability-mode': 'day', selectable: 'range' }
+    );
+    await flush();
+
+    expect(
+      cellIn(el, '16')?.classList.contains('availability-unselectable')
+    ).toBe(true);
+  });
+
+  it('refuses a range dragged through a span', async () => {
+    const el = mountSpan(
+      [
+        {
+          id: 1,
+          name: 'stay',
+          date: '2024-01-15',
+          endDate: '2024-01-17',
+          availabilityStatus: 'blocked',
+        },
+      ],
+      { 'availability-mode': 'day', selectable: 'range' }
+    );
+    await flush();
+
+    const selections: { startDate: Date; endDate: Date }[] = [];
+    el.addEventListener('cal-availability-select', e =>
+      selections.push(
+        (e as CustomEvent).detail as { startDate: Date; endDate: Date }
+      )
+    );
+
+    cellIn(el, '13')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+    cellIn(el, '19')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+
+    // the second click resets rather than completing a range across the span
+    const last = selections[selections.length - 1];
+    expect(last.startDate.getDate()).toBe(19);
+    expect(last.endDate.getDate()).toBe(19);
+  });
+
+  it('renders a span crossing a month boundary in both panes', async () => {
+    const el = mountSpan(
+      [
+        {
+          id: 1,
+          name: 'stay',
+          date: '2024-01-30',
+          endDate: '2024-02-02',
+          availabilityStatus: 'blocked',
+        },
+      ],
+      { 'availability-mode': 'day', months: '2' }
+    );
+    await flush();
+
+    const panes = el.querySelectorAll('.calendar-pane');
+    expect(
+      cellIn(panes[0], '31')?.classList.contains('availability-blocked')
+    ).toBe(true);
+    expect(
+      cellIn(panes[1], '1')?.classList.contains('availability-blocked')
+    ).toBe(true);
+    expect(cellIn(panes[1], '3')?.classList.contains('availability-open')).toBe(
+      true
+    );
+  });
+
+  it('lists a span in the popup on each day it covers', async () => {
+    const el = mountSpan([
+      {
+        id: 1,
+        name: 'Conference',
+        date: '2024-01-15',
+        endDate: '2024-01-17',
+      },
+    ]);
+    await flush();
+
+    for (const d of ['15', '16', '17']) {
+      cellIn(el, d)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+      expect(el.querySelector('.date-popup')?.textContent).toContain(
+        'Conference'
+      );
+    }
+  });
+});
+
+describe('CalendarElement — interaction feedback', () => {
+  const BASE = new Date('2024-01-15');
+
+  const EVENTS: CalendarEvent[] = [
+    {
+      id: 1,
+      name: 'x',
+      date: '2024-01-15',
+      startTime: '09:00',
+      endTime: '11:00',
+      availabilityStatus: 'blocked',
+    },
+  ];
+
+  function mountMode(
+    mode: 'day' | 'time' | null,
+    extra: Record<string, string> = {}
+  ): CalendarElement {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    if (mode) el.setAttribute('availability-mode', mode);
+    for (const [k, v] of Object.entries(extra)) el.setAttribute(k, v);
+    el.events = mode ? EVENTS : [{ id: 1, name: 'x', date: '2024-01-15' }];
+    document.body.appendChild(el);
+    return el;
+  }
+
+  const day = (el: CalendarElement, d: string) =>
+    Array.from(el.querySelectorAll('td')).find(
+      td =>
+        td.textContent?.trim() === d &&
+        !td.classList.contains('calendar-cell-other-month')
+    );
+
+  it('hover targets only clickable cells, so it outranks a bucket colour', () => {
+    const css = readFileSync(
+      resolve(__dirname, '../../../src/styles/calendar.css'),
+      'utf-8'
+    );
+    expect(css).toContain('.calendar-table td[data-clickable]:hover');
+    // two class-level selectors would still lose to .availability-open
+    expect(css).not.toContain('.calendar-table td:hover {');
+  });
+
+  it('marks the clicked day as selected in every mode', async () => {
+    for (const mode of [null, 'day', 'time'] as const) {
+      const el = mountMode(mode);
+      await flush();
+
+      day(el, '20')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+
+      expect(day(el, '20')?.classList.contains('calendar-cell-selected')).toBe(
+        true
+      );
+      expect(day(el, '21')?.classList.contains('calendar-cell-selected')).toBe(
+        false
+      );
+    }
+  });
+
+  it('applies the selected style from the token that was previously unused', () => {
+    const css = readFileSync(
+      resolve(__dirname, '../../../src/styles/calendar.css'),
+      'utf-8'
+    );
+    expect(css).toMatch(
+      /\.calendar-table td\.calendar-cell-selected \{[^}]*--calendar-selected-bg/
+    );
+  });
+
+  it('reports a slot click from a read-only grid', async () => {
+    const el = mountMode('time');
+    await flush();
+    day(el, '15')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+
+    const seen: Array<Record<string, unknown>> = [];
+    el.addEventListener('cal-slot-select', e =>
+      seen.push((e as CustomEvent).detail as Record<string, unknown>)
+    );
+
+    el.querySelectorAll<HTMLElement>('.time-grid-slot')[14]?.click();
+    await flush();
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0].startTime).toBe('14:00');
+    expect(seen[0].endTime).toBe('15:00');
+    expect(seen[0].booked).toBe(false);
+  });
+
+  it('reports a booked slot with booked: true', async () => {
+    const el = mountMode('time', { selectable: 'range' });
+    await flush();
+    day(el, '15')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+
+    const seen: Array<Record<string, unknown>> = [];
+    el.addEventListener('cal-slot-select', e =>
+      seen.push((e as CustomEvent).detail as Record<string, unknown>)
+    );
+
+    el.querySelectorAll<HTMLElement>('.time-grid-slot')[9]?.click();
+    await flush();
+
+    expect(seen[0].booked).toBe(true);
+    expect(seen[0].startTime).toBe('09:00');
+  });
+
+  it('reports slot times on the configured granularity', async () => {
+    const el = mountMode('time', { 'slot-duration': '30' });
+    await flush();
+    day(el, '15')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+
+    const seen: Array<Record<string, unknown>> = [];
+    el.addEventListener('cal-slot-select', e =>
+      seen.push((e as CustomEvent).detail as Record<string, unknown>)
+    );
+
+    el.querySelectorAll<HTMLElement>('.time-grid-slot')[29]?.click();
+    await flush();
+
+    expect(seen[0].startTime).toBe('14:30');
+    expect(seen[0].endTime).toBe('15:00');
+  });
+
+  it('does not fire cal-availability-select from a read-only grid', async () => {
+    const el = mountMode('time');
+    await flush();
+    day(el, '15')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+
+    const booking: unknown[] = [];
+    el.addEventListener('cal-availability-select', e => booking.push(e));
+
+    el.querySelectorAll<HTMLElement>('.time-grid-slot')[14]?.click();
+    await flush();
+
+    expect(booking).toHaveLength(0);
+  });
+
+  it('does not fire cal-availability-select for a booked slot', async () => {
+    const el = mountMode('time', { selectable: 'range' });
+    await flush();
+    day(el, '15')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+
+    const booking: unknown[] = [];
+    el.addEventListener('cal-availability-select', e => booking.push(e));
+
+    el.querySelectorAll<HTMLElement>('.time-grid-slot')[9]?.click();
+    await flush();
+
+    expect(booking).toHaveLength(0);
+  });
+
+  it('marks the grid selectable only when selectable is set', async () => {
+    const readOnly = mountMode('time');
+    await flush();
+    day(readOnly, '15')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true })
+    );
+    await flush();
+    expect(readOnly.querySelector('.time-grid-selectable')).toBeNull();
+
+    const bookable = mountMode('time', { selectable: 'range' });
+    await flush();
+    day(bookable, '15')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true })
+    );
+    await flush();
+    expect(bookable.querySelector('.time-grid-selectable')).toBeTruthy();
   });
 });

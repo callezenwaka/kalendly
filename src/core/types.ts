@@ -6,6 +6,9 @@ export interface CalendarEvent {
   name: string;
   date: string | Date;
 
+  // Last day of a multi-day event, inclusive. Absent means a single day.
+  endDate?: string | Date;
+
   // Time fields
   startTime?: string;
   endTime?: string;

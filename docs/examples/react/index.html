@@ -134,6 +134,9 @@
       { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
       { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
       { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
+      { id: 15, date: thisMonth(24), startTime: '22:00', endTime: '06:00', availabilityStatus: 'blocked' },
+      { id: 16, date: thisMonth(11), endDate: thisMonth(13), availabilityStatus: 'blocked' },
+      { id: 17, date: thisMonth(17), endDate: thisMonth(18), availabilityStatus: 'conditional' },
     ];
 
     function App() {
@@ -144,6 +147,7 @@
       ]);
       const [mode, setMode]           = useState('Normal'); // 'Normal' | 'day' | 'time'
       const [months, setMonths]       = useState(1);
+      const [slotDuration, setSlotDuration] = useState(60);
       const [selectable, setSelectable] = useState('off');  // 'off' | 'range'
       const [lazyOn, setLazyOn]       = useState(false);
       const [logs, setLogs]           = useState(['Calendar initialised']);
@@ -180,7 +184,8 @@
         } else {
           cal.removeAttribute('months');
         }
-      }, [mode, selectable, months, normalEvents]);
+        cal.setAttribute('slot-duration', String(slotDuration));
+      }, [mode, selectable, months, slotDuration, normalEvents]);
 
       // Lazy fetch handler — registered/unregistered when lazyOn changes
       useEffect(() => {
@@ -253,6 +258,11 @@
         addLog(val ? 'Lazy fetch → on (navigate months to trigger)' : 'Lazy fetch → off');
       }
 
+      function handleSlotSelect(e) {
+        const d = e.detail;
+        addLog(`Slot clicked: ${d.date.toDateString()} ${d.startTime}–${d.endTime} (${d.booked ? 'booked' : 'free'})`);
+      }
+
       function handleAvailabilitySelect(e) {
         const d = e.detail;
         if (d.startTime) {
@@ -287,7 +297,7 @@
             h('button', { type: 'button', className: mode === 'day'    ? 'active' : '', onClick: () => handleModeChange('day')    }, 'Day View'),
             h('button', { type: 'button', className: mode === 'time'   ? 'active' : '', onClick: () => handleModeChange('time')   }, 'Time View'),
           ),
-          h('p', { className: 'hint' }, 'Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked.'),
+          h('p', { className: 'hint' }, 'Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked. The sample data includes multi-day spans, so a single event covers a range of days.'),
 
           h('hr', { className: 'divider' }),
 
@@ -297,6 +307,18 @@
             h('button', { type: 'button', className: months === 2 ? 'active' : '', onClick: () => { setMonths(2); if (mode !== 'day') handleModeChange('day'); } }, '2 Months'),
           ),
           h('p', { className: 'hint' }, 'Navigation advances one month at a time. Turn on Selectable Range to pick a range that spans both.'),
+
+          h('hr', { className: 'divider' }),
+
+          h('hr', { className: 'divider' }),
+
+          h('h2', null, 'Slot Length'),
+          h('div', { className: 'button-grid' },
+            [60, 30, 15].map(m =>
+              h('button', { key: m, type: 'button', className: slotDuration === m ? 'active' : '', onClick: () => setSlotDuration(m) }, `${m} min`)
+            ),
+          ),
+          h('p', { className: 'hint' }, 'Time view only. Sets the grid granularity and the length a booking with no end time occupies.'),
 
           h('hr', { className: 'divider' }),
 
@@ -327,6 +349,7 @@
             }
           },
           'oncal-availability-select': handleAvailabilitySelect,
+          'oncal-slot-select': handleSlotSelect,
         }),
 
         h('div', { className: 'event-log' },

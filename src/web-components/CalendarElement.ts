@@ -3,6 +3,10 @@ import {
   getCellClasses,
   formatTimeRange,
   formatAttendees,
+  bookedSlots,
+  formatMinutes,
+  DEFAULT_SLOT_DURATION,
+  MINUTES_PER_DAY,
   escapeHtml,
   slugifyToken,
   safeUrl,
@@ -30,6 +34,7 @@ export class CalendarElement extends HTMLElement {
     'week-starts-on',
     'heading',
     'months',
+    'slot-duration',
     'title',
     'use-short-month-names',
     'availability-mode',
@@ -241,6 +246,45 @@ export class CalendarElement extends HTMLElement {
       );
     }
     return title;
+  }
+
+  private static warnedMissingEnd = new Set<string>();
+
+  private get slotDuration(): number {
+    const raw = this.getAttribute('slot-duration');
+    if (raw === null) return DEFAULT_SLOT_DURATION;
+
+    const minutes = Number(raw);
+    if (
+      Number.isInteger(minutes) &&
+      minutes > 0 &&
+      MINUTES_PER_DAY % minutes === 0
+    ) {
+      return minutes;
+    }
+
+    console.warn(
+      `<kal-calendar> slot-duration="${raw}" must be a positive whole number of ` +
+        `minutes that divides ${MINUTES_PER_DAY} — falling back to ` +
+        `${DEFAULT_SLOT_DURATION}.`
+    );
+    return DEFAULT_SLOT_DURATION;
+  }
+
+  private warnMissingEndTime(events: CalendarEvent[]): void {
+    for (const event of events) {
+      if (!event.startTime || event.endTime) continue;
+
+      const key = String(event.id);
+      if (CalendarElement.warnedMissingEnd.has(key)) continue;
+      CalendarElement.warnedMissingEnd.add(key);
+
+      console.warn(
+        `<kal-calendar> event ${key} has startTime but no endTime — occupying ` +
+          `one ${this.slotDuration}-minute slot. Send an endTime to say how long ` +
+          `it runs.`
+      );
+    }
   }
 
   private get monthCount(): number {
@@ -600,31 +644,27 @@ export class CalendarElement extends HTMLElement {
     const renderEvent = this._renderEvent || defaultRenderEvent;
     const renderNoEvents = this._renderNoEvents || defaultRenderNoEvents;
 
-    const renderTimeGrid = (events: CalendarEvent[], date: Date): string => {
-      const startHour = (time: unknown): number | null => {
-        if (typeof time !== 'string') return null;
-        const hour = Number(time.split(':')[0]);
-        return Number.isInteger(hour) && hour >= 0 && hour <= 24 ? hour : null;
-      };
+    const renderTimeGrid = (date: Date): string => {
+      const slotDuration = this.slotDuration;
 
-      const isHourBooked = (hour: number): boolean =>
-        events.some(event => {
-          if (!event.startTime) return true;
+      // A booking crossing midnight belongs to the day it started on, so the
+      // previous day's events are needed to mark the morning it runs into
+      const previousDay = new Date(date);
+      previousDay.setDate(previousDay.getDate() - 1);
+      const events = [
+        ...this.engine!.getEventsForDate(previousDay),
+        ...this.engine!.getEventsForDate(date),
+      ];
 
-          const from = startHour(event.startTime);
-          const to = event.endTime ? startHour(event.endTime) : 24;
-          if (from === null || to === null) return true;
+      this.warnMissingEndTime(events);
+      const booked = bookedSlots(events, date, slotDuration);
 
-          return hour >= from && hour < to;
-        });
-
-      const slots = Array.from({ length: 24 }, (_, hour) => {
-        const startTime = `${String(hour).padStart(2, '0')}:00`;
-        const endTime = `${String(hour + 1).padStart(2, '0')}:00`;
-        const booked = isHourBooked(hour);
+      const slots = booked.map((isBooked, index) => {
+        const startTime = formatMinutes(index * slotDuration);
+        const endTime = formatMinutes((index + 1) * slotDuration);
 
         const inTimeRange =
-          !booked &&
+          !isBooked &&
           selectable &&
           this._timeRangeStart !== null &&
           this._timeRangeEnd !== null &&
@@ -638,7 +678,7 @@ export class CalendarElement extends HTMLElement {
 
         const slotClasses = [
           'time-grid-slot',
-          booked ? 'time-grid-slot-blocked' : 'time-grid-slot-open',
+          isBooked ? 'time-grid-slot-blocked' : 'time-grid-slot-open',
           isRangeStart ? 'time-grid-slot-range-start' : '',
           isRangeEnd ? 'time-grid-slot-range-end' : '',
           isInRange ? 'time-grid-slot-in-range' : '',
@@ -647,18 +687,22 @@ export class CalendarElement extends HTMLElement {
           .join(' ');
 
         const slotAttrs =
-          !booked && selectable
-            ? `data-action="select-slot" data-start-time="${startTime}" data-end-time="${endTime}" data-date="${date.toISOString()}"`
-            : '';
+          `data-action="select-slot" data-start-time="${startTime}" ` +
+          `data-end-time="${endTime}" data-date="${date.toISOString()}" ` +
+          `data-booked="${isBooked}"`;
 
         return `
           <div class="${slotClasses}" ${slotAttrs}>
             <span class="time-grid-label">${startTime}</span>
-            <span class="time-grid-status">${booked ? 'Booked' : 'Available'}</span>
+            <span class="time-grid-status">${isBooked ? 'Booked' : 'Available'}</span>
           </div>`;
       });
 
-      return `<div class="time-grid">${slots.join('')}</div>`;
+      const gridClasses = selectable
+        ? 'time-grid time-grid-selectable'
+        : 'time-grid';
+
+      return `<div class="${gridClasses}">${slots.join('')}</div>`;
     };
 
     const multiMonth = viewModel.panes.length > 1;
@@ -696,6 +740,16 @@ export class CalendarElement extends HTMLElement {
                           .map((calendarDate, dayIndex) => {
                             const classes = getCellClasses(calendarDate);
                             const cellAttrs: string[] = [];
+
+                            if (
+                              viewModel.selectedDate &&
+                              isSameDay(
+                                calendarDate.date,
+                                viewModel.selectedDate
+                              )
+                            ) {
+                              classes.push('calendar-cell-selected');
+                            }
                             if (
                               availabilityMode &&
                               calendarDate.isCurrentMonth
@@ -891,7 +945,7 @@ export class CalendarElement extends HTMLElement {
               <div class="events-container">
                 ${
                   availabilityMode === 'time'
-                    ? renderTimeGrid(viewModel.tasks, viewModel.selectedDate!)
+                    ? renderTimeGrid(viewModel.selectedDate!)
                     : viewModel.tasks.length > 0
                       ? viewModel.tasks
                           .map(event => renderEvent(event))
@@ -1089,6 +1143,25 @@ export class CalendarElement extends HTMLElement {
           const slotStart = actionEl.dataset.startTime!;
           const slotEnd = actionEl.dataset.endTime!;
           const slotDate = new Date(actionEl.dataset.date!);
+          const slotBooked = actionEl.dataset.booked === 'true';
+
+          // Reported for every slot, the way cal-date-select is for every day.
+          // selectable gates the range machine below, not the click itself.
+          this.dispatchEvent(
+            new CustomEvent('cal-slot-select', {
+              bubbles: true,
+              composed: true,
+              detail: {
+                date: slotDate,
+                startTime: slotStart,
+                endTime: slotEnd,
+                booked: slotBooked,
+              },
+            })
+          );
+
+          if (slotBooked || !this.hasAttribute('selectable')) break;
+
           if (this._timeRangeComplete) {
             // State 2 → reset, start fresh
             this._timeRangeDate = slotDate;

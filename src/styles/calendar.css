@@ -442,8 +442,15 @@
   transition: background-color 0.2s ease;
 }
 
-.calendar-table td:hover {
+.calendar-table td[data-clickable]:hover {
   background-color: rgba(var(--calendar-primary-color-rgb), 0.1);
+}
+
+.calendar-table td.calendar-cell-selected {
+  background-color: var(--calendar-selected-bg);
+  outline: 2px solid var(--calendar-primary-color);
+  outline-offset: -2px;
+  font-weight: 700;
 }
 
 .calendar-table td.calendar-cell-other-month {
@@ -496,6 +503,14 @@
 
 .time-grid-status {
   font-weight: 500;
+}
+
+.time-grid-selectable .time-grid-slot-open {
+  cursor: pointer;
+}
+
+.time-grid-selectable .time-grid-slot-blocked {
+  cursor: not-allowed;
 }
 
 .time-grid-slot-blocked {

@@ -60,16 +60,39 @@ export function generateYears(minYear?: number, maxYear?: number): number[] {
   return Array.from({ length: max - min + 1 }, (_, i) => min + i);
 }
 
+// endDate is inclusive, matching the endDate cal-availability-select emits, so
+// a selection can be handed straight back as one event.
+export function eventCoversDate(event: CalendarEvent, date: Date): boolean {
+  const start = normalizeDate(new Date(event.date)).getTime();
+  const target = normalizeDate(date).getTime();
+  if (Number.isNaN(start)) return false;
+
+  if (event.endDate === undefined || event.endDate === null) {
+    return start === target;
+  }
+
+  const end = normalizeDate(new Date(event.endDate)).getTime();
+  if (Number.isNaN(end)) {
+    throw new Error(
+      `<kal-calendar> event ${event.id} has an unreadable endDate: ` +
+        `${String(event.endDate)}.`
+    );
+  }
+  if (end < start) {
+    throw new Error(
+      `<kal-calendar> event ${event.id} has an endDate before its date: ` +
+        `${String(event.endDate)} < ${String(event.date)}.`
+    );
+  }
+
+  return target >= start && target <= end;
+}
+
 export function getEventsForDate(
   events: CalendarEvent[],
   date: Date
 ): CalendarEvent[] {
-  const normalizedTargetDate = normalizeDate(date);
-
-  return events.filter(event => {
-    const eventDate = normalizeDate(new Date(event.date));
-    return eventDate.getTime() === normalizedTargetDate.getTime();
-  });
+  return events.filter(event => eventCoversDate(event, date));
 }
 
 export function hasEvents(events: CalendarEvent[], date: Date): boolean {
@@ -310,4 +333,104 @@ export function safeColor(value: string): string {
   return isValidHexColor(trimmed) || /^[a-z]+$/i.test(trimmed)
     ? trimmed
     : '#3b82f6';
+}
+
+export const MINUTES_PER_DAY = 1440;
+export const DEFAULT_SLOT_DURATION = 60;
+
+export function parseTimeToMinutes(time: unknown): number | null {
+  if (typeof time !== 'string') return null;
+
+  const match = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const mins = Number(match[2]);
+  if (hours > 24 || mins > 59 || (hours === 24 && mins > 0)) return null;
+
+  return hours * 60 + mins;
+}
+
+export function formatMinutes(total: number): string {
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+// Absolute [start, end) in minutes. An end at or before the start is on the
+// following day, so a booking that crosses midnight is one interval rather than
+// two half-days. An unreadable time occupies the whole day — a booking surface
+// that cannot parse a time must not offer the slot.
+export function eventInterval(
+  event: CalendarEvent,
+  slotDuration: number,
+  onDay: Date
+): [number, number] | null {
+  const day = normalizeDate(onDay).getTime();
+  if (Number.isNaN(day)) return null;
+
+  const base = day / 60000;
+  const wholeDay: [number, number] = [base, base + MINUTES_PER_DAY];
+
+  if (event.allDay || !event.startTime) return wholeDay;
+
+  const from = parseTimeToMinutes(event.startTime);
+  if (from === null) return wholeDay;
+
+  if (event.endTime === undefined || event.endTime === null) {
+    return [base + from, base + from + slotDuration];
+  }
+
+  const to = parseTimeToMinutes(event.endTime);
+  if (to === null) return wholeDay;
+
+  return [base + from, base + (to <= from ? to + MINUTES_PER_DAY : to)];
+}
+
+export function mergeIntervals(
+  intervals: Array<[number, number]>
+): Array<[number, number]> {
+  const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+
+  return sorted.reduce<Array<[number, number]>>((merged, [start, end]) => {
+    const last = merged[merged.length - 1];
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+    else merged.push([start, end]);
+    return merged;
+  }, []);
+}
+
+// Which of the day's slots any booking overlaps. Events from the previous day
+// belong in `events` so a booking crossing midnight marks the morning it runs into.
+export function bookedSlots(
+  events: CalendarEvent[],
+  date: Date,
+  slotDuration: number = DEFAULT_SLOT_DURATION
+): boolean[] {
+  const base = normalizeDate(date).getTime() / 60000;
+
+  const previousDay = new Date(date);
+  previousDay.setDate(previousDay.getDate() - 1);
+
+  // A span's times repeat on each day it covers, so the window is anchored to
+  // the day being drawn rather than the day the span began
+  const intervals: Array<[number, number]> = [];
+  for (const event of new Set(events)) {
+    for (const day of [previousDay, date]) {
+      if (!eventCoversDate(event, day)) continue;
+      const interval = eventInterval(event, slotDuration, day);
+      if (interval) intervals.push(interval);
+    }
+  }
+
+  const merged = mergeIntervals(intervals);
+
+  return Array.from(
+    { length: Math.floor(MINUTES_PER_DAY / slotDuration) },
+    (_, index) => {
+      const start = base + index * slotDuration;
+      const end = start + slotDuration;
+      return merged.some(([from, to]) => start < to && end > from);
+    }
+  );
 }

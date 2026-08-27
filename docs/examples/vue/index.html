@@ -133,6 +133,9 @@
       { id: 12, date: thisMonth(15), availabilityStatus: 'blocked' },
       { id: 13, date: thisMonth(20), startTime: '10:00', endTime: '12:00', availabilityStatus: 'conditional' },
       { id: 14, date: thisMonth(22), allDay: true, availabilityStatus: 'blocked' },
+      { id: 15, date: thisMonth(24), startTime: '22:00', endTime: '06:00', availabilityStatus: 'blocked' },
+      { id: 16, date: thisMonth(11), endDate: thisMonth(13), availabilityStatus: 'blocked' },
+      { id: 17, date: thisMonth(17), endDate: thisMonth(18), availabilityStatus: 'conditional' },
     ];
 
     createApp({
@@ -145,6 +148,7 @@
         const mode       = ref('Normal'); // 'Normal' | 'day' | 'time'
         const selectable = ref('off');    // 'off' | 'range'
         const months = ref(1);
+        const slotDuration = ref(60);
         const lazyOn     = ref(false);
         const logs       = ref(['Calendar initialised']);
         const calRef     = ref(null);
@@ -175,10 +179,11 @@
           } else {
             cal.removeAttribute('months');
           }
+          cal.setAttribute('slot-duration', String(slotDuration.value));
         }
 
         onMounted(syncCalendar);
-        watch([mode, selectable, months, normalEvents], syncCalendar);
+        watch([mode, selectable, months, slotDuration, normalEvents], syncCalendar);
 
         watch(lazyOn, (val) => {
           const cal = calRef.value;
@@ -251,6 +256,11 @@
           addLog(`Selectable → ${val}`);
         }
 
+        function handleSlotSelect(e) {
+          const d = e.detail;
+          addLog(`Slot clicked: ${d.date.toDateString()} ${d.startTime}–${d.endTime} (${d.booked ? 'booked' : 'free'})`);
+        }
+
         function handleAvailabilitySelect(e) {
           const d = e.detail;
           if (d.startTime) {
@@ -285,7 +295,7 @@
               h('button', { type: 'button', class: mode.value === 'day'    ? 'active' : '', onClick: () => handleModeChange('day')    }, 'Day View'),
               h('button', { type: 'button', class: mode.value === 'time'   ? 'active' : '', onClick: () => handleModeChange('time')   }, 'Time View'),
             ]),
-            h('p', { class: 'hint' }, 'Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked.'),
+            h('p', { class: 'hint' }, 'Day / Time view hides event details and colours each day by its availability bucket — open, conditional or blocked. The sample data includes multi-day spans, so a single event covers a range of days.'),
 
             h('hr', { class: 'divider' }),
 
@@ -295,6 +305,18 @@
               h('button', { type: 'button', class: months.value === 2 ? 'active' : '', onClick: () => { months.value = 2; if (mode.value !== 'day') handleModeChange('day'); } }, '2 Months'),
             ]),
             h('p', { class: 'hint' }, 'Navigation advances one month at a time. Turn on Selectable Range to pick a range that spans both.'),
+
+            h('hr', { class: 'divider' }),
+
+            h('hr', { class: 'divider' }),
+
+            h('h2', null, 'Slot Length'),
+            h('div', { class: 'button-grid' },
+              [60, 30, 15].map(m =>
+                h('button', { key: m, type: 'button', class: slotDuration.value === m ? 'active' : '', onClick: () => { slotDuration.value = m; } }, `${m} min`)
+              ),
+            ),
+            h('p', { class: 'hint' }, 'Time view only. Sets the grid granularity and the length a booking with no end time occupies.'),
 
             h('hr', { class: 'divider' }),
 
@@ -321,6 +343,7 @@
             'onCal-date-select':         e => addLog(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`),
             'onCal-month-change':         e => { if (!lazyHandler) addLog(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`); },
             'onCal-availability-select':  handleAvailabilitySelect,
+            'onCal-slot-select':          handleSlotSelect,
           }),
 
           h('div', { class: 'event-log' }, [

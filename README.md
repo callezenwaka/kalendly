@@ -333,19 +333,20 @@ document.querySelector('kal-calendar').theme = {
 
 Primitives are set as HTML attributes:
 
-| Attribute               | Type             | Default          | Description                                      |
-| ----------------------- | ---------------- | ---------------- | ------------------------------------------------ |
-| `heading`               | `string`         | —                | Calendar heading                                 |
-| `title`                 | `string`         | —                | **Deprecated** — use `heading`                   |
-| `initial-date`          | `string`         | today            | ISO date string for initial view                 |
-| `months`                | `"1"\|"2"`       | `"1"`            | Render two months side by side                   |
-| `min-year`              | `string`         | currentYear - 30 | Minimum year in picker                           |
-| `max-year`              | `string`         | currentYear + 10 | Maximum year in picker                           |
-| `week-starts-on`        | `"0"\|"1"`       | `"0"`            | Week start: 0 = Sunday, 1 = Monday               |
-| `use-short-month-names` | `string`         | —                | Present = use abbreviated month names            |
-| `availability-mode`     | `"day"\|"time"`  | —                | Hides event details; shows booked/free cells     |
-| `selectable`            | `"range"`        | —                | Enables day/slot selection (requires avail mode) |
-| `loading`               | `boolean` (flag) | —                | Present = render skeleton shimmer cells          |
+| Attribute               | Type              | Default          | Description                                        |
+| ----------------------- | ----------------- | ---------------- | -------------------------------------------------- |
+| `heading`               | `string`          | —                | Calendar heading                                   |
+| `title`                 | `string`          | —                | **Deprecated** — use `heading`                     |
+| `initial-date`          | `string`          | today            | ISO date string for initial view                   |
+| `months`                | `"1"\|"2"`        | `"1"`            | Render two months side by side                     |
+| `min-year`              | `string`          | currentYear - 30 | Minimum year in picker                             |
+| `max-year`              | `string`          | currentYear + 10 | Maximum year in picker                             |
+| `week-starts-on`        | `"0"\|"1"`        | `"0"`            | Week start: 0 = Sunday, 1 = Monday                 |
+| `use-short-month-names` | `string`          | —                | Present = use abbreviated month names              |
+| `availability-mode`     | `"day"\|"time"`   | —                | Hides event details; shows booked/free cells       |
+| `slot-duration`         | `string` (number) | `"60"`           | Time-grid granularity in minutes; must divide 1440 |
+| `selectable`            | `"range"`         | —                | Enables day/slot selection (requires avail mode)   |
+| `loading`               | `boolean` (flag)  | —                | Present = render skeleton shimmer cells            |
 
 ## Properties
 
@@ -370,11 +371,12 @@ Rich objects are set as JS properties (not attributes):
 
 ## Custom Events
 
-| Event                     | `detail` shape                                                         | Description                            |
-| ------------------------- | ---------------------------------------------------------------------- | -------------------------------------- |
-| `cal-date-select`         | `{ date: Date, events: CalendarEvent[] }`                              | User clicked a date (normal mode)      |
-| `cal-month-change`        | `{ year: number, month: number }`                                      | Fires **before** the new month renders |
-| `cal-availability-select` | `{ startDate: Date, endDate: Date }` or `{ date, startTime, endTime }` | Day/slot selected in availability mode |
+| Event                     | `detail` shape                                                         | Description                                               |
+| ------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------- |
+| `cal-date-select`         | `{ date: Date, events: CalendarEvent[] }`                              | User clicked a date (normal mode)                         |
+| `cal-month-change`        | `{ year: number, month: number }`                                      | Fires **before** the new month renders                    |
+| `cal-availability-select` | `{ startDate: Date, endDate: Date }` or `{ date, startTime, endTime }` | Day/slot selected in availability mode                    |
+| `cal-slot-select`         | `{ date: Date, startTime: string, endTime: string, booked: boolean }`  | Any time slot clicked, whether or not `selectable` is set |
 
 All events bubble and are composed (cross Shadow DOM boundaries).
 
@@ -479,12 +481,80 @@ cal.events = [
 <kal-calendar availability-mode="time"></kal-calendar>
 ```
 
-Clicking a day opens a popup with a 24-slot hourly grid (00:00 – 23:00). Each slot shows only "Booked" or "Available" — no event name or organiser is ever rendered. A slot is booked if any event's time window overlaps that hour; the rest are free.
+Clicking a day opens a popup with a grid of slots. Each shows only "Booked" or "Available" — no event name or organiser is ever rendered. A slot is booked when any booking overlaps it.
+
+#### Slot length
+
+`slot-duration` sets the grid granularity in minutes. It must divide 1440 evenly; anything else falls back to 60 with a console warning.
+
+```html
+<kal-calendar availability-mode="time" slot-duration="30"></kal-calendar>
+```
+
+The grid renders `1440 / slot-duration` slots, and `cal-availability-select` emits times on that granularity — half-hour slots produce half-hour selections.
+
+Precision below `slot-duration` is not representable: a booking from 17:30 on a 60-minute grid marks 17:00–18:00 booked, because that hour cannot be sold. A vendor working in half-hours sets `slot-duration="30"` rather than expecting the grid to subdivide itself.
+
+#### Bookings that cross midnight
+
+An `endTime` at or before its `startTime` is treated as the next day, so a booking runs as one interval rather than two half-days:
+
+```js
+{ id: 1, date: '2026-03-15', startTime: '22:00', endTime: '06:00' }
+```
+
+That marks 22:00–24:00 on 15 March and 00:00–06:00 on the 16th. Each day's grid shows the portion of any booking falling on that day.
+
+#### A booking with no end time
+
+An event with a `startTime` and no `endTime` occupies **one slot**, and the library warns once naming the event. The supported fix is an end time in your data — the duration is a fallback, not a feature.
+
+Overlapping bookings merge rather than double-count, so a 09:00–17:00 meeting and a 17:30–22:00 class on the same day mark 09:00–22:00 booked between them.
 
 <div align="center">
   <img src="./docs/images/time.png" alt="Availability time view — day popup showing 24 hourly slots coloured red (booked) or green (available)"/>
   <p><em>Time view: clicking a day opens an hourly grid — booked slots in red, available slots in green; no event details exposed</em></p>
 </div>
+
+#### Reacting to a slot click
+
+`cal-slot-select` fires on every slot click, the way `cal-date-select` fires for
+every day — including booked slots, and whether or not `selectable` is set. Use it
+to drive your own booking flow without turning on range selection:
+
+```js
+cal.addEventListener('cal-slot-select', e => {
+  const { date, startTime, endTime, booked } = e.detail;
+  if (booked) return showTakenMessage(startTime);
+  openBookingForm(date, startTime, endTime);
+});
+```
+
+`selectable="range"` still governs `cal-availability-select`, the three-click
+range machine and the range highlighting. It also controls the cursor: slots only
+show a pointer when the grid can actually be booked from.
+
+#### Round-tripping a selection
+
+`cal-availability-select` emits an inclusive `endDate`, so a saved selection goes
+straight back as a single event — no expanding into one event per day:
+
+```js
+cal.addEventListener('cal-availability-select', async e => {
+  const { startDate, endDate } = e.detail;
+  const booking = await save({ startDate, endDate });
+
+  cal.events = [
+    ...cal.events,
+    {
+      id: booking.id,
+      date: startDate,
+      endDate,
+      availabilityStatus: 'blocked',
+    },
+  ];
+});
+```
 
 ### Selectable range
 
@@ -567,6 +637,19 @@ cal.getEngine();
 > `mailto:` and relative URLs; anything else becomes `#`. `color` accepts hex
 > values and CSS colour keywords.
 
+> **Multi-day events.** `endDate` is the last day of a span and is **inclusive** —
+> `date: '2026-03-03', endDate: '2026-03-05'` covers three days. That matches the
+> `endDate` `cal-availability-select` emits, so a selection can be handed straight
+> back as one event. It deliberately differs from RFC 5545, whose all-day `DTEND`
+> is exclusive; adjust if you map to iCalendar. An `endDate` before `date`, or one
+> that cannot be read, throws and names the event.
+>
+> Times on a span repeat daily: `09:00`–`17:00` across three days means that
+> window on each of the three, not one continuous block. A hall can hold a
+> 09:00–17:00 meeting and a 17:30–22:00 class on overlapping days.
+>
+> `recurring` is declared on the type but not implemented — nothing reads it.
+
 > **Custom values.** `status`, `category` and `priority` accept any string. An
 > unrecognised value renders as an uppercased badge with a neutral fill, which
 > you can style via `.badge.status-<your-value>` or recolour through
@@ -577,6 +660,8 @@ interface CalendarEvent {
   id: string | number;
   name: string;
   date: string | Date;
+
+  endDate?: string | Date; // last day of a span, inclusive
 
   startTime?: string; // e.g. "09:00"
   endTime?: string; // e.g. "10:00"
