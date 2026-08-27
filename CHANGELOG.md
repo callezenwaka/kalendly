@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Booking constraints — `min-date`, `max-date`, `available-days`, `available-hours`.** A vendor works fixed hours on fixed days within a bookable horizon, and until now the calendar offered all 1440 minutes of every day, forever in both directions. Saying otherwise meant authoring a blocking event for every excluded hour of every excluded day — unbounded work for a static rule. All four are optional and absent means no constraint, so nothing changes for existing consumers.
+
+  `min-date`/`max-date` bound the horizon, inclusive, parsed like `initial-date`. `available-days` is a recurring weekly rule using `getDay()` numbering (`0` = Sunday), independent of `week-starts-on`. `available-hours` is a recurring daily rule taking a comma-separated list of `HH:MM-HH:MM` ranges, because a working day is not always contiguous: `"09:00-12:00,13:00-17:00"` closes for lunch. Each range is half-open, `[start, end)`, matching the convention events already use.
+
+  Excluded days are not click targets at all — no hover response, and neither `cal-date-select` nor `cal-availability-select` fires. Excluded hours render greyed and marked `Closed` and emit no `cal-slot-select`, but are still shown, so a booking falling outside the window stays visible to the vendor. Style with `--calendar-out-of-range-bg` / `--calendar-out-of-range-fg` or the `outOfRangeBg` / `outOfRangeFg` theme keys.
+
+  Bad input throws and names the attribute: an unreadable date, `min-date` after `max-date`, a weekday outside `0`–`6`, a malformed, inverted or overlapping range, or a boundary that misses the `slot-duration` grid. Validation runs on render rather than when the grid draws, so a mistake surfaces immediately instead of waiting for someone to open the right day.
+
+- `parseHourRanges`, `isDateWithinWindow` and `isDayAllowed` exported from `kalendly/core`.
+
 ### Breaking Changes
 
 - **`CalendarEvent.name` is optional.** It is read in one place — the event card's title — and availability mode never renders the card, so callers there were supplying a field the calendar guarantees never to show. An event without a name now renders a card with no title rather than an empty one. Nothing changes at runtime: events are handed back by reference, so a supplied name still round-trips through `cal-date-select`. It is breaking for TypeScript consumers _reading_ the field, which now needs a guard under `strictNullChecks`.

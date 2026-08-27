@@ -219,6 +219,23 @@
     </div>
 
     <div class="panel">
+      <h2>Opening Hours</h2>
+      <div class="btn-grid">
+        <button class="mode-btn active" id="btn-hours-all">All day</button>
+        <button class="mode-btn" id="btn-hours-9to5">09:00&ndash;17:00</button>
+        <button class="mode-btn" id="btn-hours-split">Split shift</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Opening Days</h2>
+      <div class="btn-grid">
+        <button class="mode-btn active" id="btn-days-all">Every day</button>
+        <button class="mode-btn" id="btn-days-week">Mon&ndash;Fri</button>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2>Months</h2>
       <div class="btn-grid">
         <button class="mode-btn active" id="btn-months-1">1 Month</button>
@@ -553,6 +570,39 @@
   [60, 30, 15].forEach(m =>
     document.getElementById(`btn-slot-${m}`)
       .addEventListener('click', () => setSlotDuration(m)));
+
+  const HOUR_PRESETS = {
+    all: null,
+    '9to5': '09:00-17:00',
+    split: '09:00-12:00,13:00-17:00',
+  };
+
+  function setHours(kind) {
+    Object.keys(HOUR_PRESETS).forEach(k =>
+      document.getElementById(`btn-hours-${k}`).classList.remove('active'));
+    document.getElementById(`btn-hours-${kind}`).classList.add('active');
+    const ranges = HOUR_PRESETS[kind];
+    if (ranges) el.setAttribute('available-hours', ranges);
+    else el.removeAttribute('available-hours');
+    log(`Opening hours → ${ranges ?? 'all day'}`, 'ok');
+  }
+
+  Object.keys(HOUR_PRESETS).forEach(k =>
+    document.getElementById(`btn-hours-${k}`)
+      .addEventListener('click', () => setHours(k)));
+
+  function setDays(kind) {
+    ['all', 'week'].forEach(k =>
+      document.getElementById(`btn-days-${k}`).classList.remove('active'));
+    document.getElementById(`btn-days-${kind}`).classList.add('active');
+    if (kind === 'week') el.setAttribute('available-days', '1,2,3,4,5');
+    else el.removeAttribute('available-days');
+    log(`Opening days → ${kind === 'week' ? 'Mon-Fri' : 'every day'}`, 'ok');
+  }
+
+  ['all', 'week'].forEach(k =>
+    document.getElementById(`btn-days-${k}`)
+      .addEventListener('click', () => setDays(k)));
 
   function setMonths(count) {
     ['btn-months-1', 'btn-months-2'].forEach(id =>

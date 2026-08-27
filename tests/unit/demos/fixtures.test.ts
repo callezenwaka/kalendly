@@ -5,6 +5,7 @@ import type { CalendarEvent } from '../../../src/core/types';
 import {
   bookedSlots,
   eventCoversDate,
+  parseHourRanges,
   parseTimeToMinutes,
 } from '../../../src/core/utils';
 
@@ -126,6 +127,33 @@ describe('demo fixtures', () => {
         expect(() =>
           eventCoversDate(event, new Date(event.date))
         ).not.toThrow();
+      }
+    });
+
+    // Every page offers slot lengths and opening-hours presets as independent
+    // controls, so any pairing is reachable by clicking.
+    it('offers no slot length and hours pairing that throws', () => {
+      const durations = [
+        ...source.matchAll(
+          /slot-duration['"]?,\s*String\((\d+)\)|slot-(\d+)|\[60, 30, 15\]/g
+        ),
+      ].length
+        ? [60, 30, 15]
+        : [60];
+
+      const presets = [
+        ...source.matchAll(
+          /'(\d{2}:\d{2}-\d{2}:\d{2}(?:,\d{2}:\d{2}-\d{2}:\d{2})*)'/g
+        ),
+      ].map(m => m[1]);
+
+      for (const preset of presets) {
+        for (const duration of durations) {
+          expect(
+            () => parseHourRanges(preset, duration),
+            `${preset} at ${duration}min`
+          ).not.toThrow();
+        }
       }
     });
 

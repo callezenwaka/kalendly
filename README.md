@@ -341,6 +341,10 @@ Primitives are set as HTML attributes:
 | `months`                | `"1"\|"2"`        | `"1"`            | Render two months side by side                     |
 | `min-year`              | `string`          | currentYear - 30 | Minimum year in picker                             |
 | `max-year`              | `string`          | currentYear + 10 | Maximum year in picker                             |
+| `min-date`              | `string`          | —                | Earliest bookable day, inclusive                   |
+| `max-date`              | `string`          | —                | Latest bookable day, inclusive                     |
+| `available-days`        | `string`          | —                | Bookable weekdays, e.g. `"1,2,3,4,5"`              |
+| `available-hours`       | `string`          | —                | Bookable hours, e.g. `"09:00-17:00"`               |
 | `week-starts-on`        | `"0"\|"1"`        | `"0"`            | Week start: 0 = Sunday, 1 = Monday                 |
 | `use-short-month-names` | `string`          | —                | Present = use abbreviated month names              |
 | `availability-mode`     | `"day"\|"time"`   | —                | Hides event details; shows booked/free cells       |
@@ -494,6 +498,40 @@ Clicking a day opens a popup with a grid of slots. Each shows only "Booked" or "
 The grid renders `1440 / slot-duration` slots, and `cal-availability-select` emits times on that granularity — half-hour slots produce half-hour selections.
 
 Precision below `slot-duration` is not representable: a booking from 17:30 on a 60-minute grid marks 17:00–18:00 booked, because that hour cannot be sold. A vendor working in half-hours sets `slot-duration="30"` rather than expecting the grid to subdivide itself.
+
+### Booking constraints
+
+Four optional attributes describe when a vendor is open. Omit them all and nothing is constrained.
+
+```html
+<kal-calendar
+  availability-mode="time"
+  min-date="2026-09-01"
+  max-date="2026-12-31"
+  available-days="1,2,3,4,5"
+  available-hours="09:00-12:00,13:00-17:00"
+></kal-calendar>
+```
+
+They express two different kinds of rule, which is why there are four and not two:
+
+|                         | Kind             | Says                                          |
+| ----------------------- | ---------------- | --------------------------------------------- |
+| `min-date` / `max-date` | one-off horizon  | "we take bookings from September to December" |
+| `available-days`        | recurring weekly | "we work weekdays"                            |
+| `available-hours`       | recurring daily  | "we work 9 to 5, closed for lunch"            |
+
+None substitutes for another. A horizon cannot say "weekdays only", a weekday list cannot say "not past December", and neither says anything about the working day.
+
+`min-date` and `max-date` are **inclusive** and parse like `initial-date`. `available-days` uses `Date.prototype.getDay()` numbering — `0` is Sunday — which is independent of `week-starts-on`, a display setting.
+
+`available-hours` takes a comma-separated list because a working day is not always contiguous: `"09:00-12:00,13:00-17:00"` closes for lunch, and `"09:00-17:00,17:30-22:00"` runs meetings then an evening class. Each range is half-open, `[start, end)` — `"09:00-17:00"` on an hourly grid makes 16:00–17:00 the last bookable slot, the same convention events use.
+
+Excluded **days** are not click targets at all: no hover response, and neither `cal-date-select` nor `cal-availability-select` fires. Excluded **hours** render greyed and marked `Closed`, and emit no `cal-slot-select`. They are shown rather than hidden so a booking that falls outside the window is still visible to the vendor.
+
+Style either with `--calendar-out-of-range-bg` and `--calendar-out-of-range-fg`, or the `outOfRangeBg` / `outOfRangeFg` theme keys.
+
+Bad input throws and names the attribute — an unreadable date, `min-date` after `max-date`, a weekday outside `0`–`6`, a malformed or inverted range, ranges that overlap, or a boundary that misses the `slot-duration` grid (`"09:30-17:00"` with hourly slots has no slot to land on).
 
 #### Bookings that cross midnight
 
@@ -730,6 +768,8 @@ for. Override the `--calendar-*` layer — the primitives are internal.
   --calendar-cell-hover: #f3f4f6;
   --calendar-header-bg: #f8f9fa;
   --calendar-selected-bg: #eff6ff;
+  --calendar-out-of-range-bg: #f3f4f6;
+  --calendar-out-of-range-fg: #6b7280;
   --calendar-popup-bg: #fff;
   --calendar-picker-bg: #fff;
   --calendar-today-outline: #f7db04;
@@ -792,6 +832,8 @@ cal.theme = {
   borderColor: '#e5e7eb',
   todayOutline: '#fbbf24',
   selectedBg: '#eff6ff',
+  outOfRangeBg: '#f3f4f6',
+  outOfRangeFg: '#6b7280',
   headerBg: '#f8f9fa',
   popupBg: '#ffffff',
   pickerBg: '#ffffff',
