@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-27
+
 ### Breaking Changes
 
 - **An event with a `startTime` and no `endTime` occupies one slot**, not the rest of the day. The previous behaviour never double-booked but silently made a vendor's whole evening unsellable from one incomplete record. The library warns once naming the event; the supported fix is an end time in the data.

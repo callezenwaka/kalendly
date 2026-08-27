@@ -1,6 +1,6 @@
 {
   "name": "kalendly",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A universal calendar web component — works in React, Vue, Angular, Svelte, Solid.js, and plain HTML with no framework dependency",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
