@@ -503,18 +503,63 @@ Precision below `slot-duration` is not representable: a booking from 17:30 on a 
 
 The `‹` and `›` arrows take their hover fill from `--calendar-primary-color` by
 default, so changing `primary` moves them along with the selected-day fill and
-today outline. To colour them on their own:
+today outline. Five tokens colour them on their own:
 
-```js
-cal.theme = {
-  navArrowFg: '#0f766e',
-  navArrowBorder: '#0f766e',
-  navArrowHoverBg: '#0f766e',
-  navArrowHoverFg: '#ffffff',
-};
-```
+| Token                           | Theme key         | Default                    |
+| ------------------------------- | ----------------- | -------------------------- |
+| `--calendar-nav-arrow-fg`       | `navArrowFg`      | `--calendar-text-color`    |
+| `--calendar-nav-arrow-bg`       | `navArrowBg`      | `--calendar-background`    |
+| `--calendar-nav-arrow-border`   | `navArrowBorder`  | `--calendar-border-color`  |
+| `--calendar-nav-arrow-hover-fg` | `navArrowHoverFg` | `--calendar-on-accent`     |
+| `--calendar-nav-arrow-hover-bg` | `navArrowHoverBg` | `--calendar-primary-color` |
 
 Each defaults to the value it replaces, so setting none of them changes nothing.
+
+**Set them straight on the element.** This is the only way that scopes to one
+calendar:
+
+```html
+<kal-calendar
+  style="
+    --calendar-nav-arrow-fg: #0f766e;
+    --calendar-nav-arrow-border: #0f766e;
+    --calendar-nav-arrow-hover-bg: #0f766e;
+    --calendar-nav-arrow-hover-fg: #fff;
+  "
+></kal-calendar>
+```
+
+Or from a stylesheet, which is usually tidier. There is no shadow DOM, so your
+CSS reaches the component:
+
+```css
+#booking-calendar {
+  --calendar-nav-arrow-fg: #0f766e;
+  --calendar-nav-arrow-border: #0f766e;
+  --calendar-nav-arrow-hover-bg: #0f766e;
+  --calendar-nav-arrow-hover-fg: #fff;
+}
+```
+
+The same works in every framework, since it is just an attribute or a class:
+
+```jsx
+<kal-calendar style={{ '--calendar-nav-arrow-hover-bg': '#0f766e' }} />
+```
+
+**Or use the `theme` property** — but note it is page-wide:
+
+```js
+cal.theme = { navArrowFg: '#0f766e', navArrowHoverBg: '#0f766e' };
+```
+
+> `theme` writes its values to `:root`, so it colours **every** `<kal-calendar>`
+> on the page, not the element you set it on. With one calendar that is
+> harmless. With two, the last assignment wins for both — use the CSS custom
+> properties above to theme them separately.
+
+Every other token works the same way: anything in the theming table can be set
+per element as a CSS variable, or page-wide through `theme`.
 
 ### Booking constraints
 
@@ -842,9 +887,89 @@ Type, radius, elevation and spacing scales are exposed the same way —
 `--calendar-font-*`, `--calendar-radius-*`, `--calendar-shadow-*` and
 `--calendar-space-*`. See `dist/styles/calendar.css` for the full set.
 
+### Where you set a token decides what it colours
+
+The same token means different things depending on where you declare it.
+
+| Set on                       | Colours                                   |
+| ---------------------------- | ----------------------------------------- |
+| `:root` or a stylesheet      | every `<kal-calendar>` on the page        |
+| the `<kal-calendar>` element | that calendar only                        |
+| the `theme` property         | **every** calendar — it writes to `:root` |
+
+To theme one calendar, set the custom properties on the element. There is no
+shadow DOM, so they inherit straight through:
+
+```html
+<kal-calendar
+  style="
+    --calendar-primary-color: #4f46e5;
+    --calendar-primary-color-rgb: 79, 70, 229;
+    --calendar-on-accent: #fff;
+  "
+></kal-calendar>
+```
+
+Or from your own stylesheet, which is usually tidier:
+
+```css
+#booking-calendar {
+  --calendar-primary-color: #4f46e5;
+  --calendar-primary-color-rgb: 79, 70, 229;
+  --calendar-on-accent: #fff;
+}
+```
+
+It is only an attribute, so every framework does it its own way:
+
+```jsx
+/* React — cast because CSS custom properties are not in CSSProperties */
+<kal-calendar
+  style={{
+    '--calendar-primary-color': 'var(--primary)',
+    '--calendar-primary-color-rgb': 'var(--primary-rgb)',
+    '--calendar-on-accent': 'var(--primary-foreground)',
+  } as React.CSSProperties}
+/>
+```
+
+```vue
+<kal-calendar :style="{ '--calendar-primary-color': brand }" />
+```
+
+```svelte
+<kal-calendar style="--calendar-primary-color: {brand}" />
+```
+
+```html
+<!-- Angular -->
+<kal-calendar [style.--calendar-primary-color]="brand"></kal-calendar>
+```
+
+Pointing a token at one of your own design-system variables works, since it
+resolves in the element's scope:
+
+```html
+<kal-calendar style="--calendar-primary-color: var(--primary)"></kal-calendar>
+```
+
+> **Set `--calendar-primary-color-rgb` alongside `--calendar-primary-color`.**
+> Translucent fills — cell hover, the picker shadow — are built as
+> `rgba(var(--calendar-primary-color-rgb), …)`, because CSS cannot take the
+> channels out of a hex colour. Change the colour without the channels and
+> those fills keep the old hue. The value is three bare numbers, no `rgb()`.
+
+Every demo under `docs/examples/` has a **Brand Colour** control that does
+exactly this, so you can see which parts of the calendar follow the base token.
+
 ### JS theme property (full reference)
 
 Every `--calendar-*` colour token has a matching camelCase theme key.
+
+> `theme` writes its values to `:root`, so it colours **every** `<kal-calendar>`
+> on the page, not the element you assign it to. With one calendar that is
+> harmless; with two, the last assignment wins for both. Use the element-scoped
+> custom properties above to theme them separately.
 
 ```js
 cal.theme = {

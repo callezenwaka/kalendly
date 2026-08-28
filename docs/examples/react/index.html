@@ -150,10 +150,30 @@
       const [months, setMonths]       = useState(1);
       const [slotDuration, setSlotDuration] = useState(60);
       const [hours, setHours]         = useState(null);
+      const [brand, setBrand]         = useState('Default');
       const [weekdaysOnly, setWeekdaysOnly] = useState(false);
       const [selectable, setSelectable] = useState('off');  // 'off' | 'range'
       const [lazyOn, setLazyOn]       = useState(false);
       const [logs, setLogs]           = useState(['Calendar initialised']);
+
+      // Element-scoped custom properties — the whole palette follows the base.
+      const BRANDS = {
+        Default: null,
+        Indigo:  { hex: '#4f46e5', rgb: '79, 70, 229' },
+        Emerald: { hex: '#059669', rgb: '5, 150, 105' },
+        Rose:    { hex: '#e11d48', rgb: '225, 29, 72' },
+      };
+
+      const brandStyle = (kind) => {
+        const brand = BRANDS[kind];
+        return brand
+          ? {
+              '--calendar-primary-color': brand.hex,
+              '--calendar-primary-color-rgb': brand.rgb,
+              '--calendar-on-accent': '#ffffff',
+            }
+          : {};
+      };
 
       const calRef           = useRef(null);
       const lazyOnRef        = useRef(false);
@@ -349,6 +369,16 @@
 
           h('hr', { className: 'divider' }),
 
+          h('h2', null, 'Brand Colour'),
+          h('div', { className: 'button-grid' },
+            Object.keys(BRANDS).map(kind =>
+              h('button', { key: kind, type: 'button', className: brand === kind ? 'active' : '', onClick: () => setBrand(kind) }, kind)
+            ),
+          ),
+          h('p', { className: 'hint' }, 'Passed as the style prop on <kal-calendar>, so it scopes to this calendar. Default removes the properties again.'),
+
+          h('hr', { className: 'divider' }),
+
           h('h2', null, 'Selectable Range'),
           h('div', { className: 'button-grid' },
             h('button', { type: 'button', className: selectable === 'off'   ? 'active' : '', onClick: () => handleSelectableChange('off')   }, 'Off'),
@@ -369,6 +399,7 @@
         h('kal-calendar', {
           ref: calRef,
           heading: 'My Calendar',
+          style: brandStyle(brand),
           'oncal-date-select': e => addLog(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`),
           'oncal-month-change': e => {
             if (!lazyOnRef.current) {

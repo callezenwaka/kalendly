@@ -151,9 +151,29 @@
         const months = ref(1);
         const slotDuration = ref(60);
         const hours        = ref(null);
+        const brand        = ref('Default');
         const weekdaysOnly = ref(false);
         const lazyOn     = ref(false);
         const logs       = ref(['Calendar initialised']);
+        // Element-scoped custom properties — the whole palette follows the base.
+        const BRANDS = {
+          Default: null,
+          Indigo:  { hex: '#4f46e5', rgb: '79, 70, 229' },
+          Emerald: { hex: '#059669', rgb: '5, 150, 105' },
+          Rose:    { hex: '#e11d48', rgb: '225, 29, 72' },
+        };
+
+        const brandStyle = (kind) => {
+          const brand = BRANDS[kind];
+          return brand
+            ? {
+                '--calendar-primary-color': brand.hex,
+                '--calendar-primary-color-rgb': brand.rgb,
+                '--calendar-on-accent': '#ffffff',
+              }
+            : {};
+        };
+
         const calRef     = ref(null);
         let   lazyHandler = null;
 
@@ -347,6 +367,16 @@
 
             h('hr', { class: 'divider' }),
 
+            h('h2', null, 'Brand Colour'),
+            h('div', { class: 'button-grid' },
+              Object.keys(BRANDS).map(kind =>
+                h('button', { key: kind, type: 'button', class: brand.value === kind ? 'active' : '', onClick: () => { brand.value = kind; } }, kind)
+              ),
+            ),
+            h('p', { class: 'hint' }, 'Bound with :style on <kal-calendar>, so it scopes to this calendar. Default removes the properties again.'),
+
+            h('hr', { class: 'divider' }),
+
             h('h2', null, 'Selectable Range'),
             h('div', { class: 'button-grid' }, [
               h('button', { type: 'button', class: selectable.value === 'off'   ? 'active' : '', onClick: () => handleSelectableChange('off')   }, 'Off'),
@@ -367,6 +397,7 @@
           h('kal-calendar', {
             ref: calRef,
             heading: 'My Calendar',
+            style: brandStyle(brand.value),
             'onCal-date-select':         e => addLog(`Date selected: ${e.detail.date.toDateString()} (${e.detail.events.length} event(s))`),
             'onCal-month-change':         e => { if (!lazyHandler) addLog(`Month changed: ${e.detail.year}-${String(e.detail.month + 1).padStart(2, '0')}`); },
             'onCal-availability-select':  handleAvailabilitySelect,

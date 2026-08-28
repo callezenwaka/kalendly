@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Regression in 0.3.3: setting `--calendar-primary-color` on the element stopped working.** 0.3.3 added nav-arrow tokens declared as `--calendar-nav-arrow-hover-bg: var(--calendar-primary-color)` at `:root`. Custom properties substitute at computed-value time, so that resolved against `:root`'s primary and descendants inherited the finished value — an override set on `<kal-calendar>` never reached it. A vendor pointing the calendar at their design system with `style="--calendar-primary-color: var(--primary)"` saw it work in 0.3.2 and silently stop in 0.3.3.
+
+  Defaults now live in a use-site fallback — `var(--calendar-nav-arrow-hover-bg, var(--calendar-primary-color))` — which resolves inside the element, so both the specific token and the base token work, scoped per element. `--calendar-shadow-primary` had the same shape and is fixed with it. A test now fails if any `--calendar-*` token is derived from another at `:root`.
+
+### Documentation
+
+- **Where you set a token decides what it colours.** The theming section only ever showed `:root`, which is page-wide; there was no example of scoping a token to one calendar, which is what an app embedding a single calendar actually wants. Added the element-scoped form in every framework's idiom, the note that `theme` writes to `:root` and so colours every calendar on the page, and the reason `--calendar-primary-color-rgb` has to be set alongside `--calendar-primary-color`.
+
+- Every demo gains a **Brand Colour** control that sets the tokens on the element and removes them again, so the scoping is visible rather than described.
+
 ## [0.3.3] - 2026-08-28
 
 ### Fixed

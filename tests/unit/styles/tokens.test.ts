@@ -44,15 +44,32 @@ describe('design tokens', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('resolves every var() reference to a declared token', () => {
+  it('resolves every var() reference to a declared token or a fallback', () => {
     const declared = new Set(
       [...CSS.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map(m => m[1])
     );
-    const referenced = [...CSS.matchAll(/var\(\s*(--[\w-]+)/g)].map(m => m[1]);
 
-    const undeclared = [...new Set(referenced)].filter(
-      name => !declared.has(name)
-    );
+    const undeclared = [
+      ...new Set(
+        [...CSS.matchAll(/var\(\s*(--[\w-]+)\s*([,)])/g)]
+          .filter(m => m[2] === ')')
+          .map(m => m[1])
+      ),
+    ].filter(name => !declared.has(name));
+
     expect(undeclared).toEqual([]);
+  });
+
+  // A token declared as var() of another resolves in the scope it is declared
+  // in, so an element-level override of the base never reaches it. v0.3.3
+  // shipped exactly that and broke --calendar-primary-color set on
+  // <kal-calendar>. Defaults belong in a use-site fallback instead.
+  it('never derives one semantic token from another at :root', () => {
+    const derived = declarations()
+      .filter(([prop]) => prop.startsWith('--calendar-'))
+      .filter(([, value]) => /var\(\s*--calendar-/.test(value))
+      .map(([prop, value]) => `${prop}: ${value}`);
+
+    expect(derived).toEqual([]);
   });
 });

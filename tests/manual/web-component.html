@@ -228,6 +228,17 @@
     </div>
 
     <div class="panel">
+      <h2>Brand Colour</h2>
+      <div class="btn-grid">
+        <button type="button" class="mode-btn active" id="btn-brand-Default">Default</button>
+        <button type="button" class="mode-btn" id="btn-brand-Indigo">Indigo</button>
+        <button type="button" class="mode-btn" id="btn-brand-Emerald">Emerald</button>
+        <button type="button" class="mode-btn" id="btn-brand-Rose">Rose</button>
+      </div>
+      <p class="hint">Element-scoped custom properties, so they colour this calendar only. Default removes them again.</p>
+    </div>
+
+    <div class="panel">
       <h2>Opening Days</h2>
       <div class="btn-grid">
         <button class="mode-btn active" id="btn-days-all">Every day</button>
@@ -603,6 +614,34 @@
   ['all', 'week'].forEach(k =>
     document.getElementById(`btn-days-${k}`)
       .addEventListener('click', () => setDays(k)));
+
+  const BRANDS = {
+    Default: null,
+    Indigo:  { hex: '#4f46e5', rgb: '79, 70, 229' },
+    Emerald: { hex: '#059669', rgb: '5, 150, 105' },
+    Rose:    { hex: '#e11d48', rgb: '225, 29, 72' },
+  };
+
+  function setBrand(kind) {
+    Object.keys(BRANDS).forEach(k =>
+      document.getElementById(`btn-brand-${k}`).classList.remove('active'));
+    document.getElementById(`btn-brand-${kind}`).classList.add('active');
+
+    const brand = BRANDS[kind];
+    if (brand) {
+      el.style.setProperty('--calendar-primary-color', brand.hex);
+      el.style.setProperty('--calendar-primary-color-rgb', brand.rgb);
+      el.style.setProperty('--calendar-on-accent', '#ffffff');
+    } else {
+      ['--calendar-primary-color', '--calendar-primary-color-rgb', '--calendar-on-accent']
+        .forEach(token => el.style.removeProperty(token));
+    }
+    log(`Brand colour → ${brand ? brand.hex : 'default'}`, 'ok');
+  }
+
+  Object.keys(BRANDS).forEach(kind =>
+    document.getElementById(`btn-brand-${kind}`)
+      .addEventListener('click', () => setBrand(kind)));
 
   function setMonths(count) {
     ['btn-months-1', 'btn-months-2'].forEach(id =>
