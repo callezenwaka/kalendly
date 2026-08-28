@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-08-28
+
 ### Fixed
 
 - **Regression in 0.3.3: setting `--calendar-primary-color` on the element stopped working.** 0.3.3 added nav-arrow tokens declared as `--calendar-nav-arrow-hover-bg: var(--calendar-primary-color)` at `:root`. Custom properties substitute at computed-value time, so that resolved against `:root`'s primary and descendants inherited the finished value — an override set on `<kal-calendar>` never reached it. Pointing the calendar at a design system with `style="--calendar-primary-color: var(--primary)"` worked in 0.3.2 and silently stopped in 0.3.3.
