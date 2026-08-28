@@ -62,7 +62,7 @@
       margin: 16px 0;
     }
 
-    button {
+    .controls button {
       background: #2c4f7c;
       color: white;
       border: none;
@@ -74,10 +74,10 @@
       transition: background 0.2s;
     }
 
-    button:hover { background: #1e3a5f; }
-    button.secondary { background: #6b7280; }
-    button.secondary:hover { background: #4b5563; }
-    button.active { outline: 2px solid #111827; outline-offset: 2px; }
+    .controls button:hover { background: #1e3a5f; }
+    .controls button.secondary { background: #6b7280; }
+    .controls button.secondary:hover { background: #4b5563; }
+    .controls button.active { outline: 2px solid #111827; outline-offset: 2px; }
 
     .event-log {
       background: white;
@@ -226,6 +226,17 @@
       <button type="button" id="hoursSplitBtn">Split shift</button>
     </div>
     <p class="hint">Time view only. Split shift is <code>09:00-12:00,13:00-17:00</code> &mdash; closed for lunch. Closed hours stay visible so an existing booking outside them is not hidden.</p>
+
+    <hr class="divider">
+
+    <h2>Brand Colour</h2>
+    <div class="button-grid">
+      <button type="button" id="brandDefaultBtn" class="active">Default</button>
+      <button type="button" id="brandIndigoBtn">Indigo</button>
+      <button type="button" id="brandEmeraldBtn">Emerald</button>
+      <button type="button" id="brandRoseBtn">Rose</button>
+    </div>
+    <p class="hint">Sets <code>--calendar-primary-color</code> and friends <strong>on the element</strong>, so it scopes to this calendar. Selected day, today outline and the <code>&lsaquo;</code> <code>&rsaquo;</code> arrows all follow. The <code>theme</code> property does the same but writes to <code>:root</code>, colouring every calendar on the page.</p>
 
     <hr class="divider">
 
@@ -540,6 +551,32 @@ npm install kalendly
       else cal.removeAttribute('available-days');
       log(`Opening days → ${kind === 'Week' ? 'Mon-Fri' : 'every day'}`);
     }
+
+    // Element-scoped custom properties — the whole palette follows the base.
+    const BRANDS = {
+      Default: null,
+      Indigo:  { hex: '#4f46e5', rgb: '79, 70, 229' },
+      Emerald: { hex: '#059669', rgb: '5, 150, 105' },
+      Rose:    { hex: '#e11d48', rgb: '225, 29, 72' },
+    };
+
+    function setBrand(kind) {
+      setActiveBtn(Object.keys(BRANDS).map(k => `brand${k}Btn`), `brand${kind}Btn`);
+      const brand = BRANDS[kind];
+      if (brand) {
+        cal.style.setProperty('--calendar-primary-color', brand.hex);
+        cal.style.setProperty('--calendar-primary-color-rgb', brand.rgb);
+        cal.style.setProperty('--calendar-on-accent', '#ffffff');
+      } else {
+        ['--calendar-primary-color', '--calendar-primary-color-rgb', '--calendar-on-accent']
+          .forEach(token => cal.style.removeProperty(token));
+      }
+      log(`Brand colour → ${brand ? brand.hex : 'default'}`);
+    }
+
+    Object.keys(BRANDS).forEach(kind =>
+      document.getElementById(`brand${kind}Btn`)
+        .addEventListener('click', () => setBrand(kind)));
 
     document.getElementById('daysAllBtn').addEventListener('click', () => setDays('All'));
     document.getElementById('daysWeekBtn').addEventListener('click', () => setDays('Week'));

@@ -164,3 +164,45 @@ describe('demo fixtures', () => {
     });
   });
 });
+
+// The component has no shadow DOM, so a demo styling a bare `button` also
+// styles the calendar's own buttons. That makes the demo misrepresent the
+// library — the month picker rendered with the demo's brand colour on hover,
+// not the library's.
+describe('demo stylesheets', () => {
+  const RENDERED = [
+    'button',
+    'input',
+    'select',
+    'table',
+    'thead',
+    'tbody',
+    'tr',
+    'td',
+    'th',
+    'a',
+    'h2',
+  ];
+
+  const styleBlock = (source: string): string =>
+    source
+      .split('<style>')
+      .slice(1)
+      .map(chunk => chunk.split('</style>')[0])
+      .join('\n');
+
+  const bareSelector = new RegExp(
+    `^\\s+(${RENDERED.join('|')})\\b[^{\\n]*\\{`,
+    'gm'
+  );
+
+  describe.each(pages)('%s', (_name, file) => {
+    it('scopes its own styles so they cannot reach inside the calendar', () => {
+      const offenders = [
+        ...styleBlock(readFileSync(file, 'utf-8')).matchAll(bareSelector),
+      ].map(m => m[0].trim());
+
+      expect(offenders).toEqual([]);
+    });
+  });
+});

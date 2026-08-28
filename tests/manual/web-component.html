@@ -68,7 +68,7 @@
       margin-bottom: 12px;
     }
 
-    button {
+    .panel button {
       background: #fc8917;
       color: white;
       border: none;
@@ -83,14 +83,14 @@
       text-overflow: ellipsis;
     }
 
-    button:hover  { background: #e07810; transform: translateY(-1px); }
-    button:active { transform: translateY(0); }
-    button.danger { background: #ef4444; }
-    button.danger:hover { background: #dc2626; }
-    button.green  { background: #10b981; }
-    button.green:hover  { background: #059669; }
-    button.blue   { background: #3b82f6; }
-    button.blue:hover   { background: #2563eb; }
+    .panel button:hover  { background: #e07810; transform: translateY(-1px); }
+    .panel button:active { transform: translateY(0); }
+    .panel button.danger { background: #ef4444; }
+    .panel button.danger:hover { background: #dc2626; }
+    .panel button.green  { background: #10b981; }
+    .panel button.green:hover  { background: #059669; }
+    .panel button.blue   { background: #3b82f6; }
+    .panel button.blue:hover   { background: #2563eb; }
 
     .log {
       background: #0f172a;
@@ -225,6 +225,17 @@
         <button class="mode-btn" id="btn-hours-9to5">09:00&ndash;17:00</button>
         <button class="mode-btn" id="btn-hours-split">Split shift</button>
       </div>
+    </div>
+
+    <div class="panel">
+      <h2>Brand Colour</h2>
+      <div class="btn-grid">
+        <button type="button" class="mode-btn active" id="btn-brand-Default">Default</button>
+        <button type="button" class="mode-btn" id="btn-brand-Indigo">Indigo</button>
+        <button type="button" class="mode-btn" id="btn-brand-Emerald">Emerald</button>
+        <button type="button" class="mode-btn" id="btn-brand-Rose">Rose</button>
+      </div>
+      <p class="hint">Element-scoped custom properties, so they colour this calendar only. Default removes them again.</p>
     </div>
 
     <div class="panel">
@@ -603,6 +614,34 @@
   ['all', 'week'].forEach(k =>
     document.getElementById(`btn-days-${k}`)
       .addEventListener('click', () => setDays(k)));
+
+  const BRANDS = {
+    Default: null,
+    Indigo:  { hex: '#4f46e5', rgb: '79, 70, 229' },
+    Emerald: { hex: '#059669', rgb: '5, 150, 105' },
+    Rose:    { hex: '#e11d48', rgb: '225, 29, 72' },
+  };
+
+  function setBrand(kind) {
+    Object.keys(BRANDS).forEach(k =>
+      document.getElementById(`btn-brand-${k}`).classList.remove('active'));
+    document.getElementById(`btn-brand-${kind}`).classList.add('active');
+
+    const brand = BRANDS[kind];
+    if (brand) {
+      el.style.setProperty('--calendar-primary-color', brand.hex);
+      el.style.setProperty('--calendar-primary-color-rgb', brand.rgb);
+      el.style.setProperty('--calendar-on-accent', '#ffffff');
+    } else {
+      ['--calendar-primary-color', '--calendar-primary-color-rgb', '--calendar-on-accent']
+        .forEach(token => el.style.removeProperty(token));
+    }
+    log(`Brand colour → ${brand ? brand.hex : 'default'}`, 'ok');
+  }
+
+  Object.keys(BRANDS).forEach(kind =>
+    document.getElementById(`btn-brand-${kind}`)
+      .addEventListener('click', () => setBrand(kind)));
 
   function setMonths(count) {
     ['btn-months-1', 'btn-months-2'].forEach(id =>

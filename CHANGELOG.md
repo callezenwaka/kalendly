@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Regression in 0.3.3: setting `--calendar-primary-color` on the element stopped working.** 0.3.3 added nav-arrow tokens declared as `--calendar-nav-arrow-hover-bg: var(--calendar-primary-color)` at `:root`. Custom properties substitute at computed-value time, so that resolved against `:root`'s primary and descendants inherited the finished value — an override set on `<kal-calendar>` never reached it. Pointing the calendar at a design system with `style="--calendar-primary-color: var(--primary)"` worked in 0.3.2 and silently stopped in 0.3.3.
+
+  Defaults now live in a use-site fallback — `var(--calendar-nav-arrow-hover-bg, var(--calendar-primary-color))` — which resolves inside the element, so both the specific token and the base token work, scoped per element. `--calendar-shadow-primary` had the same shape and is fixed with it. A test now fails if any `--calendar-*` token is derived from another at `:root`.
+
+### Documentation
+
+- **Where you set a token decides what it colours.** The theming section only ever showed `:root`, which is page-wide; there was no example of scoping a token to one calendar, which is what an app embedding a single calendar actually wants. Added the element-scoped form in every framework's idiom, the note that `theme` writes to `:root` and so colours every calendar on the page, and the reason `--calendar-primary-color-rgb` has to be set alongside `--calendar-primary-color`.
+
+- Every demo gains a **Brand Colour** control that sets the tokens on the element and removes them again, so the scoping is visible rather than described.
+
+- **The demos were styling the component.** Each page styled a bare `button`, and with no shadow DOM that reached the calendar's own buttons — the month picker took the demo's brand colour on hover instead of the library's. The demos exist to validate the library, so one misrepresenting it is worse than no demo. Every page now scopes its styles to its own controls, and a test fails if a demo stylesheet declares a bare selector for any element the calendar renders.
+
 ## [0.3.3] - 2026-08-28
 
 ### Fixed
@@ -33,11 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Booking constraints — `min-date`, `max-date`, `available-days`, `available-hours`.** A vendor works fixed hours on fixed days within a bookable horizon, and until now the calendar offered all 1440 minutes of every day, forever in both directions. Saying otherwise meant authoring a blocking event for every excluded hour of every excluded day — unbounded work for a static rule. All four are optional and absent means no constraint, so nothing changes for existing consumers.
+- **Booking constraints — `min-date`, `max-date`, `available-days`, `available-hours`.** Bookings often run to fixed hours on fixed days within a bookable horizon, and until now the calendar offered all 1440 minutes of every day, forever in both directions. Saying otherwise meant authoring a blocking event for every excluded hour of every excluded day — unbounded work for a static rule. All four are optional and absent means no constraint, so nothing changes for existing consumers.
 
   `min-date`/`max-date` bound the horizon, inclusive, parsed like `initial-date`. `available-days` is a recurring weekly rule using `getDay()` numbering (`0` = Sunday), independent of `week-starts-on`. `available-hours` is a recurring daily rule taking a comma-separated list of `HH:MM-HH:MM` ranges, because a working day is not always contiguous: `"09:00-12:00,13:00-17:00"` closes for lunch. Each range is half-open, `[start, end)`, matching the convention events already use.
 
-  Excluded days are not click targets at all — no hover response, and neither `cal-date-select` nor `cal-availability-select` fires. Excluded hours render greyed and marked `Closed` and emit no `cal-slot-select`, but are still shown, so a booking falling outside the window stays visible to the vendor. Style with `--calendar-out-of-range-bg` / `--calendar-out-of-range-fg` or the `outOfRangeBg` / `outOfRangeFg` theme keys.
+  Excluded days are not click targets at all — no hover response, and neither `cal-date-select` nor `cal-availability-select` fires. Excluded hours render greyed and marked `Closed` and emit no `cal-slot-select`, but are still shown, so a booking falling outside the window stays visible. Style with `--calendar-out-of-range-bg` / `--calendar-out-of-range-fg` or the `outOfRangeBg` / `outOfRangeFg` theme keys.
 
   Bad input throws and names the attribute: an unreadable date, `min-date` after `max-date`, a weekday outside `0`–`6`, a malformed, inverted or overlapping range, or a boundary that misses the `slot-duration` grid. Validation runs on render rather than when the grid draws, so a mistake surfaces immediately instead of waiting for someone to open the right day.
 
@@ -51,13 +65,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
-- **An event with a `startTime` and no `endTime` occupies one slot**, not the rest of the day. The previous behaviour never double-booked but silently made a vendor's whole evening unsellable from one incomplete record. The library warns once naming the event; the supported fix is an end time in the data.
+- **An event with a `startTime` and no `endTime` occupies one slot**, not the rest of the day. The previous behaviour never double-booked but silently made a whole evening unsellable from one incomplete record. The library warns once naming the event; the supported fix is an end time in the data.
 
 ### Added
 
 - **`cal-slot-select`** — fires on every time-slot click with `{ date, startTime, endTime, booked }`, mirroring how `cal-date-select` fires for every day. Slots were only click targets when `selectable` was set, so driving your own booking flow meant enabling range selection you did not want or listening for raw DOM clicks. `selectable` still gates `cal-availability-select`, the range machine and the highlighting. The payload carries a time window and a boolean, so no event detail leaks.
 - **`endDate` on `CalendarEvent`** — the last day of a multi-day event, **inclusive**. One event covers a range rather than needing one per day, and because it matches the `endDate` `cal-availability-select` emits, a saved selection can be handed straight back. Matched by range rather than expanded, so ids stay unique and long spans cost nothing. Times on a span repeat daily. An `endDate` before `date`, or unreadable, throws and names the event. Deliberately differs from RFC 5545's exclusive all-day `DTEND`.
-- **`slot-duration`** — time-grid granularity in minutes, default 60. The grid renders `1440 / slot-duration` slots and `cal-availability-select` emits times on that granularity, so a vendor working in half-hours can represent and take half-hour bookings. A value that does not divide 1440 falls back to 60 with a warning.
+- **`slot-duration`** — time-grid granularity in minutes, default 60. The grid renders `1440 / slot-duration` slots and `cal-availability-select` emits times on that granularity, so a schedule kept in half-hours can represent and take half-hour bookings. A value that does not divide 1440 falls back to 60 with a warning.
 - `parseTimeToMinutes`, `formatMinutes`, `mergeIntervals`, `bookedSlots` and `eventInterval` exported from `kalendly/core`.
 
 ### Fixed
