@@ -352,7 +352,7 @@
               h('button', { type: 'button', class: selectable.value === 'off'   ? 'active' : '', onClick: () => handleSelectableChange('off')   }, 'Off'),
               h('button', { type: 'button', class: selectable.value === 'range' ? 'active' : '', onClick: () => handleSelectableChange('range') }, 'Range'),
             ]),
-            h('p', { class: 'hint' }, 'Requires availability mode. Click a free day to start, click again to extend, third click resets.'),
+            h('p', { class: 'hint' }, 'Requires availability mode. Click a free day to start, click again to extend, third click resets. A range can cross a month boundary and stays marked in both months.'),
 
             h('hr', { class: 'divider' }),
 

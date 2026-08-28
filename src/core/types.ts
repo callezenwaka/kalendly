@@ -143,6 +143,16 @@ export interface CalendarTheme {
   selectedBg?: string;
   outOfRangeBg?: string;
   outOfRangeFg?: string;
+  navArrowFg?: string;
+  navArrowBg?: string;
+  navArrowBorder?: string;
+  navArrowHoverFg?: string;
+  navArrowHoverBg?: string;
+  inputInvalidBg?: string;
+  popupHeaderFg?: string;
+  popupCloseFg?: string;
+  popupCloseBg?: string;
+  popupCloseHoverBg?: string;
   headerBg?: string;
   popupBg?: string;
   pickerBg?: string;
