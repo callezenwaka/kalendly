@@ -623,18 +623,25 @@ describe('CalendarElement', () => {
       expect(freeCell?.classList.contains('availability-open')).toBe(true);
     });
 
-    it('should not add availability classes to calendar-cell-other-month cells', () => {
+    it('gives calendar-cell-other-month cells their availability class', () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
         availabilityMode: 'day',
       });
-      const otherMonthCells = el.querySelectorAll(
-        'td.calendar-cell-other-month'
+      const otherMonthCells = Array.from(
+        el.querySelectorAll('td.calendar-cell-other-month')
       );
+
+      expect(otherMonthCells.length).toBeGreaterThan(0);
       otherMonthCells.forEach(cell => {
-        expect(cell.classList.contains('availability-blocked')).toBe(false);
-        expect(cell.classList.contains('availability-open')).toBe(false);
+        const bucketed =
+          cell.classList.contains('availability-blocked') ||
+          cell.classList.contains('availability-conditional') ||
+          cell.classList.contains('availability-open');
+        expect(bucketed).toBe(true);
+        // still visually distinguished as an adjacent month
+        expect(cell.classList.contains('calendar-cell-other-month')).toBe(true);
       });
     });
 
@@ -1764,6 +1771,16 @@ describe('CalendarElement — design tokens', () => {
     selectedBg: '#101019',
     outOfRangeBg: '#10103b',
     outOfRangeFg: '#10103c',
+    navArrowFg: '#10103d',
+    navArrowBg: '#10103e',
+    navArrowBorder: '#10103f',
+    navArrowHoverFg: '#101040',
+    navArrowHoverBg: '#101041',
+    inputInvalidBg: '#101042',
+    popupHeaderFg: '#101043',
+    popupCloseFg: '#101044',
+    popupCloseBg: '#101045',
+    popupCloseHoverBg: '#101046',
     headerBg: '#10101a',
     popupBg: '#10101b',
     pickerBg: '#10101c',
@@ -3452,5 +3469,146 @@ describe('CalendarElement — booking constraints', () => {
       expect(last.startDate.getDate()).toBe(11);
       expect(last.endDate.getDate()).toBe(11);
     });
+  });
+});
+
+describe('CalendarElement — cross-month display', () => {
+  const AUGUST = new Date(2026, 7, 15);
+
+  const cell = (
+    el: CalendarElement,
+    y: number,
+    m: number,
+    d: number
+  ): HTMLElement | undefined =>
+    Array.from(el.querySelectorAll('td[data-date]')).find(td => {
+      const dt = new Date((td as HTMLElement).dataset.date!);
+      return (
+        dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d
+      );
+    }) as HTMLElement | undefined;
+
+  const heading = (el: CalendarElement): string =>
+    el.querySelector('.calendar-picker-btn')?.textContent?.trim() ?? '';
+
+  const openRange = (): CalendarElement =>
+    mount({
+      initialDate: AUGUST,
+      availabilityMode: 'day',
+      selectable: 'range',
+      selectableStatuses: ['open'],
+      events: [],
+    });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('marks a cross-month range whole without leaving the starting month', async () => {
+    const el = openRange();
+    await el.updateComplete;
+
+    cell(el, 2026, 7, 28)!.click();
+    await flush();
+    await el.updateComplete;
+    cell(el, 2026, 8, 4)!.click();
+    await flush();
+    await el.updateComplete;
+
+    expect(heading(el)).toContain('August');
+
+    expect(
+      cell(el, 2026, 7, 28)!.classList.contains('availability-range-start')
+    ).toBe(true);
+    for (const day of [29, 30, 31]) {
+      expect(
+        cell(el, 2026, 7, day)!.classList.contains('availability-in-range'),
+        `Aug ${day}`
+      ).toBe(true);
+    }
+    for (const day of [1, 2, 3]) {
+      expect(
+        cell(el, 2026, 8, day)!.classList.contains('availability-in-range'),
+        `Sep ${day}`
+      ).toBe(true);
+    }
+    expect(
+      cell(el, 2026, 8, 4)!.classList.contains('availability-range-end')
+    ).toBe(true);
+  });
+
+  it('marks the same range whole from the ending month', async () => {
+    const el = openRange();
+    await el.updateComplete;
+
+    cell(el, 2026, 7, 28)!.click();
+    await flush();
+    await el.updateComplete;
+    cell(el, 2026, 8, 4)!.click();
+    await flush();
+    await el.updateComplete;
+
+    el.querySelector<HTMLButtonElement>('[data-action="next"]')!.click();
+    await flush();
+    await el.updateComplete;
+    expect(heading(el)).toContain('September');
+
+    for (const day of [30, 31]) {
+      expect(
+        cell(el, 2026, 7, day)!.classList.contains('availability-in-range'),
+        `Aug ${day} seen from September`
+      ).toBe(true);
+    }
+    expect(
+      cell(el, 2026, 8, 4)!.classList.contains('availability-range-end')
+    ).toBe(true);
+  });
+
+  it('holds the displayed month when a rendered cell is clicked', async () => {
+    const el = openRange();
+    await el.updateComplete;
+    expect(heading(el)).toContain('August');
+
+    cell(el, 2026, 8, 4)!.click();
+    await flush();
+    await el.updateComplete;
+
+    expect(heading(el)).toContain('August');
+  });
+
+  it('still navigates through actions.selectDate', async () => {
+    const el = openRange();
+    await el.updateComplete;
+
+    el.getEngine()
+      .getActions()
+      .selectDate(new Date(2026, 10, 9));
+    await flush();
+    await el.updateComplete;
+
+    expect(heading(el)).toContain('November');
+  });
+
+  it('leaves a single-month range unchanged', async () => {
+    const el = openRange();
+    await el.updateComplete;
+
+    cell(el, 2026, 7, 10)!.click();
+    await flush();
+    await el.updateComplete;
+    cell(el, 2026, 7, 14)!.click();
+    await flush();
+    await el.updateComplete;
+
+    expect(
+      cell(el, 2026, 7, 10)!.classList.contains('availability-range-start')
+    ).toBe(true);
+    expect(
+      cell(el, 2026, 7, 12)!.classList.contains('availability-in-range')
+    ).toBe(true);
+    expect(
+      cell(el, 2026, 7, 14)!.classList.contains('availability-range-end')
+    ).toBe(true);
+    expect(heading(el)).toContain('August');
   });
 });

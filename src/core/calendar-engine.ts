@@ -193,12 +193,14 @@ export class CalendarEngine {
   /**
    * Select a specific date
    */
-  private selectDate(date: Date, dayIndex?: number): void {
+  private selectDate(date: Date, dayIndex?: number, navigate = true): void {
     this.state.selectedDate = date;
     this.state.selectedDayIndex = dayIndex ?? null;
     this.state.currentDate = date.getDate();
-    this.state.currentMonth = date.getMonth();
-    this.state.currentYear = date.getFullYear();
+    if (navigate) {
+      this.state.currentMonth = date.getMonth();
+      this.state.currentYear = date.getFullYear();
+    }
     this.updateTasks();
     this.notify();
   }
@@ -230,8 +232,12 @@ export class CalendarEngine {
   /**
    * Handle date cell click
    */
-  handleDateClick(date: Date, dayIndex?: number): void {
-    this.selectDate(date, dayIndex);
+  handleDateClick(
+    date: Date,
+    dayIndex?: number,
+    options?: { navigate?: boolean }
+  ): void {
+    this.selectDate(date, dayIndex, options?.navigate !== false);
   }
 
   /**

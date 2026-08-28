@@ -62,6 +62,16 @@ export class CalendarElement extends HTMLElement {
     selectedBg: '--calendar-selected-bg',
     outOfRangeBg: '--calendar-out-of-range-bg',
     outOfRangeFg: '--calendar-out-of-range-fg',
+    navArrowFg: '--calendar-nav-arrow-fg',
+    navArrowBg: '--calendar-nav-arrow-bg',
+    navArrowBorder: '--calendar-nav-arrow-border',
+    navArrowHoverFg: '--calendar-nav-arrow-hover-fg',
+    navArrowHoverBg: '--calendar-nav-arrow-hover-bg',
+    inputInvalidBg: '--calendar-input-invalid-bg',
+    popupHeaderFg: '--calendar-popup-header-fg',
+    popupCloseFg: '--calendar-popup-close-fg',
+    popupCloseBg: '--calendar-popup-close-bg',
+    popupCloseHoverBg: '--calendar-popup-close-hover-bg',
     headerBg: '--calendar-header-bg',
     popupBg: '--calendar-popup-bg',
     pickerBg: '--calendar-picker-bg',
@@ -855,10 +865,7 @@ export class CalendarElement extends HTMLElement {
                             ) {
                               classes.push('calendar-cell-selected');
                             }
-                            if (
-                              availabilityMode &&
-                              calendarDate.isCurrentMonth
-                            ) {
+                            if (availabilityMode) {
                               const bucket = this.resolveBucket(
                                 calendarDate.date
                               );
@@ -882,11 +889,7 @@ export class CalendarElement extends HTMLElement {
                                 `aria-label="${escapeHtml(bucket)}"`
                               );
                             }
-                            if (
-                              availabilityMode === 'day' &&
-                              selectable &&
-                              calendarDate.isCurrentMonth
-                            ) {
+                            if (availabilityMode === 'day' && selectable) {
                               const d = calendarDate.date;
                               if (
                                 this._rangeStart &&
@@ -1157,7 +1160,7 @@ export class CalendarElement extends HTMLElement {
           this._timeRangeComplete = false;
         }
 
-        this.engine!.handleDateClick(date, dayIndex);
+        this.engine!.handleDateClick(date, dayIndex, { navigate: false });
         this.dispatchEvent(
           new CustomEvent('cal-date-select', {
             bubbles: true,

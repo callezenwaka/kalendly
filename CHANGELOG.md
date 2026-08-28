@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A range crossing a month boundary is now marked in both months.** Selecting 28 Aug → 4 Sep emitted the right payload but drew the wrong picture: August stopped marking at the boundary and September started at it, so the days between changed appearance depending on which month you were looking at. Two render conditions gated on `isCurrentMonth` while nothing else in the component did — `isDateSelectable` has no month check, every cell is a click target, and the range machine spans adjacent-month days. The component decided a day was in the range, reported it in the event you act on, then drew it as though it were not.
+
+- **Adjacent-month days now show their availability.** Leading and trailing cells rendered blank whatever their state, so an open day read as unavailable and a blocked one invited a click it would then refuse. In a booking calendar that misrepresents what is for sale.
+
+- **Clicking a day already on screen no longer moves the month.** The jump exists to reveal a date you cannot see; for a leading or trailing cell there is nothing to reveal, and it guaranteed you were looking at the _other_ month the moment a cross-month range completed. Suppressed at the click site only — `actions.selectDate` still navigates, since callers rely on it for exactly that.
+
+### Added
+
+- **Ten theme tokens for colours that previously could not be reached**, each defaulting to the value it replaces, so setting none of them changes nothing.
+
+  `--calendar-nav-arrow-fg` / `-bg` / `-border` / `-hover-fg` / `-hover-bg`, and the matching `navArrow*` keys, colour the `‹` `›` arrows without moving `primary` — which also drives the selected-day fill, today outline and picker accents.
+
+  `--calendar-input-invalid-bg`, with `--calendar-input-invalid-rgb` behind it, fixes the invalid year input taking its border from a token and its fill from a literal, so theming one left the two disagreeing.
+
+  `--calendar-popup-header-fg` and `--calendar-popup-close-fg` / `-bg` / `-hover-bg` cover the popup heading and close button, which were hard-coded white.
+
+  Found by auditing every colour literal in the stylesheet rather than fixing the one that was reported. A test now keeps every literal inside a token declaration, and a second checks every `var()` resolves to a declared token.
+
 ## [0.3.2] - 2026-08-27
 
 ### Added

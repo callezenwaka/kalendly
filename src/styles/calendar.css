@@ -55,6 +55,17 @@
   --calendar-today-outline: var(--kal-yellow-400);
   --calendar-event-indicator: var(--kal-blue-500);
   --calendar-input-invalid: var(--kal-red-500);
+  --calendar-input-invalid-rgb: 239, 68, 68;
+  --calendar-input-invalid-bg: rgba(var(--calendar-input-invalid-rgb), 0.1);
+  --calendar-nav-arrow-fg: var(--calendar-text-color);
+  --calendar-nav-arrow-bg: var(--calendar-background);
+  --calendar-nav-arrow-border: var(--calendar-border-color);
+  --calendar-nav-arrow-hover-fg: var(--calendar-on-accent);
+  --calendar-nav-arrow-hover-bg: var(--calendar-primary-color);
+  --calendar-popup-header-fg: var(--kal-white);
+  --calendar-popup-close-fg: var(--kal-white);
+  --calendar-popup-close-bg: rgba(255, 255, 255, 0.2);
+  --calendar-popup-close-hover-bg: rgba(255, 255, 255, 0.3);
   --calendar-link: var(--kal-blue-600);
   --calendar-skeleton-base: var(--kal-gray-150);
   --calendar-skeleton-highlight: var(--kal-gray-200);
@@ -201,20 +212,20 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--calendar-border-color);
+  border: 1px solid var(--calendar-nav-arrow-border);
   border-radius: var(--calendar-radius-md);
-  background: var(--calendar-background);
+  background: var(--calendar-nav-arrow-bg);
   cursor: pointer;
   font-size: var(--calendar-font-lg);
-  color: var(--calendar-text-color);
+  color: var(--calendar-nav-arrow-fg);
   transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
 .calendar-nav-arrow:hover {
-  background-color: var(--calendar-primary-color);
-  border-color: var(--calendar-primary-color);
-  color: var(--calendar-on-accent);
+  background-color: var(--calendar-nav-arrow-hover-bg);
+  border-color: var(--calendar-nav-arrow-hover-bg);
+  color: var(--calendar-nav-arrow-hover-fg);
 }
 
 .calendar-picker-container {
@@ -359,7 +370,7 @@
 
 .calendar-picker-year-input.invalid {
   border-color: var(--calendar-input-invalid);
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--calendar-input-invalid-bg);
 }
 
 .calendar-picker-months {
@@ -647,7 +658,7 @@
 }
 
 .popup-header h2 {
-  color: white;
+  color: var(--calendar-popup-header-fg);
   font-size: var(--calendar-font-lg);
   font-weight: 600;
   margin: 0;
@@ -656,10 +667,10 @@
 .popup-close {
   width: 32px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--calendar-popup-close-bg);
   border: none;
   border-radius: var(--calendar-radius-circle);
-  color: white;
+  color: var(--calendar-popup-close-fg);
   font-size: var(--calendar-font-xl);
   cursor: pointer;
   display: flex;
@@ -670,7 +681,7 @@
 }
 
 .popup-close:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--calendar-popup-close-hover-bg);
 }
 
 .scroll-hint {

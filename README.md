@@ -414,7 +414,7 @@ cal.events = [
 ];
 ```
 
-Only cells in the current month are colour-coded — other-month cells remain grayed out. Clicking a day fires no popup and reveals no event details.
+Every rendered cell is colour-coded, including the leading and trailing days of the neighbouring months — they are real click targets, and a range spans them, so they show their real availability. Muted text still marks them as outside the month on display. Clicking a day fires no popup and reveals no event details, and clicking a day already on screen does not change the month.
 
 A day holding several events resolves by severity: `blocked` beats `conditional` beats `open`, so a day with both a conditional and a blocked booking reads blocked. Precedence never depends on the order events arrive in.
 
@@ -498,6 +498,23 @@ Clicking a day opens a popup with a grid of slots. Each shows only "Booked" or "
 The grid renders `1440 / slot-duration` slots, and `cal-availability-select` emits times on that granularity — half-hour slots produce half-hour selections.
 
 Precision below `slot-duration` is not representable: a booking from 17:30 on a 60-minute grid marks 17:00–18:00 booked, because that hour cannot be sold. A vendor working in half-hours sets `slot-duration="30"` rather than expecting the grid to subdivide itself.
+
+### Colouring the navigation arrows
+
+The `‹` and `›` arrows take their hover fill from `--calendar-primary-color` by
+default, so changing `primary` moves them along with the selected-day fill and
+today outline. To colour them on their own:
+
+```js
+cal.theme = {
+  navArrowFg: '#0f766e',
+  navArrowBorder: '#0f766e',
+  navArrowHoverBg: '#0f766e',
+  navArrowHoverFg: '#ffffff',
+};
+```
+
+Each defaults to the value it replaces, so setting none of them changes nothing.
 
 ### Booking constraints
 
@@ -770,6 +787,16 @@ for. Override the `--calendar-*` layer — the primitives are internal.
   --calendar-selected-bg: #eff6ff;
   --calendar-out-of-range-bg: #f3f4f6;
   --calendar-out-of-range-fg: #6b7280;
+  --calendar-nav-arrow-fg: #2c3e50;
+  --calendar-nav-arrow-bg: #fff;
+  --calendar-nav-arrow-border: #dee2e6;
+  --calendar-nav-arrow-hover-fg: #fff;
+  --calendar-nav-arrow-hover-bg: #fc8917;
+  --calendar-input-invalid-bg: rgba(239, 68, 68, 0.1);
+  --calendar-popup-header-fg: #fff;
+  --calendar-popup-close-fg: #fff;
+  --calendar-popup-close-bg: rgba(255, 255, 255, 0.2);
+  --calendar-popup-close-hover-bg: rgba(255, 255, 255, 0.3);
   --calendar-popup-bg: #fff;
   --calendar-picker-bg: #fff;
   --calendar-today-outline: #f7db04;
@@ -834,6 +861,16 @@ cal.theme = {
   selectedBg: '#eff6ff',
   outOfRangeBg: '#f3f4f6',
   outOfRangeFg: '#6b7280',
+  navArrowFg: '#2c3e50',
+  navArrowBg: '#ffffff',
+  navArrowBorder: '#dee2e6',
+  navArrowHoverFg: '#ffffff',
+  navArrowHoverBg: '#fc8917',
+  inputInvalidBg: 'rgba(239, 68, 68, 0.1)',
+  popupHeaderFg: '#ffffff',
+  popupCloseFg: '#ffffff',
+  popupCloseBg: 'rgba(255, 255, 255, 0.2)',
+  popupCloseHoverBg: 'rgba(255, 255, 255, 0.3)',
   headerBg: '#f8f9fa',
   popupBg: '#ffffff',
   pickerBg: '#ffffff',
