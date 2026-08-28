@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-08-28
+
 ### Fixed
 
 - **A range crossing a month boundary is now marked in both months.** Selecting 28 Aug → 4 Sep emitted the right payload but drew the wrong picture: August stopped marking at the boundary and September started at it, so the days between changed appearance depending on which month you were looking at. Two render conditions gated on `isCurrentMonth` while nothing else in the component did — `isDateSelectable` has no month check, every cell is a click target, and the range machine spans adjacent-month days. The component decided a day was in the range, reported it in the event you act on, then drew it as though it were not.
