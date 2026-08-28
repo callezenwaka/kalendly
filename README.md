@@ -497,7 +497,7 @@ Clicking a day opens a popup with a grid of slots. Each shows only "Booked" or "
 
 The grid renders `1440 / slot-duration` slots, and `cal-availability-select` emits times on that granularity — half-hour slots produce half-hour selections.
 
-Precision below `slot-duration` is not representable: a booking from 17:30 on a 60-minute grid marks 17:00–18:00 booked, because that hour cannot be sold. A vendor working in half-hours sets `slot-duration="30"` rather than expecting the grid to subdivide itself.
+Precision below `slot-duration` is not representable: a booking from 17:30 on a 60-minute grid marks 17:00–18:00 booked, because that hour cannot be sold. A schedule kept in half-hours sets `slot-duration="30"` rather than expecting the grid to subdivide itself.
 
 ### Colouring the navigation arrows
 
@@ -563,7 +563,7 @@ per element as a CSS variable, or page-wide through `theme`.
 
 ### Booking constraints
 
-Four optional attributes describe when a vendor is open. Omit them all and nothing is constrained.
+Four optional attributes describe when bookings are accepted. Omit them all and nothing is constrained.
 
 ```html
 <kal-calendar
@@ -589,7 +589,7 @@ None substitutes for another. A horizon cannot say "weekdays only", a weekday li
 
 `available-hours` takes a comma-separated list because a working day is not always contiguous: `"09:00-12:00,13:00-17:00"` closes for lunch, and `"09:00-17:00,17:30-22:00"` runs meetings then an evening class. Each range is half-open, `[start, end)` — `"09:00-17:00"` on an hourly grid makes 16:00–17:00 the last bookable slot, the same convention events use.
 
-Excluded **days** are not click targets at all: no hover response, and neither `cal-date-select` nor `cal-availability-select` fires. Excluded **hours** render greyed and marked `Closed`, and emit no `cal-slot-select`. They are shown rather than hidden so a booking that falls outside the window is still visible to the vendor.
+Excluded **days** are not click targets at all: no hover response, and neither `cal-date-select` nor `cal-availability-select` fires. Excluded **hours** render greyed and marked `Closed`, and emit no `cal-slot-select`. They are shown rather than hidden so a booking that falls outside the window is still visible.
 
 Style either with `--calendar-out-of-range-bg` and `--calendar-out-of-range-fg`, or the `outOfRangeBg` / `outOfRangeFg` theme keys.
 
