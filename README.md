@@ -310,13 +310,13 @@ kalendly uses Light DOM — all standard CSS techniques work:
 ```css
 /* 1. CSS custom properties (recommended) */
 :root {
-  --calendar-primary-color: #6366f1;
-  --calendar-background: #1e1e2e;
-  --calendar-border-color: #334155;
+  --kalendly-primary-color: #6366f1;
+  --kalendly-background: #1e1e2e;
+  --kalendly-border-color: #334155;
 }
 
 /* 2. Direct class overrides */
-.kalendly-calendar .calendar-card {
+.kalendly .kalendly-card {
   border-radius: 12px;
 }
 ```
@@ -501,17 +501,17 @@ Precision below `slot-duration` is not representable: a booking from 17:30 on a 
 
 ### Colouring the navigation arrows
 
-The `‹` and `›` arrows take their hover fill from `--calendar-primary-color` by
+The `‹` and `›` arrows take their hover fill from `--kalendly-primary-color` by
 default, so changing `primary` moves them along with the selected-day fill and
 today outline. Five tokens colour them on their own:
 
 | Token                           | Theme key         | Default                    |
 | ------------------------------- | ----------------- | -------------------------- |
-| `--calendar-nav-arrow-fg`       | `navArrowFg`      | `--calendar-text-color`    |
-| `--calendar-nav-arrow-bg`       | `navArrowBg`      | `--calendar-background`    |
-| `--calendar-nav-arrow-border`   | `navArrowBorder`  | `--calendar-border-color`  |
-| `--calendar-nav-arrow-hover-fg` | `navArrowHoverFg` | `--calendar-on-accent`     |
-| `--calendar-nav-arrow-hover-bg` | `navArrowHoverBg` | `--calendar-primary-color` |
+| `--kalendly-nav-arrow-fg`       | `navArrowFg`      | `--kalendly-text-color`    |
+| `--kalendly-nav-arrow-bg`       | `navArrowBg`      | `--kalendly-background`    |
+| `--kalendly-nav-arrow-border`   | `navArrowBorder`  | `--kalendly-border-color`  |
+| `--kalendly-nav-arrow-hover-fg` | `navArrowHoverFg` | `--kalendly-on-accent`     |
+| `--kalendly-nav-arrow-hover-bg` | `navArrowHoverBg` | `--kalendly-primary-color` |
 
 Each defaults to the value it replaces, so setting none of them changes nothing.
 
@@ -521,10 +521,10 @@ calendar:
 ```html
 <kal-calendar
   style="
-    --calendar-nav-arrow-fg: #0f766e;
-    --calendar-nav-arrow-border: #0f766e;
-    --calendar-nav-arrow-hover-bg: #0f766e;
-    --calendar-nav-arrow-hover-fg: #fff;
+    --kalendly-nav-arrow-fg: #0f766e;
+    --kalendly-nav-arrow-border: #0f766e;
+    --kalendly-nav-arrow-hover-bg: #0f766e;
+    --kalendly-nav-arrow-hover-fg: #fff;
   "
 ></kal-calendar>
 ```
@@ -534,17 +534,17 @@ CSS reaches the component:
 
 ```css
 #booking-calendar {
-  --calendar-nav-arrow-fg: #0f766e;
-  --calendar-nav-arrow-border: #0f766e;
-  --calendar-nav-arrow-hover-bg: #0f766e;
-  --calendar-nav-arrow-hover-fg: #fff;
+  --kalendly-nav-arrow-fg: #0f766e;
+  --kalendly-nav-arrow-border: #0f766e;
+  --kalendly-nav-arrow-hover-bg: #0f766e;
+  --kalendly-nav-arrow-hover-fg: #fff;
 }
 ```
 
 The same works in every framework, since it is just an attribute or a class:
 
 ```jsx
-<kal-calendar style={{ '--calendar-nav-arrow-hover-bg': '#0f766e' }} />
+<kal-calendar style={{ '--kalendly-nav-arrow-hover-bg': '#0f766e' }} />
 ```
 
 **Or use the `theme` property** — but note it is page-wide:
@@ -591,7 +591,7 @@ None substitutes for another. A horizon cannot say "weekdays only", a weekday li
 
 Excluded **days** are not click targets at all: no hover response, and neither `cal-date-select` nor `cal-availability-select` fires. Excluded **hours** render greyed and marked `Closed`, and emit no `cal-slot-select`. They are shown rather than hidden so a booking that falls outside the window is still visible.
 
-Style either with `--calendar-out-of-range-bg` and `--calendar-out-of-range-fg`, or the `outOfRangeBg` / `outOfRangeFg` theme keys.
+Style either with `--kalendly-out-of-range-bg` and `--kalendly-out-of-range-fg`, or the `outOfRangeBg` / `outOfRangeFg` theme keys.
 
 Bad input throws and names the attribute — an unreadable date, `min-date` after `max-date`, a weekday outside `0`–`6`, a malformed or inverted range, ranges that overlap, or a boundary that misses the `slot-duration` grid (`"09:30-17:00"` with hourly slots has no slot to land on).
 
@@ -760,8 +760,8 @@ cal.getEngine();
 
 > **Custom values.** `status`, `category` and `priority` accept any string. An
 > unrecognised value renders as an uppercased badge with a neutral fill, which
-> you can style via `.badge.status-<your-value>` or recolour through
-> `--calendar-badge-bg` / `--calendar-badge-text`.
+> you can style via `.kalendly-badge.kalendly-status-<your-value>` or recolour through
+> `--kalendly-badge-bg` / `--kalendly-badge-text`.
 
 ```typescript
 interface CalendarEvent {
@@ -811,81 +811,81 @@ interface CalendarEvent {
 ### Design tokens
 
 Every colour, size, radius, shadow and spacing step is a custom property. Two
-tiers: `--kal-*` holds the raw palette, `--calendar-*` names what each value is
-for. Override the `--calendar-*` layer — the primitives are internal.
+tiers: `--kal-*` holds the raw palette, `--kalendly-*` names what each value is
+for. Override the `--kalendly-*` layer — the primitives are internal.
 
 ```css
 :root {
   /* Brand */
-  --calendar-primary-color: #fc8917;
-  --calendar-secondary-color: #fca045;
-  --calendar-tertiary-color: #fdb873;
+  --kalendly-primary-color: #fc8917;
+  --kalendly-secondary-color: #fca045;
+  --kalendly-tertiary-color: #fdb873;
 
   /* Surfaces and text */
-  --calendar-text-color: #2c3e50;
-  --calendar-text-light: #6b7280;
-  --calendar-on-accent: #fff;
-  --calendar-background: #fff;
-  --calendar-border-color: #dee2e6;
-  --calendar-cell-hover: #f3f4f6;
-  --calendar-header-bg: #f8f9fa;
-  --calendar-selected-bg: #eff6ff;
-  --calendar-out-of-range-bg: #f3f4f6;
-  --calendar-out-of-range-fg: #6b7280;
-  --calendar-nav-arrow-fg: #2c3e50;
-  --calendar-nav-arrow-bg: #fff;
-  --calendar-nav-arrow-border: #dee2e6;
-  --calendar-nav-arrow-hover-fg: #fff;
-  --calendar-nav-arrow-hover-bg: #fc8917;
-  --calendar-input-invalid-bg: rgba(239, 68, 68, 0.1);
-  --calendar-popup-header-fg: #fff;
-  --calendar-popup-close-fg: #fff;
-  --calendar-popup-close-bg: rgba(255, 255, 255, 0.2);
-  --calendar-popup-close-hover-bg: rgba(255, 255, 255, 0.3);
-  --calendar-popup-bg: #fff;
-  --calendar-picker-bg: #fff;
-  --calendar-today-outline: #f7db04;
-  --calendar-event-indicator: #1890ff;
-  --calendar-input-invalid: #ef4444;
-  --calendar-link: #2563eb;
-  --calendar-skeleton-base: #f0f0f0;
-  --calendar-skeleton-highlight: #e8e8e8;
+  --kalendly-text-color: #2c3e50;
+  --kalendly-text-light: #6b7280;
+  --kalendly-on-accent: #fff;
+  --kalendly-background: #fff;
+  --kalendly-border-color: #dee2e6;
+  --kalendly-cell-hover: #f3f4f6;
+  --kalendly-header-bg: #f8f9fa;
+  --kalendly-selected-bg: #eff6ff;
+  --kalendly-out-of-range-bg: #f3f4f6;
+  --kalendly-out-of-range-fg: #6b7280;
+  --kalendly-nav-arrow-fg: #2c3e50;
+  --kalendly-nav-arrow-bg: #fff;
+  --kalendly-nav-arrow-border: #dee2e6;
+  --kalendly-nav-arrow-hover-fg: #fff;
+  --kalendly-nav-arrow-hover-bg: #fc8917;
+  --kalendly-input-invalid-bg: rgba(239, 68, 68, 0.1);
+  --kalendly-popup-header-fg: #fff;
+  --kalendly-popup-close-fg: #fff;
+  --kalendly-popup-close-bg: rgba(255, 255, 255, 0.2);
+  --kalendly-popup-close-hover-bg: rgba(255, 255, 255, 0.3);
+  --kalendly-popup-bg: #fff;
+  --kalendly-picker-bg: #fff;
+  --kalendly-today-outline: #f7db04;
+  --kalendly-event-indicator: #1890ff;
+  --kalendly-input-invalid: #ef4444;
+  --kalendly-link: #2563eb;
+  --kalendly-skeleton-base: #f0f0f0;
+  --kalendly-skeleton-highlight: #e8e8e8;
 
   /* Availability */
-  --calendar-open-bg: #dcfce7;
-  --calendar-open-fg: #16a34a;
-  --calendar-conditional-bg: #fef3c7;
-  --calendar-conditional-fg: #d97706;
-  --calendar-blocked-bg: #fee2e2;
-  --calendar-blocked-fg: #dc2626;
-  --calendar-range-bg: #16a34a;
-  --calendar-range-outline: #15803d;
-  --calendar-in-range-bg: #bbf7d0;
-  --calendar-in-range-outline: #86efac;
+  --kalendly-open-bg: #dcfce7;
+  --kalendly-open-fg: #16a34a;
+  --kalendly-conditional-bg: #fef3c7;
+  --kalendly-conditional-fg: #d97706;
+  --kalendly-blocked-bg: #fee2e2;
+  --kalendly-blocked-fg: #dc2626;
+  --kalendly-range-bg: #16a34a;
+  --kalendly-range-outline: #15803d;
+  --kalendly-in-range-bg: #bbf7d0;
+  --kalendly-in-range-outline: #86efac;
 
   /* Badges — bg/text is the fallback for caller-defined values */
-  --calendar-badge-bg: #f3f4f6;
-  --calendar-badge-text: #4b5563;
-  --calendar-badge-success-bg: #d1fae5;
-  --calendar-badge-success-text: #059669;
-  --calendar-badge-info-bg: #dbeafe;
-  --calendar-badge-info-text: #2563eb;
-  --calendar-badge-warning-bg: #fef3c7;
-  --calendar-badge-warning-text: #d97706;
-  --calendar-badge-danger-bg: #fee2e2;
-  --calendar-badge-danger-text: #dc2626;
-  --calendar-badge-neutral-bg: #f3f4f6;
-  --calendar-badge-neutral-text: #6b7280;
-  --calendar-badge-positive-bg: #dcfce7;
-  --calendar-badge-positive-text: #16a34a;
-  --calendar-badge-tentative-bg: #e0e7ff;
-  --calendar-badge-tentative-text: #4f46e5;
+  --kalendly-badge-bg: #f3f4f6;
+  --kalendly-badge-text: #4b5563;
+  --kalendly-badge-success-bg: #d1fae5;
+  --kalendly-badge-success-text: #059669;
+  --kalendly-badge-info-bg: #dbeafe;
+  --kalendly-badge-info-text: #2563eb;
+  --kalendly-badge-warning-bg: #fef3c7;
+  --kalendly-badge-warning-text: #d97706;
+  --kalendly-badge-danger-bg: #fee2e2;
+  --kalendly-badge-danger-text: #dc2626;
+  --kalendly-badge-neutral-bg: #f3f4f6;
+  --kalendly-badge-neutral-text: #6b7280;
+  --kalendly-badge-positive-bg: #dcfce7;
+  --kalendly-badge-positive-text: #16a34a;
+  --kalendly-badge-tentative-bg: #e0e7ff;
+  --kalendly-badge-tentative-text: #4f46e5;
 }
 ```
 
 Type, radius, elevation and spacing scales are exposed the same way —
-`--calendar-font-*`, `--calendar-radius-*`, `--calendar-shadow-*` and
-`--calendar-space-*`. See `dist/styles/calendar.css` for the full set.
+`--kalendly-font-*`, `--kalendly-radius-*`, `--kalendly-shadow-*` and
+`--kalendly-space-*`. See `dist/styles/calendar.css` for the full set.
 
 ### Where you set a token decides what it colours
 
@@ -903,9 +903,8 @@ shadow DOM, so they inherit straight through:
 ```html
 <kal-calendar
   style="
-    --calendar-primary-color: #4f46e5;
-    --calendar-primary-color-rgb: 79, 70, 229;
-    --calendar-on-accent: #fff;
+    --kalendly-primary-color: #4f46e5;
+    --kalendly-on-accent: #fff;
   "
 ></kal-calendar>
 ```
@@ -914,9 +913,8 @@ Or from your own stylesheet, which is usually tidier:
 
 ```css
 #booking-calendar {
-  --calendar-primary-color: #4f46e5;
-  --calendar-primary-color-rgb: 79, 70, 229;
-  --calendar-on-accent: #fff;
+  --kalendly-primary-color: #4f46e5;
+  --kalendly-on-accent: #fff;
 }
 ```
 
@@ -926,45 +924,43 @@ It is only an attribute, so every framework does it its own way:
 /* React — cast because CSS custom properties are not in CSSProperties */
 <kal-calendar
   style={{
-    '--calendar-primary-color': 'var(--primary)',
-    '--calendar-primary-color-rgb': 'var(--primary-rgb)',
-    '--calendar-on-accent': 'var(--primary-foreground)',
+    '--kalendly-primary-color': 'var(--primary)',
+    '--kalendly-on-accent': 'var(--primary-foreground)',
   } as React.CSSProperties}
 />
 ```
 
 ```vue
-<kal-calendar :style="{ '--calendar-primary-color': brand }" />
+<kal-calendar :style="{ '--kalendly-primary-color': brand }" />
 ```
 
 ```svelte
-<kal-calendar style="--calendar-primary-color: {brand}" />
+<kal-calendar style="--kalendly-primary-color: {brand}" />
 ```
 
 ```html
 <!-- Angular -->
-<kal-calendar [style.--calendar-primary-color]="brand"></kal-calendar>
+<kal-calendar [style.--kalendly-primary-color]="brand"></kal-calendar>
 ```
 
 Pointing a token at one of your own design-system variables works, since it
 resolves in the element's scope:
 
 ```html
-<kal-calendar style="--calendar-primary-color: var(--primary)"></kal-calendar>
+<kal-calendar style="--kalendly-primary-color: var(--primary)"></kal-calendar>
 ```
 
-> **Set `--calendar-primary-color-rgb` alongside `--calendar-primary-color`.**
-> Translucent fills — cell hover, the picker shadow — are built as
-> `rgba(var(--calendar-primary-color-rgb), …)`, because CSS cannot take the
-> channels out of a hex colour. Change the colour without the channels and
-> those fills keep the old hue. The value is three bare numbers, no `rgb()`.
+> **One token is enough.** Translucent fills — cell hover, the picker shadow —
+> are built with `color-mix()`, so they follow `--kalendly-primary-color`
+> whatever format it holds: hex, `rgb()`, `hsl()`, `oklch()`, or a `var()`
+> pointing at your own design system.
 
 Every demo under `docs/examples/` has a **Brand Colour** control that does
 exactly this, so you can see which parts of the calendar follow the base token.
 
 ### JS theme property (full reference)
 
-Every `--calendar-*` colour token has a matching camelCase theme key.
+Every `--kalendly-*` colour token has a matching camelCase theme key.
 
 > `theme` writes its values to `:root`, so it colours **every** `<kal-calendar>`
 > on the page, not the element you assign it to. With one calendar that is

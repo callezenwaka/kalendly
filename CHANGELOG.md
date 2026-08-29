@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **Every class and CSS variable is now prefixed `kalendly-`.** The stylesheet shipped 51 top-level class selectors, 18 of them generic enough to collide with a host application: `.badge`, `.event-card`, `.date-popup`, `.popup-header` and similar. Importing `kalendly/styles` alongside Bootstrap, Bulma or most design systems uppercased every badge in the application and gave it our padding and letter-spacing. This was not a regression and could not be escaped by pinning a version — it had been true since the stylesheet existed.
+
+  Classes drop the now-redundant word: `.calendar-table` → `.kalendly-table`, `.badge` → `.kalendly-badge`, `.date-popup` → `.kalendly-popup`. The host class `.kalendly-calendar` becomes `.kalendly`, since `kalendly` already means calendar. Tokens move from `--calendar-*` to `--kalendly-*`; primitives stay `--kal-*`. `CalendarTheme` keys are unchanged, so the JS theme API is unaffected.
+
+  Anyone overriding a CSS variable, styling an internal class, or emitting markup from `renderEvent` against our class names needs to update. Class names were never documented as API, but they are visible in devtools.
+
+- **Badges no longer carry a marker class.** `class="badge category category-work"` becomes `class="kalendly-badge kalendly-category-work"`. The neutral fill for caller-defined values moved onto `.kalendly-badge` itself, so the specific rules now win on specificity rather than on source order — the stylesheet previously carried a comment warning that the fallback had to stay above them. The documented styling hook becomes `.kalendly-badge.kalendly-status-<your-value>`.
+
+- **The three RGB triples are gone.** `--calendar-primary-color-rgb` and friends existed because `rgba()` cannot take a hex colour, so a translucent fill needed the channels separately. Translucent fills now use `color-mix()`, which takes the colour itself. One token instead of two, and it accepts any format — hex, `rgb()`, `hsl()`, `oklch()`, or a `var()` pointing at your own design system. Previously an integrator whose design system exposed `--primary` could set the base colour but had no way to derive the matching triple, so four surfaces silently kept the old hue.
+
+  Computed values for those fills now serialize as `color(srgb …)` rather than `rgba(…)`. Painted output is identical; anything asserting on the string form is not.
+
+- **Five dead tokens deleted**: `--primary-color`, `--secondary-color`, `--tertiary-color`, `--calendar-card-shadow`, `--calendar-space-6`. None was read by anything. The first three squatted on names a consumer might reasonably define.
+
 ### Fixed
 
 - **A day excluded by `available-days`, or by the `min-date`/`max-date` horizon, rendered as available.** In day and time availability mode the bucket colour won over the out-of-range grey: both rules have identical specificity and the bucket rules came later in the stylesheet, so an excluded weekday painted green while refusing clicks. It looked bookable and was not. Found by the new browser tests on their first run.

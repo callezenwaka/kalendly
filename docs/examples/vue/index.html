@@ -158,18 +158,17 @@
         // Element-scoped custom properties — the whole palette follows the base.
         const BRANDS = {
           Default: null,
-          Indigo:  { hex: '#4f46e5', rgb: '79, 70, 229' },
-          Emerald: { hex: '#059669', rgb: '5, 150, 105' },
-          Rose:    { hex: '#e11d48', rgb: '225, 29, 72' },
+          Indigo:  { hex: '#4f46e5' },
+          Emerald: { hex: '#059669' },
+          Rose:    { hex: '#e11d48' },
         };
 
         const brandStyle = (kind) => {
           const brand = BRANDS[kind];
           return brand
             ? {
-                '--calendar-primary-color': brand.hex,
-                '--calendar-primary-color-rgb': brand.rgb,
-                '--calendar-on-accent': '#ffffff',
+                '--kalendly-primary-color': brand.hex,
+                '--kalendly-on-accent': '#ffffff',
               }
             : {};
         };

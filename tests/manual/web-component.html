@@ -178,11 +178,11 @@
     <div class="panel">
       <h2>Status</h2>
       <div class="badge-row">
-        <div class="badge" id="badge-registered">
+        <div class="kalendly-badge" id="badge-registered">
           <span class="dot red" id="dot-registered"></span>
           <span id="label-registered">Registering…</span>
         </div>
-        <div class="badge" id="badge-global">
+        <div class="kalendly-badge" id="badge-global">
           <span class="dot red" id="dot-global"></span>
           <span id="label-global">window.Kalendly</span>
         </div>
@@ -488,13 +488,13 @@
     const connected = el.isConnected;
     log(`[3] element.isConnected                → ${connected ? 'PASS' : 'FAIL'}`, connected ? 'ok' : 'err');
 
-    // 4. kalendly-calendar CSS class applied
-    const hasClass = el.classList.contains('kalendly-calendar');
-    log(`[4] klassList has "kalendly-calendar"  → ${hasClass ? 'PASS' : 'FAIL'}`, hasClass ? 'ok' : 'err');
+    // 4. kalendly CSS class applied
+    const hasClass = el.classList.contains('kalendly');
+    log(`[4] klassList has "kalendly"  → ${hasClass ? 'PASS' : 'FAIL'}`, hasClass ? 'ok' : 'err');
 
     // 5. calendar table rendered
-    const hasTable = !!el.querySelector('.calendar-table');
-    log(`[5] .calendar-table rendered          → ${hasTable ? 'PASS' : 'FAIL'}`, hasTable ? 'ok' : 'err');
+    const hasTable = !!el.querySelector('.kalendly-table');
+    log(`[5] .kalendly-table rendered          → ${hasTable ? 'PASS' : 'FAIL'}`, hasTable ? 'ok' : 'err');
 
     // 6. events property set correctly
     const eventsOk = Array.isArray(el.events);
@@ -515,7 +515,7 @@
 
     // 9. goToDate changes displayed month
     el.goToDate(new Date('2030-07-01'));
-    const afterGoto = el.querySelector('.calendar-picker-btn')?.textContent || '';
+    const afterGoto = el.querySelector('.kalendly-picker-btn')?.textContent || '';
     const gotoOk = afterGoto.includes('July') && afterGoto.includes('2030');
     log(`[9] goToDate(2030-07) → picker shows "July 2030"  → ${gotoOk ? 'PASS' : 'FAIL'}`, gotoOk ? 'ok' : 'err');
     el.goToDate(new Date()); // restore to today
@@ -617,9 +617,9 @@
 
   const BRANDS = {
     Default: null,
-    Indigo:  { hex: '#4f46e5', rgb: '79, 70, 229' },
-    Emerald: { hex: '#059669', rgb: '5, 150, 105' },
-    Rose:    { hex: '#e11d48', rgb: '225, 29, 72' },
+    Indigo:  { hex: '#4f46e5' },
+    Emerald: { hex: '#059669' },
+    Rose:    { hex: '#e11d48' },
   };
 
   function setBrand(kind) {
@@ -629,11 +629,10 @@
 
     const brand = BRANDS[kind];
     if (brand) {
-      el.style.setProperty('--calendar-primary-color', brand.hex);
-      el.style.setProperty('--calendar-primary-color-rgb', brand.rgb);
-      el.style.setProperty('--calendar-on-accent', '#ffffff');
+      el.style.setProperty('--kalendly-primary-color', brand.hex);
+      el.style.setProperty('--kalendly-on-accent', '#ffffff');
     } else {
-      ['--calendar-primary-color', '--calendar-primary-color-rgb', '--calendar-on-accent']
+      ['--kalendly-primary-color', '--kalendly-on-accent']
         .forEach(token => el.style.removeProperty(token));
     }
     log(`Brand colour → ${brand ? brand.hex : 'default'}`, 'ok');

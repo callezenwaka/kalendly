@@ -58,7 +58,7 @@ export async function openDemo(page: Page, name = 'vanilla'): Promise<void> {
     }`,
   });
 
-  await page.locator('#cal .calendar-table').waitFor();
+  await page.locator('#cal .kalendly-table').waitFor();
   await settled(page);
 }
 

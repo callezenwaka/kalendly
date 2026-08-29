@@ -2,14 +2,14 @@ import { test, expect } from '@playwright/test';
 import { openDemo, click, paintedColor } from './helpers';
 
 // v0.3.1 shipped a calendar whose cells carried cursor: pointer while looking
-// completely inert: `.calendar-table td:hover` lost on specificity to the
+// completely inert: `.kalendly-table td:hover` lost on specificity to the
 // bucket colour rules, so hovering an availability cell changed nothing. Every
 // assertion here compares a state against its own base rather than against a
 // fixed colour, so it survives retheming.
 
 const currentMonthCell = (page: import('@playwright/test').Page) =>
   page
-    .locator('#cal td[data-clickable="true"]:not(.calendar-cell-other-month)')
+    .locator('#cal td[data-clickable="true"]:not(.kalendly-cell-other-month)')
     .first();
 
 test.describe('interaction states are visible', () => {
@@ -47,7 +47,7 @@ test.describe('interaction states are visible', () => {
     // The bucket fill deliberately stays — availability is still worth seeing —
     // so selection reads from the outline rather than the background.
     expect(await cell.getAttribute('class')).toContain(
-      'calendar-cell-selected'
+      'kalendly-cell-selected'
     );
     expect(await paintedColor(page, cell, 'outlineColor')).not.toBe(
       baseOutline
@@ -59,7 +59,7 @@ test.describe('interaction states are visible', () => {
     await click(page, 'selRangeBtn');
 
     const cells = page.locator(
-      '#cal td[data-clickable="true"]:not(.calendar-cell-other-month)'
+      '#cal td[data-clickable="true"]:not(.kalendly-cell-other-month)'
     );
     const start = cells.nth(1);
     const end = cells.nth(4);
@@ -72,7 +72,7 @@ test.describe('interaction states are visible', () => {
     await page.mouse.move(0, 0);
 
     expect(await middle.getAttribute('class')).toContain(
-      'availability-in-range'
+      'kalendly-availability-in-range'
     );
     expect(await paintedColor(page, middle)).not.toBe(base);
   });
@@ -81,13 +81,13 @@ test.describe('interaction states are visible', () => {
     await click(page, 'modeDayBtn');
 
     const weekend = page
-      .locator('#cal td[data-date]:not(.calendar-cell-other-month)')
+      .locator('#cal td[data-date]:not(.kalendly-cell-other-month)')
       .first();
     const base = await paintedColor(page, weekend);
 
     await click(page, 'daysWeekBtn');
 
-    const excluded = page.locator('#cal td.calendar-cell-out-of-range').first();
+    const excluded = page.locator('#cal td.kalendly-cell-out-of-range').first();
     expect(await excluded.count()).toBeGreaterThan(0);
     expect(await paintedColor(page, excluded)).not.toBe(base);
     expect(await excluded.getAttribute('data-clickable')).toBeNull();
@@ -102,9 +102,9 @@ test.describe('interaction states are visible', () => {
 
     // A closed slot that is not booked carries -open as well, so exclude it
     const open = page
-      .locator('#cal .time-grid-slot-open:not(.time-grid-slot-out-of-range)')
+      .locator('#cal .kalendly-time-grid-slot-open:not(.kalendly-time-grid-slot-out-of-range)')
       .first();
-    const closed = page.locator('#cal .time-grid-slot-out-of-range').first();
+    const closed = page.locator('#cal .kalendly-time-grid-slot-out-of-range').first();
     await open.waitFor();
     await closed.waitFor();
 
