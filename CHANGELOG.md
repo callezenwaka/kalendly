@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-08-29
+
 ### Breaking Changes
 
 - **The `title` attribute is removed.** `heading` has been the supported spelling since 0.3.0, and the deprecation warning said `title` would go in a future release. `title` is a global HTML attribute, so the browser also rendered it as a tooltip over the whole calendar — which is why `heading` replaced it. Setting `title` now does nothing but produce that tooltip.
