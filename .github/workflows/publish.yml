@@ -17,6 +17,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  pull-requests: write
 
 jobs:
   publish:
@@ -136,8 +137,22 @@ jobs:
           )
           PY
 
-      # Skipping an existing version lets a re-run finish the git steps after a
-      # partial failure.
+      # Tag before publishing. An npm version can never be reused, so a failure
+      # after this point leaves git ahead of npm, which a re-run resolves.
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "release/${{ steps.version.outputs.tag }}"
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "chore: release ${{ steps.version.outputs.tag }}"
+          git tag -a "${{ steps.version.outputs.tag }}" \
+            -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "release/${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      # Skipping an existing version lets a re-run finish the remaining steps
+      # after a partial failure.
       - name: Publish to npm
         run: |
           VERSION="${{ steps.version.outputs.version }}"
@@ -146,17 +161,6 @@ jobs:
           else
             npm publish --access public --provenance
           fi
-
-      - name: Commit release and tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json CHANGELOG.md
-          git commit -m "chore: release ${{ steps.version.outputs.tag }}"
-          git tag -a "${{ steps.version.outputs.tag }}" \
-            -m "Release ${{ steps.version.outputs.tag }}"
-          git push origin HEAD:main
-          git push origin "${{ steps.version.outputs.tag }}"
 
       - name: Create GitHub release
         env:
@@ -177,6 +181,21 @@ jobs:
 
           gh release create "${args[@]}"
 
+      # main is protected and takes no direct pushes, including from Actions.
+      # The version bump arrives the same way every other change does.
+      - name: Open the release pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          URL="$(gh pr create \
+            --base main \
+            --head "release/${TAG}" \
+            --title "chore: release ${TAG}" \
+            --body "Version bump and CHANGELOG promotion for ${TAG}. Published to npm and tagged; merging this brings main up to date." )"
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+
       - name: Summary
         run: |
           {
@@ -185,4 +204,6 @@ jobs:
             echo "- Bump: ${{ inputs.bump }}"
             echo "- npm: https://www.npmjs.com/package/kalendly/v/${{ steps.version.outputs.version }}"
             echo "- Release: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
+            echo ""
+            echo "**Merge ${{ steps.pr.outputs.url }} to finish.**"
           } >> "$GITHUB_STEP_SUMMARY"
