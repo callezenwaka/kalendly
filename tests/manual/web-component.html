@@ -239,6 +239,18 @@
     </div>
 
     <div class="panel">
+      <h2>Misconfiguration</h2>
+      <div class="btn-grid">
+        <button type="button" class="mode-btn" id="btn-bad-months">months="3"</button>
+        <button type="button" class="mode-btn" id="btn-bad-slot">slot-duration="17"</button>
+        <button type="button" class="mode-btn" id="btn-bad-year">min-year="abc"</button>
+        <button type="button" class="mode-btn" id="btn-bad-markup">months="&lt;img&gt;"</button>
+        <button type="button" class="mode-btn full-width green" id="btn-bad-reset">Correct it</button>
+      </div>
+      <p class="hint">Each throws and renders the reason in place of the calendar, rather than leaving an empty element. The value is escaped, so markup renders as text. Correcting the attribute recovers &mdash; the calendar rebuilds.</p>
+    </div>
+
+    <div class="panel">
       <h2>Opening Days</h2>
       <div class="btn-grid">
         <button class="mode-btn active" id="btn-days-all">Every day</button>
@@ -319,7 +331,12 @@
     const line = document.createElement('div');
     line.className = `log-line ${type}`;
     const ts = new Date().toLocaleTimeString();
-    line.innerHTML = `<span class="ts">[${ts}]</span> ${msg}`;
+    // textContent, not innerHTML: log messages carry event names and attribute
+    // values, so interpolating them as markup is an injection sink.
+    const stamp = document.createElement('span');
+    stamp.className = 'ts';
+    stamp.textContent = `[${ts}]`;
+    line.append(stamp, ` ${msg}`);
     logEl.appendChild(line);
     logEl.scrollTop = logEl.scrollHeight;
   }
@@ -610,6 +627,26 @@
     else el.removeAttribute('available-days');
     log(`Opening days → ${kind === 'week' ? 'Mon-Fri' : 'every day'}`, 'ok');
   }
+
+  const BAD = {
+    'btn-bad-months': ['months', '3'],
+    'btn-bad-slot':   ['slot-duration', '17'],
+    'btn-bad-year':   ['min-year', 'abc'],
+    'btn-bad-markup': ['months', '<img src=x onerror=alert(1)>'],
+  };
+
+  Object.entries(BAD).forEach(([id, [attr, value]]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      // The component throws; the rendered error state is what to look at.
+      try { el.setAttribute(attr, value); } catch (_) {}
+      log(`${attr}="${value}" → expect an error panel in place of the calendar`, 'warn');
+    });
+  });
+
+  document.getElementById('btn-bad-reset').addEventListener('click', () => {
+    ['months', 'slot-duration', 'min-year'].forEach(a => el.removeAttribute(a));
+    log('Attributes cleared → calendar rebuilds', 'ok');
+  });
 
   ['all', 'week'].forEach(k =>
     document.getElementById(`btn-days-${k}`)

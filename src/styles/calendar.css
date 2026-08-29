@@ -53,6 +53,9 @@
   --kalendly-today-outline: var(--kal-yellow-400);
   --kalendly-event-indicator: var(--kal-blue-500);
   --kalendly-input-invalid: var(--kal-red-500);
+  --kalendly-error-bg: color-mix(in srgb, var(--kal-red-500) 8%, transparent);
+  --kalendly-error-fg: var(--kal-red-500);
+  --kalendly-error-border: var(--kal-red-500);
   --kalendly-popup-header-fg: var(--kal-white);
   --kalendly-popup-close-fg: var(--kal-white);
   --kalendly-popup-close-bg: rgba(255, 255, 255, 0.2);
@@ -139,6 +142,16 @@
   text-align: center;
   color: var(--kalendly-text-color);
   margin: 0;
+}
+
+.kalendly-error {
+  padding: var(--kalendly-space-4);
+  border: 1px solid var(--kalendly-error-border);
+  border-radius: var(--kalendly-radius-md);
+  background: var(--kalendly-error-bg);
+  color: var(--kalendly-error-fg);
+  font-size: var(--kalendly-font-sm);
+  line-height: 1.5;
 }
 
 .kalendly-title {

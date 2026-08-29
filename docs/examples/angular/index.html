@@ -380,7 +380,12 @@ npm install kalendly
       const container = document.getElementById('log');
       const entry = document.createElement('div');
       entry.className = 'log-entry';
-      entry.innerHTML = `<span class="ts">[${new Date().toLocaleTimeString()}]</span>${msg}`;
+      // textContent, not innerHTML: log messages carry event names and
+      // attribute values, so interpolating them as markup is an injection sink.
+      const stamp = document.createElement('span');
+      stamp.className = 'ts';
+      stamp.textContent = `[${new Date().toLocaleTimeString()}]`;
+      entry.append(stamp, msg);
       container.prepend(entry);
       while (container.children.length > 20) container.removeChild(container.lastChild);
     }

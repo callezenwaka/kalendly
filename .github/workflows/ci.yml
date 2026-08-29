@@ -77,10 +77,7 @@ jobs:
       - name: Install browsers
         run: npx playwright install --with-deps chromium webkit
 
-      # The demos load the built library from docs/dist
-      - name: Build package
-        run: npm run build
-
+      # test:browser builds first — the demos load the library from docs/dist
       - name: Browser tests
         run: npm run test:browser
 

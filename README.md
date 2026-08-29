@@ -1,6 +1,6 @@
 # kalendly
 
-A universal calendar web component — works in React, Vue, Svelte, Angular, Solid.js, and plain HTML with no framework dependency.
+A calendar web component — works in React, Vue, Svelte, Angular, Solid.js, and plain HTML with no framework dependency.
 
 ## Features
 
@@ -336,7 +336,6 @@ Primitives are set as HTML attributes:
 | Attribute               | Type              | Default          | Description                                        |
 | ----------------------- | ----------------- | ---------------- | -------------------------------------------------- |
 | `heading`               | `string`          | —                | Calendar heading                                   |
-| `title`                 | `string`          | —                | **Deprecated** — use `heading`                     |
 | `initial-date`          | `string`          | today            | ISO date string for initial view                   |
 | `months`                | `"1"\|"2"`        | `"1"`            | Render two months side by side                     |
 | `min-year`              | `string`          | currentYear - 30 | Minimum year in picker                             |
@@ -371,7 +370,7 @@ Rich objects are set as JS properties (not attributes):
 
 ### Why `heading` and not `title`
 
-`title` is a global HTML attribute, so the browser renders it as a tooltip floating over the whole calendar as well as using it as the heading. `heading` does the same job without the tooltip. `title` still works and warns once per page; it will be removed in a future release.
+`title` is a global HTML attribute, so the browser renders it as a tooltip floating over the whole calendar as well as using it as the heading. `heading` does the same job without the tooltip. `title` is no longer read — set `heading` instead.
 
 ## Custom Events
 
@@ -489,7 +488,7 @@ Clicking a day opens a popup with a grid of slots. Each shows only "Booked" or "
 
 #### Slot length
 
-`slot-duration` sets the grid granularity in minutes. It must divide 1440 evenly; anything else falls back to 60 with a console warning.
+`slot-duration` sets the grid granularity in minutes. It must divide 1440 evenly; anything else throws, naming the value.
 
 ```html
 <kal-calendar availability-mode="time" slot-duration="30"></kal-calendar>
@@ -1087,12 +1086,3 @@ MIT © Callis Ezenwaka
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
-
-### Recent Updates
-
-- **v0.2.1**: Add availability mode (day/time views), selectable range, lazy event fetching with skeleton loading
-- **v0.2.0**: Migrated to a single `<kal-calendar>` web component — works natively in React, Vue, Angular, Svelte, Solid.js, and plain HTML with no framework dependency
-- **v0.1.7**: Vanilla calendar performance optimization with event delegation
-- **v0.1.6**: Navigation enhancements — Today button, month/year picker, optional `title` prop
-- **v0.1.5**: Universal theming system, TypeScript improvements
-- **v0.1.0**: Initial release with React, Vue, React Native, and Vanilla JavaScript support

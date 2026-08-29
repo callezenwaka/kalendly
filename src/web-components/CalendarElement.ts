@@ -42,7 +42,6 @@ export class CalendarElement extends HTMLElement {
     'heading',
     'months',
     'slot-duration',
-    'title',
     'use-short-month-names',
     'availability-mode',
     'selectable',
@@ -209,10 +208,23 @@ export class CalendarElement extends HTMLElement {
   private reaction(run: () => void): void {
     try {
       run();
+      this._initError = null;
     } catch (error) {
       this._initError = error as Error;
+      this.renderError(error as Error);
       throw error;
     }
+  }
+
+  // A thrown configuration error otherwise leaves an empty element, and the
+  // reason only in a console nobody is watching. Say what is wrong where the
+  // calendar should be.
+  private renderError(error: Error): void {
+    const message = error.message.replace(/^<kal-calendar>\s*/, '');
+    this.innerHTML = `
+      <div class="kalendly-error" role="alert">
+        <strong>kalendly</strong> ${escapeHtml(message)}
+      </div>`;
   }
 
   connectedCallback(): void {
@@ -247,24 +259,11 @@ export class CalendarElement extends HTMLElement {
       this._timeRangeEnd = null;
       this._timeRangeComplete = false;
     }
-    this.reinit();
+    this.reaction(() => this.reinit());
   }
 
   private get headingText(): string | null {
-    const heading = this.getAttribute('heading');
-    if (heading !== null) return heading;
-
-    const title = this.getAttribute('title');
-    if (title !== null && !CalendarElement.titleDeprecationWarned) {
-      CalendarElement.titleDeprecationWarned = true;
-      console.warn(
-        `<kal-calendar> the title attribute is deprecated and will be removed ` +
-          `in a future release — use heading instead. title is a global HTML ` +
-          `attribute, so the browser also renders it as a tooltip over the ` +
-          `whole calendar.`
-      );
-    }
-    return title;
+    return this.getAttribute('heading');
   }
 
   private static warnedMissingEnd = new Set<string>();
@@ -282,12 +281,10 @@ export class CalendarElement extends HTMLElement {
       return minutes;
     }
 
-    console.warn(
-      `<kal-calendar> slot-duration="${raw}" must be a positive whole number of ` +
-        `minutes that divides ${MINUTES_PER_DAY} — falling back to ` +
-        `${DEFAULT_SLOT_DURATION}.`
+    throw new Error(
+      `<kal-calendar> slot-duration="${raw}" must be a positive whole number ` +
+        `of minutes that divides ${MINUTES_PER_DAY}.`
     );
-    return DEFAULT_SLOT_DURATION;
   }
 
   private warnMissingEndTime(events: CalendarEvent[]): void {
@@ -306,21 +303,48 @@ export class CalendarElement extends HTMLElement {
     }
   }
 
-  private get monthCount(): number {
-    const requested = Number(this.getAttribute('months') ?? 1);
-    if (!Number.isInteger(requested) || requested < 1) return 1;
+  private static readonly MAX_MONTHS = 2;
 
-    return Math.min(requested, 2);
+  private get monthCount(): number {
+    const raw = this.getAttribute('months');
+    if (raw === null) return 1;
+
+    const requested = Number(raw);
+    if (!Number.isInteger(requested) || requested < 1) {
+      throw new Error(
+        `<kal-calendar> months="${raw}" must be a whole number of 1 or more.`
+      );
+    }
+    if (requested > CalendarElement.MAX_MONTHS) {
+      throw new Error(
+        `<kal-calendar> months="${raw}" exceeds the maximum of ` +
+          `${CalendarElement.MAX_MONTHS}.`
+      );
+    }
+
+    return requested;
+  }
+
+  private boundaryYear(attr: 'min-year' | 'max-year', fallback: number): number {
+    const raw = this.getAttribute(attr);
+    if (raw === null || raw === '') return fallback;
+
+    const year = Number(raw);
+    if (!Number.isInteger(year)) {
+      throw new Error(
+        `<kal-calendar> ${attr}="${raw}" must be a whole number.`
+      );
+    }
+
+    return year;
   }
 
   private get minYear(): number {
-    const val = this.getAttribute('min-year');
-    return val ? parseInt(val, 10) : new Date().getFullYear() - 30;
+    return this.boundaryYear('min-year', new Date().getFullYear() - 30);
   }
 
   private get maxYear(): number {
-    const val = this.getAttribute('max-year');
-    return val ? parseInt(val, 10) : new Date().getFullYear() + 10;
+    return this.boundaryYear('max-year', new Date().getFullYear() + 10);
   }
 
   private boundaryDate(attr: 'min-date' | 'max-date'): Date | null {
@@ -398,7 +422,7 @@ export class CalendarElement extends HTMLElement {
   }
 
   private reinit(): void {
-    if (!this.engine) return;
+    if (!this.isConnected) return;
     this.cleanup();
     this.initEngine();
     this.scheduleRender();
@@ -454,8 +478,6 @@ export class CalendarElement extends HTMLElement {
 
   private static readonly BUILT_IN_BUCKETS = ['blocked', 'conditional', 'open'];
 
-  private static titleDeprecationWarned = false;
-
   private get knownBuckets(): string[] {
     return [
       ...CalendarElement.BUILT_IN_BUCKETS,
@@ -464,7 +486,12 @@ export class CalendarElement extends HTMLElement {
   }
 
   get updateComplete(): Promise<void> {
-    return this.pendingUpdate ?? Promise.resolve();
+    if (this.pendingUpdate) return this.pendingUpdate;
+    // A synchronous failure during an attribute change never reaches the
+    // scheduler, so surface it here rather than resolving as if it went well.
+    return this._initError
+      ? Promise.reject(this._initError)
+      : Promise.resolve();
   }
 
   private scheduleRender(): void {
@@ -474,8 +501,10 @@ export class CalendarElement extends HTMLElement {
       this.pendingUpdate = null;
       try {
         this.render();
+        this._initError = null;
       } catch (error) {
         this._initError = error as Error;
+        this.renderError(error as Error);
         throw error;
       }
     });
@@ -586,6 +615,7 @@ export class CalendarElement extends HTMLElement {
     // Up front, not in the grid: the grid only renders once a day is open.
     this.boundaryDate('min-date');
     this.boundaryDate('max-date');
+    void this.slotDuration;
     void this.availableDays;
     void this.availableHours;
     this.assertHorizonOrdered();
