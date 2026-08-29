@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A day excluded by `available-days`, or by the `min-date`/`max-date` horizon, rendered as available.** In day and time availability mode the bucket colour won over the out-of-range grey: both rules have identical specificity and the bucket rules came later in the stylesheet, so an excluded weekday painted green while refusing clicks. It looked bookable and was not. Found by the new browser tests on their first run.
+
 ## [0.3.4] - 2026-08-28
 
 ### Fixed

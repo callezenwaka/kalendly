@@ -13,21 +13,22 @@
     "copy:styles": "mkdir -p dist/styles && cp src/styles/calendar.css dist/styles/",
     "copy:dist": "rm -rf docs/dist && cp -r dist docs/dist",
     "dev": "tsup --watch",
-    "dev:examples": "npm run build && npx serve docs -p 5173",
+    "dev:examples": "npm run build && serve docs -p 5173",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:package": "node tests/integration/package-validation.test.mjs",
-    "test:manual": "echo 'Open tests/manual/*.html in browser' && npx serve . -p 8080",
+    "test:manual": "echo 'Open tests/manual/*.html in browser' && serve . -p 8080",
     "lint": "eslint src tests",
     "lint:fix": "eslint src tests --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "type-check": "tsc --noEmit",
     "prepare": "husky",
-    "prepublishOnly": "npm run test && npm run build",
-    "prepack": "npm run test:package"
+    "prepublishOnly": "npm run test:run && npm run build",
+    "prepack": "npm run test:package",
+    "test:browser": "playwright test"
   },
   "exports": {
     ".": {
@@ -52,10 +53,6 @@
     "LICENSE"
   ],
   "lint-staged": {
-    "package.json": [
-      "sh -c 'npm install --package-lock-only' sh",
-      "git add package-lock.json"
-    ],
     "*.{ts,js,json,css,md}": [
       "prettier --write"
     ],
@@ -67,6 +64,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^25.6.0",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.1",
@@ -79,6 +77,7 @@
     "jsdom": "^29.0.2",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.2",
+    "serve": "^14.2.6",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.4"

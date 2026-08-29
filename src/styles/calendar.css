@@ -471,12 +471,6 @@
   font-weight: 700;
 }
 
-.calendar-table td.calendar-cell-out-of-range {
-  background-color: var(--calendar-out-of-range-bg);
-  color: var(--calendar-out-of-range-fg);
-  cursor: default;
-}
-
 .calendar-table td.calendar-cell-other-month {
   color: var(--calendar-text-light);
   background-color: var(--calendar-header-bg);
@@ -584,6 +578,14 @@
 /* Caller-defined buckets paint from an inline custom property */
 .calendar-table td.availability-status {
   background-color: var(--availability-color);
+}
+
+/* After the bucket rules deliberately: same specificity, so source order
+   decides, and a day that is not on offer must not paint as available. */
+.calendar-table td.calendar-cell-out-of-range {
+  background-color: var(--calendar-out-of-range-bg);
+  color: var(--calendar-out-of-range-fg);
+  cursor: default;
 }
 
 .calendar-table td.availability-unselectable {
