@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+const COMPONENT = readFileSync(
+  resolve(__dirname, '../../../src/web-components/CalendarElement.ts'),
+  'utf-8'
+);
+
 const CSS = readFileSync(
   resolve(__dirname, '../../../src/styles/calendar.css'),
   'utf-8'
@@ -62,14 +67,52 @@ describe('design tokens', () => {
 
   // A token declared as var() of another resolves in the scope it is declared
   // in, so an element-level override of the base never reaches it. v0.3.3
-  // shipped exactly that and broke --calendar-primary-color set on
+  // shipped exactly that and broke --kalendly-primary-color set on
   // <kal-calendar>. Defaults belong in a use-site fallback instead.
   it('never derives one semantic token from another at :root', () => {
     const derived = declarations()
-      .filter(([prop]) => prop.startsWith('--calendar-'))
-      .filter(([, value]) => /var\(\s*--calendar-/.test(value))
+      .filter(([prop]) => prop.startsWith('--kalendly-'))
+      .filter(([, value]) => /var\(\s*--kalendly-/.test(value))
       .map(([prop, value]) => `${prop}: ${value}`);
 
     expect(derived).toEqual([]);
+  });
+});
+
+// Every name the stylesheet ships is one a consumer could otherwise own.
+// `.badge` shipped unprefixed and uppercased every badge in any application
+// that imported the stylesheet alongside Bootstrap, Bulma or similar.
+describe('namespacing', () => {
+  const selectorText = CSS.replace(/\{[^{}]*\}/g, '{}');
+
+  it('prefixes every class with kalendly-', () => {
+    const classes = [...new Set(selectorText.match(/\.[a-zA-Z][\w-]*/g) ?? [])];
+    const unprefixed = classes.filter(c => !c.startsWith('.kalendly'));
+
+    expect(unprefixed).toEqual([]);
+  });
+
+  it('keeps every semantic token under --kalendly-', () => {
+    const declared = [...CSS.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map(m => m[1]);
+    const stray = [
+      ...new Set(
+        declared.filter(t => !t.startsWith('--kalendly-') && !t.startsWith('--kal-'))
+      ),
+    ];
+
+    expect(stray).toEqual([]);
+  });
+
+  it('declares no token it never reads', () => {
+    const declared = new Set(
+      [...CSS.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map(m => m[1])
+    );
+    const used = new Set([...CSS.matchAll(/var\(\s*(--[\w-]+)/g)].map(m => m[1]));
+    const themed = new Set(
+      [...COMPONENT.matchAll(/'(--[\w-]+)'/g)].map(m => m[1])
+    );
+
+    const dead = [...declared].filter(t => !used.has(t) && !themed.has(t));
+    expect(dead.sort()).toEqual([]);
   });
 });

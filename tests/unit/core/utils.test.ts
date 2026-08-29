@@ -395,7 +395,7 @@ describe('Calendar Grid Generation', () => {
 
 describe('CSS Class Generation', () => {
   describe('getCellClasses', () => {
-    it('should include calendar-cell-today for today', () => {
+    it('should include kalendly-cell-today for today', () => {
       const today = new Date();
       const cellDate = {
         date: today,
@@ -406,10 +406,10 @@ describe('CSS Class Generation', () => {
       };
 
       const classes = getCellClasses(cellDate);
-      expect(classes).toContain('calendar-cell-today');
+      expect(classes).toContain('kalendly-cell-today');
     });
 
-    it('should include calendar-cell-has-event when events exist', () => {
+    it('should include kalendly-cell-has-event when events exist', () => {
       const cellDate = {
         date: new Date('2024-01-15'),
         isCurrentMonth: true,
@@ -419,7 +419,7 @@ describe('CSS Class Generation', () => {
       };
 
       const classes = getCellClasses(cellDate);
-      expect(classes).toContain('calendar-cell-has-event');
+      expect(classes).toContain('kalendly-cell-has-event');
     });
 
     it('should combine both classes when applicable', () => {
@@ -433,8 +433,8 @@ describe('CSS Class Generation', () => {
       };
 
       const classes = getCellClasses(cellDate);
-      expect(classes).toContain('calendar-cell-today');
-      expect(classes).toContain('calendar-cell-has-event');
+      expect(classes).toContain('kalendly-cell-today');
+      expect(classes).toContain('kalendly-cell-has-event');
       expect(classes.length).toBe(2);
     });
 
@@ -623,7 +623,7 @@ describe('Category Color Functions', () => {
     });
 
     it('should return fallback for invalid hex color', () => {
-      const customColors = { work: 'invalid' };
+      const customColors = { work: 'kalendly-invalid' };
       const color = getCategoryColor('work', customColors);
 
       expect(color).toBe('#fc8917');

@@ -50,61 +50,61 @@ export class CalendarElement extends HTMLElement {
   ];
 
   private static readonly themeMap: Record<keyof CalendarTheme, string> = {
-    primary: '--calendar-primary-color',
-    secondary: '--calendar-secondary-color',
-    tertiary: '--calendar-tertiary-color',
-    textColor: '--calendar-text-color',
-    textLight: '--calendar-text-light',
-    background: '--calendar-background',
-    cellHover: '--calendar-cell-hover',
-    borderColor: '--calendar-border-color',
-    todayOutline: '--calendar-today-outline',
-    selectedBg: '--calendar-selected-bg',
-    outOfRangeBg: '--calendar-out-of-range-bg',
-    outOfRangeFg: '--calendar-out-of-range-fg',
-    navArrowFg: '--calendar-nav-arrow-fg',
-    navArrowBg: '--calendar-nav-arrow-bg',
-    navArrowBorder: '--calendar-nav-arrow-border',
-    navArrowHoverFg: '--calendar-nav-arrow-hover-fg',
-    navArrowHoverBg: '--calendar-nav-arrow-hover-bg',
-    inputInvalidBg: '--calendar-input-invalid-bg',
-    popupHeaderFg: '--calendar-popup-header-fg',
-    popupCloseFg: '--calendar-popup-close-fg',
-    popupCloseBg: '--calendar-popup-close-bg',
-    popupCloseHoverBg: '--calendar-popup-close-hover-bg',
-    headerBg: '--calendar-header-bg',
-    popupBg: '--calendar-popup-bg',
-    pickerBg: '--calendar-picker-bg',
-    pickerShadow: '--calendar-picker-shadow',
-    eventIndicator: '--calendar-event-indicator',
-    onAccent: '--calendar-on-accent',
-    link: '--calendar-link',
-    openBg: '--calendar-open-bg',
-    openFg: '--calendar-open-fg',
-    conditionalBg: '--calendar-conditional-bg',
-    conditionalFg: '--calendar-conditional-fg',
-    blockedBg: '--calendar-blocked-bg',
-    blockedFg: '--calendar-blocked-fg',
-    rangeBg: '--calendar-range-bg',
-    rangeOutline: '--calendar-range-outline',
-    inRangeBg: '--calendar-in-range-bg',
-    inRangeOutline: '--calendar-in-range-outline',
-    badgeBg: '--calendar-badge-bg',
-    badgeText: '--calendar-badge-text',
-    badgeSuccessBg: '--calendar-badge-success-bg',
-    badgeSuccessText: '--calendar-badge-success-text',
-    badgeInfoBg: '--calendar-badge-info-bg',
-    badgeInfoText: '--calendar-badge-info-text',
-    badgeWarningBg: '--calendar-badge-warning-bg',
-    badgeWarningText: '--calendar-badge-warning-text',
-    badgeDangerBg: '--calendar-badge-danger-bg',
-    badgeDangerText: '--calendar-badge-danger-text',
-    badgeNeutralBg: '--calendar-badge-neutral-bg',
-    badgeNeutralText: '--calendar-badge-neutral-text',
-    badgePositiveBg: '--calendar-badge-positive-bg',
-    badgePositiveText: '--calendar-badge-positive-text',
-    badgeTentativeBg: '--calendar-badge-tentative-bg',
-    badgeTentativeText: '--calendar-badge-tentative-text',
+    primary: '--kalendly-primary-color',
+    secondary: '--kalendly-secondary-color',
+    tertiary: '--kalendly-tertiary-color',
+    textColor: '--kalendly-text-color',
+    textLight: '--kalendly-text-light',
+    background: '--kalendly-background',
+    cellHover: '--kalendly-cell-hover',
+    borderColor: '--kalendly-border-color',
+    todayOutline: '--kalendly-today-outline',
+    selectedBg: '--kalendly-selected-bg',
+    outOfRangeBg: '--kalendly-out-of-range-bg',
+    outOfRangeFg: '--kalendly-out-of-range-fg',
+    navArrowFg: '--kalendly-nav-arrow-fg',
+    navArrowBg: '--kalendly-nav-arrow-bg',
+    navArrowBorder: '--kalendly-nav-arrow-border',
+    navArrowHoverFg: '--kalendly-nav-arrow-hover-fg',
+    navArrowHoverBg: '--kalendly-nav-arrow-hover-bg',
+    inputInvalidBg: '--kalendly-input-invalid-bg',
+    popupHeaderFg: '--kalendly-popup-header-fg',
+    popupCloseFg: '--kalendly-popup-close-fg',
+    popupCloseBg: '--kalendly-popup-close-bg',
+    popupCloseHoverBg: '--kalendly-popup-close-hover-bg',
+    headerBg: '--kalendly-header-bg',
+    popupBg: '--kalendly-popup-bg',
+    pickerBg: '--kalendly-picker-bg',
+    pickerShadow: '--kalendly-picker-shadow',
+    eventIndicator: '--kalendly-event-indicator',
+    onAccent: '--kalendly-on-accent',
+    link: '--kalendly-link',
+    openBg: '--kalendly-open-bg',
+    openFg: '--kalendly-open-fg',
+    conditionalBg: '--kalendly-conditional-bg',
+    conditionalFg: '--kalendly-conditional-fg',
+    blockedBg: '--kalendly-blocked-bg',
+    blockedFg: '--kalendly-blocked-fg',
+    rangeBg: '--kalendly-range-bg',
+    rangeOutline: '--kalendly-range-outline',
+    inRangeBg: '--kalendly-in-range-bg',
+    inRangeOutline: '--kalendly-in-range-outline',
+    badgeBg: '--kalendly-badge-bg',
+    badgeText: '--kalendly-badge-text',
+    badgeSuccessBg: '--kalendly-badge-success-bg',
+    badgeSuccessText: '--kalendly-badge-success-text',
+    badgeInfoBg: '--kalendly-badge-info-bg',
+    badgeInfoText: '--kalendly-badge-info-text',
+    badgeWarningBg: '--kalendly-badge-warning-bg',
+    badgeWarningText: '--kalendly-badge-warning-text',
+    badgeDangerBg: '--kalendly-badge-danger-bg',
+    badgeDangerText: '--kalendly-badge-danger-text',
+    badgeNeutralBg: '--kalendly-badge-neutral-bg',
+    badgeNeutralText: '--kalendly-badge-neutral-text',
+    badgePositiveBg: '--kalendly-badge-positive-bg',
+    badgePositiveText: '--kalendly-badge-positive-text',
+    badgeTentativeBg: '--kalendly-badge-tentative-bg',
+    badgeTentativeText: '--kalendly-badge-tentative-text',
   };
 
   private engine: CalendarEngine | null = null;
@@ -216,7 +216,7 @@ export class CalendarElement extends HTMLElement {
   }
 
   connectedCallback(): void {
-    this.classList.add('kalendly-calendar');
+    this.classList.add('kalendly');
     this.reaction(() => {
       this.initEngine();
       this.render();
@@ -225,7 +225,7 @@ export class CalendarElement extends HTMLElement {
 
   disconnectedCallback(): void {
     this.cleanup();
-    this.classList.remove('kalendly-calendar');
+    this.classList.remove('kalendly');
     this.innerHTML = '';
   }
 
@@ -640,22 +640,22 @@ export class CalendarElement extends HTMLElement {
       };
 
       return `
-        <div class="event-card" style="border-left-color: ${borderColor}">
-          <div class="event-header">
-            ${event.name ? `<div class="event-title">${escapeHtml(event.name)}</div>` : ''}
-            <div class="event-badges">
-              ${event.category ? `<span class="badge category category-${slugifyToken(event.category)}">${escapeHtml(getCategoryLabel(event.category))}</span>` : ''}
-              ${event.priority ? `<span class="badge priority priority-${slugifyToken(event.priority)}">${escapeHtml(getPriorityLabel(event.priority))}</span>` : ''}
-              ${event.status && event.status !== 'scheduled' ? `<span class="badge status status-${slugifyToken(event.status)}">${escapeHtml(getStatusLabel(event.status))}</span>` : ''}
+        <div class="kalendly-event-card" style="border-left-color: ${borderColor}">
+          <div class="kalendly-event-header">
+            ${event.name ? `<div class="kalendly-event-title">${escapeHtml(event.name)}</div>` : ''}
+            <div class="kalendly-event-badges">
+              ${event.category ? `<span class="kalendly-badge kalendly-category-${slugifyToken(event.category)}">${escapeHtml(getCategoryLabel(event.category))}</span>` : ''}
+              ${event.priority ? `<span class="kalendly-badge kalendly-priority-${slugifyToken(event.priority)}">${escapeHtml(getPriorityLabel(event.priority))}</span>` : ''}
+              ${event.status && event.status !== 'scheduled' ? `<span class="kalendly-badge kalendly-status-${slugifyToken(event.status)}">${escapeHtml(getStatusLabel(event.status))}</span>` : ''}
             </div>
           </div>
 
           ${
             timeRange
               ? `
-          <div class="event-time">
-            <span class="event-time-label">Time:</span>
-            <span class="event-time-value">${escapeHtml(timeRange)}</span>
+          <div class="kalendly-event-time">
+            <span class="kalendly-event-time-label">Time:</span>
+            <span class="kalendly-event-time-value">${escapeHtml(timeRange)}</span>
           </div>
           `
               : ''
@@ -664,7 +664,7 @@ export class CalendarElement extends HTMLElement {
           ${
             event.description
               ? `
-          <div class="event-description">${escapeHtml(event.description)}</div>
+          <div class="kalendly-event-description">${escapeHtml(event.description)}</div>
           `
               : ''
           }
@@ -672,9 +672,9 @@ export class CalendarElement extends HTMLElement {
           ${
             event.location
               ? `
-          <div class="event-time">
-            <span class="event-time-label">Location:</span>
-            <span class="event-time-value">${escapeHtml(event.location)}</span>
+          <div class="kalendly-event-time">
+            <span class="kalendly-event-time-label">Location:</span>
+            <span class="kalendly-event-time-value">${escapeHtml(event.location)}</span>
           </div>
           `
               : ''
@@ -683,9 +683,9 @@ export class CalendarElement extends HTMLElement {
           ${
             attendeesList
               ? `
-          <div class="event-time">
-            <span class="event-time-label">Attendees:</span>
-            <span class="event-time-value">${escapeHtml(attendeesList)}</span>
+          <div class="kalendly-event-time">
+            <span class="kalendly-event-time-label">Attendees:</span>
+            <span class="kalendly-event-time-value">${escapeHtml(attendeesList)}</span>
           </div>
           `
               : ''
@@ -694,9 +694,9 @@ export class CalendarElement extends HTMLElement {
           ${
             event.organizer
               ? `
-          <div class="event-time">
-            <span class="event-time-label">Organizer:</span>
-            <span class="event-time-value">${escapeHtml(event.organizer)}</span>
+          <div class="kalendly-event-time">
+            <span class="kalendly-event-time-label">Organizer:</span>
+            <span class="kalendly-event-time-value">${escapeHtml(event.organizer)}</span>
           </div>
           `
               : ''
@@ -705,9 +705,9 @@ export class CalendarElement extends HTMLElement {
           ${
             event.notes
               ? `
-          <div class="event-time">
-            <span class="event-time-label">Notes:</span>
-            <span class="event-time-value">${escapeHtml(event.notes)}</span>
+          <div class="kalendly-event-time">
+            <span class="kalendly-event-time-label">Notes:</span>
+            <span class="kalendly-event-time-value">${escapeHtml(event.notes)}</span>
           </div>
           `
               : ''
@@ -716,8 +716,8 @@ export class CalendarElement extends HTMLElement {
           ${
             event.url
               ? `
-          <div class="event-time">
-            <a href="${escapeHtml(safeUrl(event.url as string))}" target="_blank" rel="noopener noreferrer" class="event-link">
+          <div class="kalendly-event-time">
+            <a href="${escapeHtml(safeUrl(event.url as string))}" target="_blank" rel="noopener noreferrer" class="kalendly-event-link">
               View Details →
             </a>
           </div>
@@ -728,8 +728,8 @@ export class CalendarElement extends HTMLElement {
           ${
             event.tags && event.tags.length > 0
               ? `
-          <div class="event-tags">
-            ${event.tags.map((tag: string) => `<span class="event-tag">${escapeHtml(tag)}</span>`).join('')}
+          <div class="kalendly-event-tags">
+            ${event.tags.map((tag: string) => `<span class="kalendly-event-tag">${escapeHtml(tag)}</span>`).join('')}
           </div>
           `
               : ''
@@ -739,7 +739,7 @@ export class CalendarElement extends HTMLElement {
     };
 
     const defaultRenderNoEvents = () =>
-      '<div class="no-events-message">No events scheduled for this day.</div>';
+      '<div class="kalendly-no-events-message">No events scheduled for this day.</div>';
 
     const renderEvent = this._renderEvent || defaultRenderEvent;
     const renderNoEvents = this._renderNoEvents || defaultRenderNoEvents;
@@ -786,12 +786,12 @@ export class CalendarElement extends HTMLElement {
         const isInRange = inTimeRange && !isRangeStart && !isRangeEnd;
 
         const slotClasses = [
-          'time-grid-slot',
-          offered ? '' : 'time-grid-slot-out-of-range',
-          isBooked ? 'time-grid-slot-blocked' : 'time-grid-slot-open',
-          isRangeStart ? 'time-grid-slot-range-start' : '',
-          isRangeEnd ? 'time-grid-slot-range-end' : '',
-          isInRange ? 'time-grid-slot-in-range' : '',
+          'kalendly-time-grid-slot',
+          offered ? '' : 'kalendly-time-grid-slot-out-of-range',
+          isBooked ? 'kalendly-time-grid-slot-blocked' : 'kalendly-time-grid-slot-open',
+          isRangeStart ? 'kalendly-time-grid-slot-range-start' : '',
+          isRangeEnd ? 'kalendly-time-grid-slot-range-end' : '',
+          isInRange ? 'kalendly-time-grid-slot-in-range' : '',
         ]
           .filter(Boolean)
           .join(' ');
@@ -808,14 +808,14 @@ export class CalendarElement extends HTMLElement {
 
         return `
           <div class="${slotClasses}" ${slotAttrs}>
-            <span class="time-grid-label">${startTime}</span>
-            <span class="time-grid-status">${status}</span>
+            <span class="kalendly-time-grid-label">${startTime}</span>
+            <span class="kalendly-time-grid-status">${status}</span>
           </div>`;
       });
 
       const gridClasses = selectable
-        ? 'time-grid time-grid-selectable'
-        : 'time-grid';
+        ? 'kalendly-time-grid kalendly-time-grid-selectable'
+        : 'kalendly-time-grid';
 
       return `<div class="${gridClasses}">${slots.join('')}</div>`;
     };
@@ -823,13 +823,13 @@ export class CalendarElement extends HTMLElement {
     const multiMonth = viewModel.panes.length > 1;
 
     const renderPane = (pane: CalendarPane): string => `
-        <div class="calendar-pane">
+        <div class="kalendly-pane">
           ${
             multiMonth
-              ? `<div class="calendar-pane-caption">${escapeHtml(pane.monthAndYearText)}</div>`
+              ? `<div class="kalendly-pane-caption">${escapeHtml(pane.monthAndYearText)}</div>`
               : ''
           }
-            <table class="calendar-table calendar-table-bordered">
+            <table class="kalendly-table kalendly-table-bordered">
               <thead>
                 <tr>
                   ${viewModel.days.map(day => `<th>${day.slice(0, 3)}</th>`).join('')}
@@ -844,7 +844,7 @@ export class CalendarElement extends HTMLElement {
                           `<tr>${Array.from(
                             { length: 7 },
                             () =>
-                              `<td class="calendar-skeleton" aria-hidden="true"></td>`
+                              `<td class="kalendly-skeleton" aria-hidden="true"></td>`
                           ).join('')}</tr>`
                       ).join('')
                     : pane.calendarDates
@@ -863,7 +863,7 @@ export class CalendarElement extends HTMLElement {
                                 viewModel.selectedDate
                               )
                             ) {
-                              classes.push('calendar-cell-selected');
+                              classes.push('kalendly-cell-selected');
                             }
                             if (availabilityMode) {
                               const bucket = this.resolveBucket(
@@ -874,16 +874,16 @@ export class CalendarElement extends HTMLElement {
                               ];
 
                               classes.push(
-                                `availability-${slugifyToken(bucket)}`
+                                `kalendly-availability-${slugifyToken(bucket)}`
                               );
                               if (custom) {
-                                classes.push('availability-status');
+                                classes.push('kalendly-availability-status');
                                 cellAttrs.push(
-                                  `style="--availability-color: ${escapeHtml(safeColor(custom))}"`
+                                  `style="--kalendly-availability-color: ${escapeHtml(safeColor(custom))}"`
                                 );
                               }
                               if (!this.isDateSelectable(calendarDate.date)) {
-                                classes.push('availability-unselectable');
+                                classes.push('kalendly-availability-unselectable');
                               }
                               cellAttrs.push(
                                 `aria-label="${escapeHtml(bucket)}"`
@@ -895,15 +895,15 @@ export class CalendarElement extends HTMLElement {
                                 this._rangeStart &&
                                 isSameDay(d, this._rangeStart)
                               )
-                                classes.push('availability-range-start');
+                                classes.push('kalendly-availability-range-start');
                               if (
                                 this._rangeEnd &&
                                 isSameDay(d, this._rangeEnd)
                               )
-                                classes.push('availability-range-end');
+                                classes.push('kalendly-availability-range-end');
                               if (this._rangeStart && this._rangeEnd) {
                                 if (d > this._rangeStart && d < this._rangeEnd)
-                                  classes.push('availability-in-range');
+                                  classes.push('kalendly-availability-in-range');
                               }
                             }
                             const dateString = calendarDate.date.toISOString();
@@ -914,7 +914,7 @@ export class CalendarElement extends HTMLElement {
                               calendarDate.date
                             );
                             if (!offered) {
-                              classes.push('calendar-cell-out-of-range');
+                              classes.push('kalendly-cell-out-of-range');
                             }
                             return `
                             <td
@@ -942,24 +942,24 @@ export class CalendarElement extends HTMLElement {
       ${
         title
           ? `
-      <div class="calendar-title">
+      <div class="kalendly-title">
         <h1>${escapeHtml(title)}</h1>
       </div>
       `
           : ''
       }
 
-      <div class="calendar-content">
-        <div class="calendar-card">
-          <div class="calendar-nav-header">
-            <button type="button" class="calendar-nav-arrow" data-action="previous" aria-label="Previous month">
+      <div class="kalendly-content">
+        <div class="kalendly-card">
+          <div class="kalendly-nav-header">
+            <button type="button" class="kalendly-nav-arrow" data-action="previous" aria-label="Previous month">
               &#8249;
             </button>
 
-            <div class="calendar-picker-container" data-picker-container>
+            <div class="kalendly-picker-container" data-picker-container>
               <button
                 type="button"
-                class="calendar-picker-btn"
+                class="kalendly-picker-btn"
                 data-action="toggle-picker"
                 aria-expanded="${this.pickerOpen ? 'true' : 'false'}"
                 aria-haspopup="true"
@@ -969,38 +969,38 @@ export class CalendarElement extends HTMLElement {
                     ? `${MONTHS[viewModel.currentMonth]} ${viewModel.currentYear}`
                     : viewModel.monthAndYearText
                 }
-                <span class="calendar-picker-chevron">&#9662;</span>
+                <span class="kalendly-picker-chevron">&#9662;</span>
               </button>
 
               ${
                 this.pickerOpen
                   ? `
-                <div class="calendar-picker-dropdown">
-                  <div class="calendar-picker-year-row">
+                <div class="kalendly-picker-dropdown">
+                  <div class="kalendly-picker-year-row">
                     <button
                       type="button"
-                      class="calendar-picker-year-arrow"
+                      class="kalendly-picker-year-arrow"
                       data-action="year-prev"
                       ${viewModel.currentYear <= minYear ? 'disabled' : ''}
                       aria-label="Previous year"
                     >&#8249;</button>
                     <input
                       type="text"
-                      class="calendar-picker-year-input${!this.yearInputValid ? ' invalid' : ''}"
+                      class="kalendly-picker-year-input${!this.yearInputValid ? ' kalendly-invalid' : ''}"
                       value="${escapeHtml(this.yearInput || viewModel.currentYear)}"
                       data-year-input
                       aria-label="Year"
                     />
                     <button
                       type="button"
-                      class="calendar-picker-year-arrow"
+                      class="kalendly-picker-year-arrow"
                       data-action="year-next"
                       ${viewModel.currentYear >= maxYear ? 'disabled' : ''}
                       aria-label="Next year"
                     >&#8250;</button>
                   </div>
 
-                  <div class="calendar-picker-months">
+                  <div class="kalendly-picker-months">
                     ${(useShortMonths ? MONTHS : MONTHS_FULL)
                       .map((month, index) => {
                         const isSelected = index === viewModel.currentMonth;
@@ -1010,7 +1010,7 @@ export class CalendarElement extends HTMLElement {
                         return `
                         <button
                           type="button"
-                          class="calendar-picker-month${isSelected ? ' selected' : ''}${isCurrent ? ' current-month' : ''}"
+                          class="kalendly-picker-month${isSelected ? ' kalendly-selected' : ''}${isCurrent ? ' kalendly-current-month' : ''}"
                           data-action="select-month"
                           data-month="${index}"
                         >${month}</button>
@@ -1026,40 +1026,40 @@ export class CalendarElement extends HTMLElement {
 
             <button
               type="button"
-              class="calendar-today-btn"
+              class="kalendly-today-btn"
               data-action="today"
               ${isCurrentMonth ? 'disabled' : ''}
             >Today</button>
 
-            <button type="button" class="calendar-nav-arrow" data-action="next" aria-label="Next month">
+            <button type="button" class="kalendly-nav-arrow" data-action="next" aria-label="Next month">
               &#8250;
             </button>
           </div>
 
-          <div class="calendar-panes">
+          <div class="kalendly-panes">
             ${viewModel.panes.map(renderPane).join('')}
           </div>
 
           ${
             !isLoading && availabilityMode !== 'day' && viewModel.selectedDate
               ? `
-            <div class="date-popup">
-              <div class="popup-header">
+            <div class="kalendly-popup">
+              <div class="kalendly-popup-header">
                 <h2>${viewModel.scheduleDay}</h2>
-                <button type="button" class="popup-close" data-action="close-popup" aria-label="Close">✕</button>
+                <button type="button" class="kalendly-popup-close" data-action="close-popup" aria-label="Close">✕</button>
               </div>
 
               ${
                 showScrollHint
                   ? `
-              <div class="scroll-hint">
+              <div class="kalendly-scroll-hint">
                 ↓ Scroll to see more events ↓
               </div>
               `
                   : ''
               }
 
-              <div class="events-container">
+              <div class="kalendly-events-container">
                 ${
                   availabilityMode === 'time'
                     ? renderTimeGrid(viewModel.selectedDate!)
@@ -1329,7 +1329,7 @@ export class CalendarElement extends HTMLElement {
         const year = parseInt(value, 10);
         this.yearInputValid =
           value === '' || (year >= minYear && year <= maxYear);
-        target.classList.toggle('invalid', !this.yearInputValid);
+        target.classList.toggle('kalendly-invalid', !this.yearInputValid);
       }
     };
 
@@ -1343,7 +1343,7 @@ export class CalendarElement extends HTMLElement {
         this.yearInput = String(vm.currentYear);
         this.yearInputValid = true;
         target.value = this.yearInput;
-        target.classList.remove('invalid');
+        target.classList.remove('kalendly-invalid');
       } else if (year !== vm.currentYear) {
         this.dispatchMonthChange(year, vm.currentMonth);
         this.actions!.jump(year, vm.currentMonth);
@@ -1371,7 +1371,7 @@ export class CalendarElement extends HTMLElement {
         return;
       }
 
-      const popup = this.querySelector('.date-popup');
+      const popup = this.querySelector('.kalendly-popup');
       if (popup) {
         this.engine!.clearSelection();
       }

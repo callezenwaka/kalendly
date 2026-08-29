@@ -22,7 +22,7 @@ afterEach(() => {
   // Reset theme CSS variables
   const root = document.documentElement;
   for (const property of Array.from(root.style)) {
-    if (property.startsWith('--calendar-')) root.style.removeProperty(property);
+    if (property.startsWith('--kalendly-')) root.style.removeProperty(property);
   }
 });
 
@@ -109,15 +109,15 @@ describe('CalendarElement', () => {
   });
 
   describe('Lifecycle', () => {
-    it('should add kalendly-calendar class on connect', () => {
+    it('should add kalendly class on connect', () => {
       const el = mount();
-      expect(el.classList.contains('kalendly-calendar')).toBe(true);
+      expect(el.classList.contains('kalendly')).toBe(true);
     });
 
-    it('should remove kalendly-calendar class on disconnect', () => {
+    it('should remove kalendly class on disconnect', () => {
       const el = mount();
       document.body.removeChild(el);
-      expect(el.classList.contains('kalendly-calendar')).toBe(false);
+      expect(el.classList.contains('kalendly')).toBe(false);
     });
 
     it('should clear innerHTML on disconnect', () => {
@@ -137,13 +137,13 @@ describe('CalendarElement', () => {
 
     it('should re-initialise engine when observed attribute changes', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'January 2024'
       );
 
       el.setAttribute('initial-date', new Date('2024-06-01').toISOString());
       await flush();
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'June 2024'
       );
     });
@@ -161,8 +161,8 @@ describe('CalendarElement', () => {
   describe('Rendering', () => {
     it('should render calendar table', () => {
       const el = mount();
-      expect(el.querySelector('.calendar-table')).toBeTruthy();
-      expect(el.querySelector('.calendar-picker-btn')).toBeTruthy();
+      expect(el.querySelector('.kalendly-table')).toBeTruthy();
+      expect(el.querySelector('.kalendly-picker-btn')).toBeTruthy();
     });
 
     it('should render title when attribute is set', () => {
@@ -174,7 +174,7 @@ describe('CalendarElement', () => {
 
     it('should not render title when attribute is absent', () => {
       const el = mount();
-      expect(el.querySelector('.calendar-title')).toBeNull();
+      expect(el.querySelector('.kalendly-title')).toBeNull();
     });
 
     it('should render previous and next buttons', () => {
@@ -216,7 +216,7 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      expect(el.querySelector('.date-popup')).toBeTruthy();
+      expect(el.querySelector('.kalendly-popup')).toBeTruthy();
     });
 
     it('should re-render when renderEvent property is set', async () => {
@@ -308,19 +308,19 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      expect(el.querySelector('.date-popup')).toBeTruthy();
+      expect(el.querySelector('.kalendly-popup')).toBeTruthy();
     });
   });
 
   describe('Navigation', () => {
     it('should navigate to next month', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'January 2024'
       );
       (el.querySelector('[data-action="next"]') as HTMLButtonElement)?.click();
       await flush();
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'February 2024'
       );
     });
@@ -331,14 +331,14 @@ describe('CalendarElement', () => {
         el.querySelector('[data-action="previous"]') as HTMLButtonElement
       )?.click();
       await flush();
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'February 2024'
       );
     });
 
     it('should jump to selected month via picker', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      (el.querySelector('.kalendly-picker-btn') as HTMLButtonElement)?.click();
       await flush();
 
       const monthBtns = el.querySelectorAll('[data-action="select-month"]');
@@ -347,14 +347,14 @@ describe('CalendarElement', () => {
       (monthBtns[5] as HTMLButtonElement)?.click();
       await flush();
 
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'June 2024'
       );
     });
 
     it('should jump to year via input', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      (el.querySelector('.kalendly-picker-btn') as HTMLButtonElement)?.click();
       await flush();
 
       const yearInput = el.querySelector(
@@ -368,7 +368,7 @@ describe('CalendarElement', () => {
       yearInput.dispatchEvent(new Event('blur', { bubbles: true }));
       await flush();
 
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'January 2025'
       );
     });
@@ -402,7 +402,7 @@ describe('CalendarElement', () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
       el.goToDate(new Date('2025-06-15'));
       await flush();
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'June 2025'
       );
     });
@@ -425,7 +425,7 @@ describe('CalendarElement', () => {
   describe('Short Month Names', () => {
     it('should use long month names by default', () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'January 2024'
       );
     });
@@ -435,16 +435,16 @@ describe('CalendarElement', () => {
         initialDate: new Date('2024-01-15'),
         useShortMonthNames: true,
       });
-      expect(el.querySelector('.calendar-picker-btn')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-picker-btn')?.textContent).toContain(
         'Jan 2024'
       );
     });
 
     it('should show long month names in picker dropdown by default', async () => {
       const el = mount({ initialDate: new Date('2024-01-15') });
-      (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      (el.querySelector('.kalendly-picker-btn') as HTMLButtonElement)?.click();
       await flush();
-      const btns = el.querySelectorAll('.calendar-picker-month');
+      const btns = el.querySelectorAll('.kalendly-picker-month');
       if (btns.length === 0) return;
       expect(btns[0].textContent).toBe('January');
       expect(btns[11].textContent).toBe('December');
@@ -455,9 +455,9 @@ describe('CalendarElement', () => {
         initialDate: new Date('2024-01-15'),
         useShortMonthNames: true,
       });
-      (el.querySelector('.calendar-picker-btn') as HTMLButtonElement)?.click();
+      (el.querySelector('.kalendly-picker-btn') as HTMLButtonElement)?.click();
       await flush();
-      const btns = el.querySelectorAll('.calendar-picker-month');
+      const btns = el.querySelectorAll('.kalendly-picker-month');
       if (btns.length === 0) return;
       expect(btns[0].textContent).toBe('Jan');
       expect(btns[11].textContent).toBe('Dec');
@@ -510,13 +510,13 @@ describe('CalendarElement', () => {
         },
       });
       const root = document.documentElement;
-      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-primary-color')).toBe(
         '#3b82f6'
       );
-      expect(root.style.getPropertyValue('--calendar-secondary-color')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-secondary-color')).toBe(
         '#60a5fa'
       );
-      expect(root.style.getPropertyValue('--calendar-tertiary-color')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-tertiary-color')).toBe(
         '#93c5fd'
       );
     });
@@ -540,16 +540,16 @@ describe('CalendarElement', () => {
         },
       });
       const root = document.documentElement;
-      expect(root.style.getPropertyValue('--calendar-text-color')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-text-color')).toBe(
         '#1f2937'
       );
-      expect(root.style.getPropertyValue('--calendar-event-indicator')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-event-indicator')).toBe(
         '#10b981'
       );
-      expect(root.style.getPropertyValue('--calendar-badge-bg')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-badge-bg')).toBe(
         '#1f2937'
       );
-      expect(root.style.getPropertyValue('--calendar-badge-text')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-badge-text')).toBe(
         '#e5e7eb'
       );
     });
@@ -558,7 +558,7 @@ describe('CalendarElement', () => {
       expect(() => mount({ theme: { primary: '#8b5cf6' } })).not.toThrow();
       expect(
         document.documentElement.style.getPropertyValue(
-          '--calendar-primary-color'
+          '--kalendly-primary-color'
         )
       ).toBe('#8b5cf6');
     });
@@ -570,7 +570,7 @@ describe('CalendarElement', () => {
     it('should update theme dynamically via updateTheme', async () => {
       const el = mount({ theme: { primary: '#3b82f6' } });
       const root = document.documentElement;
-      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-primary-color')).toBe(
         '#3b82f6'
       );
 
@@ -579,10 +579,10 @@ describe('CalendarElement', () => {
         secondary: '#a78bfa',
         tertiary: '#c4b5fd',
       });
-      expect(root.style.getPropertyValue('--calendar-primary-color')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-primary-color')).toBe(
         '#8b5cf6'
       );
-      expect(root.style.getPropertyValue('--calendar-tertiary-color')).toBe(
+      expect(root.style.getPropertyValue('--kalendly-tertiary-color')).toBe(
         '#c4b5fd'
       );
     });
@@ -599,7 +599,7 @@ describe('CalendarElement', () => {
       },
     ];
 
-    it('should add availability-blocked class to cells with events', () => {
+    it('should add kalendly-availability-blocked class to cells with events', () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
@@ -608,10 +608,10 @@ describe('CalendarElement', () => {
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
-      expect(bookedCell?.classList.contains('availability-blocked')).toBe(true);
+      expect(bookedCell?.classList.contains('kalendly-availability-blocked')).toBe(true);
     });
 
-    it('should add availability-open class to cells without events', () => {
+    it('should add kalendly-availability-open class to cells without events', () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
@@ -620,28 +620,28 @@ describe('CalendarElement', () => {
       const freeCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '16'
       );
-      expect(freeCell?.classList.contains('availability-open')).toBe(true);
+      expect(freeCell?.classList.contains('kalendly-availability-open')).toBe(true);
     });
 
-    it('gives calendar-cell-other-month cells their availability class', () => {
+    it('gives kalendly-cell-other-month cells their availability class', () => {
       const el = mount({
         events: BOOKED_EVENTS,
         initialDate: BOOKED_DATE,
         availabilityMode: 'day',
       });
       const otherMonthCells = Array.from(
-        el.querySelectorAll('td.calendar-cell-other-month')
+        el.querySelectorAll('td.kalendly-cell-other-month')
       );
 
       expect(otherMonthCells.length).toBeGreaterThan(0);
       otherMonthCells.forEach(cell => {
         const bucketed =
-          cell.classList.contains('availability-blocked') ||
-          cell.classList.contains('availability-conditional') ||
-          cell.classList.contains('availability-open');
+          cell.classList.contains('kalendly-availability-blocked') ||
+          cell.classList.contains('kalendly-availability-conditional') ||
+          cell.classList.contains('kalendly-availability-open');
         expect(bucketed).toBe(true);
         // still visually distinguished as an adjacent month
-        expect(cell.classList.contains('calendar-cell-other-month')).toBe(true);
+        expect(cell.classList.contains('kalendly-cell-other-month')).toBe(true);
       });
     });
 
@@ -656,7 +656,7 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      expect(el.querySelector('.date-popup')).toBeNull();
+      expect(el.querySelector('.kalendly-popup')).toBeNull();
     });
 
     it('should still dispatch cal-date-select when a day is clicked', async () => {
@@ -719,12 +719,12 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      expect(el.querySelector('.date-popup')).toBeTruthy();
+      expect(el.querySelector('.kalendly-popup')).toBeTruthy();
 
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
-      expect(bookedCell?.classList.contains('availability-blocked')).toBe(
+      expect(bookedCell?.classList.contains('kalendly-availability-blocked')).toBe(
         false
       );
     });
@@ -754,7 +754,7 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      expect(el.querySelector('.date-popup')).toBeTruthy();
+      expect(el.querySelector('.kalendly-popup')).toBeTruthy();
     });
 
     it('should render the time grid inside the popup', async () => {
@@ -768,8 +768,8 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      expect(el.querySelector('.time-grid')).toBeTruthy();
-      expect(el.querySelectorAll('.time-grid-slot').length).toBe(24);
+      expect(el.querySelector('.kalendly-time-grid')).toBeTruthy();
+      expect(el.querySelectorAll('.kalendly-time-grid-slot').length).toBe(24);
     });
 
     it('should mark booked hours correctly', async () => {
@@ -783,13 +783,13 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      const slots = el.querySelectorAll('.time-grid-slot');
+      const slots = el.querySelectorAll('.kalendly-time-grid-slot');
       // 09:00 and 10:00 should be booked (startTime=09:00, endTime=11:00)
-      expect(slots[9].classList.contains('time-grid-slot-blocked')).toBe(true);
-      expect(slots[10].classList.contains('time-grid-slot-blocked')).toBe(true);
+      expect(slots[9].classList.contains('kalendly-time-grid-slot-blocked')).toBe(true);
+      expect(slots[10].classList.contains('kalendly-time-grid-slot-blocked')).toBe(true);
       // 08:00 and 11:00 should be free
-      expect(slots[8].classList.contains('time-grid-slot-open')).toBe(true);
-      expect(slots[11].classList.contains('time-grid-slot-open')).toBe(true);
+      expect(slots[8].classList.contains('kalendly-time-grid-slot-open')).toBe(true);
+      expect(slots[11].classList.contains('kalendly-time-grid-slot-open')).toBe(true);
     });
 
     it('should mark all hours booked for all-day events', async () => {
@@ -811,7 +811,7 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      const slots = el.querySelectorAll('.time-grid-slot-blocked');
+      const slots = el.querySelectorAll('.kalendly-time-grid-slot-blocked');
       expect(slots.length).toBe(24);
     });
 
@@ -826,7 +826,7 @@ describe('CalendarElement', () => {
       );
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      const slots = el.querySelectorAll('.time-grid-slot-open');
+      const slots = el.querySelectorAll('.kalendly-time-grid-slot-open');
       expect(slots.length).toBe(24);
     });
 
@@ -842,7 +842,7 @@ describe('CalendarElement', () => {
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
       expect(el.innerHTML).not.toContain('Private');
-      expect(el.querySelector('.event-card')).toBeNull();
+      expect(el.querySelector('.kalendly-event-card')).toBeNull();
     });
 
     it('should still show booked/free cell backgrounds from day mode', () => {
@@ -854,7 +854,7 @@ describe('CalendarElement', () => {
       const bookedCell = Array.from(el.querySelectorAll('td')).find(
         td => td.textContent?.trim() === '15'
       );
-      expect(bookedCell?.classList.contains('availability-blocked')).toBe(true);
+      expect(bookedCell?.classList.contains('kalendly-availability-blocked')).toBe(true);
     });
   });
 
@@ -882,7 +882,7 @@ describe('CalendarElement', () => {
       );
     }
 
-    it('first click on a free day adds availability-range-start class', async () => {
+    it('first click on a free day adds kalendly-availability-range-start class', async () => {
       const el = mount({
         events: EVENTS,
         initialDate: BASE_DATE,
@@ -892,7 +892,7 @@ describe('CalendarElement', () => {
       clickDay(el, '16');
       await flush();
       expect(
-        getCell(el, '16')?.classList.contains('availability-range-start')
+        getCell(el, '16')?.classList.contains('kalendly-availability-range-start')
       ).toBe(true);
     });
 
@@ -929,13 +929,13 @@ describe('CalendarElement', () => {
       await flush();
 
       expect(
-        getCell(el, '16')?.classList.contains('availability-range-start')
+        getCell(el, '16')?.classList.contains('kalendly-availability-range-start')
       ).toBe(true);
       expect(
-        getCell(el, '20')?.classList.contains('availability-range-end')
+        getCell(el, '20')?.classList.contains('kalendly-availability-range-end')
       ).toBe(true);
       expect(
-        getCell(el, '18')?.classList.contains('availability-in-range')
+        getCell(el, '18')?.classList.contains('kalendly-availability-in-range')
       ).toBe(true);
     });
 
@@ -977,10 +977,10 @@ describe('CalendarElement', () => {
         .detail;
       expect(startDate < endDate).toBe(true);
       expect(
-        getCell(el, '16')?.classList.contains('availability-range-start')
+        getCell(el, '16')?.classList.contains('kalendly-availability-range-start')
       ).toBe(true);
       expect(
-        getCell(el, '20')?.classList.contains('availability-range-end')
+        getCell(el, '20')?.classList.contains('kalendly-availability-range-end')
       ).toBe(true);
     });
 
@@ -999,13 +999,13 @@ describe('CalendarElement', () => {
       await flush();
 
       expect(
-        getCell(el, '22')?.classList.contains('availability-range-start')
+        getCell(el, '22')?.classList.contains('kalendly-availability-range-start')
       ).toBe(true);
       expect(
-        getCell(el, '16')?.classList.contains('availability-range-start')
+        getCell(el, '16')?.classList.contains('kalendly-availability-range-start')
       ).toBe(false);
       expect(
-        getCell(el, '20')?.classList.contains('availability-range-end')
+        getCell(el, '20')?.classList.contains('kalendly-availability-range-end')
       ).toBe(false);
     });
 
@@ -1043,10 +1043,10 @@ describe('CalendarElement', () => {
         .detail;
       expect(startDate.toDateString()).toBe(endDate.toDateString());
       expect(
-        getCell(el, '13')?.classList.contains('availability-range-start')
+        getCell(el, '13')?.classList.contains('kalendly-availability-range-start')
       ).toBe(false);
       expect(
-        getCell(el, '17')?.classList.contains('availability-range-start')
+        getCell(el, '17')?.classList.contains('kalendly-availability-range-start')
       ).toBe(true);
     });
 
@@ -1062,7 +1062,7 @@ describe('CalendarElement', () => {
       el.removeAttribute('selectable');
       await flush();
       expect(
-        getCell(el, '16')?.classList.contains('availability-range-start')
+        getCell(el, '16')?.classList.contains('kalendly-availability-range-start')
       ).toBe(false);
     });
   });
@@ -1089,7 +1089,7 @@ describe('CalendarElement', () => {
     function clickSlot(el: CalendarElement, startTime: string): void {
       (
         el.querySelector(
-          `.time-grid-slot-open[data-start-time="${startTime}"]`
+          `.kalendly-time-grid-slot-open[data-start-time="${startTime}"]`
         ) as HTMLElement
       )?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     }
@@ -1104,7 +1104,7 @@ describe('CalendarElement', () => {
       openTimeGrid(el);
       await flush();
       expect(
-        el.querySelectorAll('.time-grid-slot-open[data-action="select-slot"]')
+        el.querySelectorAll('.kalendly-time-grid-slot-open[data-action="select-slot"]')
           .length
       ).toBeGreaterThan(0);
     });
@@ -1119,7 +1119,7 @@ describe('CalendarElement', () => {
       openTimeGrid(el);
       await flush();
       expect(
-        el.querySelectorAll('.time-grid-slot-blocked[data-booked="true"]')
+        el.querySelectorAll('.kalendly-time-grid-slot-blocked[data-booked="true"]')
           .length
       ).toBe(2);
     });
@@ -1147,7 +1147,7 @@ describe('CalendarElement', () => {
       expect(endTime).toBe('09:00');
     });
 
-    it('first click adds time-grid-slot-range-start class', async () => {
+    it('first click adds kalendly-time-grid-slot-range-start class', async () => {
       const el = mount({
         events: TIMED_EVENTS,
         initialDate: BASE_DATE,
@@ -1158,7 +1158,7 @@ describe('CalendarElement', () => {
       await flush();
       clickSlot(el, '08:00');
       await flush();
-      expect(el.querySelector('.time-grid-slot-range-start')).toBeTruthy();
+      expect(el.querySelector('.kalendly-time-grid-slot-range-start')).toBeTruthy();
     });
 
     it('second click extends the time range', async () => {
@@ -1224,7 +1224,7 @@ describe('CalendarElement', () => {
       await flush();
       openTimeGrid(el);
       await flush();
-      expect(el.querySelector('.time-grid-slot-range-start')).toBeNull();
+      expect(el.querySelector('.kalendly-time-grid-slot-range-start')).toBeNull();
     });
 
     it('keeps slots clickable when selectable is not set', async () => {
@@ -1236,10 +1236,10 @@ describe('CalendarElement', () => {
       openTimeGrid(el);
       await flush();
       expect(
-        el.querySelectorAll('.time-grid-slot-open[data-action="select-slot"]')
+        el.querySelectorAll('.kalendly-time-grid-slot-open[data-action="select-slot"]')
           .length
       ).toBeGreaterThan(0);
-      expect(el.querySelector('.time-grid-selectable')).toBeNull();
+      expect(el.querySelector('.kalendly-time-grid-selectable')).toBeNull();
     });
   });
 
@@ -1269,20 +1269,20 @@ describe('CalendarElement', () => {
       const el = mount({});
       el.loading = true;
       await flush();
-      const skeletons = el.querySelectorAll('td.calendar-skeleton');
+      const skeletons = el.querySelectorAll('td.kalendly-skeleton');
       expect(skeletons.length).toBe(42); // 6 weeks × 7 days
     });
 
     it('renders no skeleton cells when loading is false', () => {
       const el = mount({});
-      expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
+      expect(el.querySelectorAll('td.kalendly-skeleton').length).toBe(0);
     });
 
     it('skeleton cells are aria-hidden', async () => {
       const el = mount({});
       el.loading = true;
       await flush();
-      const skeletons = el.querySelectorAll('td.calendar-skeleton');
+      const skeletons = el.querySelectorAll('td.kalendly-skeleton');
       skeletons.forEach(td => {
         expect(td.getAttribute('aria-hidden')).toBe('true');
       });
@@ -1299,7 +1299,7 @@ describe('CalendarElement', () => {
       await flush();
       el.loading = true;
       await flush();
-      expect(el.querySelector('.date-popup')).toBeNull();
+      expect(el.querySelector('.kalendly-popup')).toBeNull();
     });
 
     it('cal-month-change fires before render on next navigation', async () => {
@@ -1317,7 +1317,7 @@ describe('CalendarElement', () => {
       await flush();
       expect(monthInEventWasOld).toBe(true);
       // loading was set in the handler → skeleton should be visible
-      expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(42);
+      expect(el.querySelectorAll('td.kalendly-skeleton').length).toBe(42);
     });
 
     it('cal-month-change fires before render on previous navigation', async () => {
@@ -1335,10 +1335,10 @@ describe('CalendarElement', () => {
       const el = mount({});
       el.loading = true;
       await flush();
-      expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(42);
+      expect(el.querySelectorAll('td.kalendly-skeleton').length).toBe(42);
       el.loading = false;
       await flush();
-      expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
+      expect(el.querySelectorAll('td.kalendly-skeleton').length).toBe(0);
       expect(el.querySelectorAll('td[data-clickable]').length).toBeGreaterThan(
         0
       );
@@ -1348,7 +1348,7 @@ describe('CalendarElement', () => {
   describe('Edge Cases', () => {
     it('should handle empty events array', () => {
       const el = mount({ events: [] });
-      expect(el.querySelector('.calendar-table')).toBeTruthy();
+      expect(el.querySelector('.kalendly-table')).toBeTruthy();
     });
 
     it('should not throw on click outside a date cell', async () => {
@@ -1386,7 +1386,7 @@ describe('CalendarElement — output escaping', () => {
     openDay(el);
     await flush();
 
-    const title = el.querySelector('.event-title');
+    const title = el.querySelector('.kalendly-event-title');
     expect(title?.querySelector('script')).toBeNull();
     expect(title?.textContent).toBe('<script>alert(1)</script>');
   });
@@ -1406,7 +1406,7 @@ describe('CalendarElement — output escaping', () => {
     openDay(el);
     await flush();
 
-    const description = el.querySelector('.event-description');
+    const description = el.querySelector('.kalendly-event-description');
     expect(description?.querySelector('img')).toBeNull();
     expect(description?.textContent).toBe('<img src=x onerror=alert(1)>');
   });
@@ -1426,7 +1426,7 @@ describe('CalendarElement — output escaping', () => {
     openDay(el);
     await flush();
 
-    expect(el.querySelector('.event-link')?.getAttribute('href')).toBe('#');
+    expect(el.querySelector('.kalendly-event-link')?.getAttribute('href')).toBe('#');
   });
 
   it('preserves a legitimate url', async () => {
@@ -1444,7 +1444,7 @@ describe('CalendarElement — output escaping', () => {
     openDay(el);
     await flush();
 
-    expect(el.querySelector('.event-link')?.getAttribute('href')).toBe(
+    expect(el.querySelector('.kalendly-event-link')?.getAttribute('href')).toBe(
       'https://example.com/e/1'
     );
   });
@@ -1464,7 +1464,7 @@ describe('CalendarElement — output escaping', () => {
     openDay(el);
     await flush();
 
-    const card = el.querySelector('.event-card');
+    const card = el.querySelector('.kalendly-event-card');
     expect(card?.getAttribute('onmouseover')).toBeNull();
     expect(card?.getAttribute('style')).toContain('#3b82f6');
   });
@@ -1475,7 +1475,7 @@ describe('CalendarElement — output escaping', () => {
       title: '<img src=x onerror=alert(1)>',
     });
 
-    const heading = el.querySelector('.calendar-title h1');
+    const heading = el.querySelector('.kalendly-title h1');
     expect(heading?.querySelector('img')).toBeNull();
     expect(heading?.textContent).toBe('<img src=x onerror=alert(1)>');
   });
@@ -1515,12 +1515,11 @@ describe('CalendarElement — output escaping', () => {
     openDay(el);
     await flush();
 
-    const badge = el.querySelector('.badge.status-in-progress');
+    const badge = el.querySelector('.kalendly-badge.kalendly-status-in-progress');
     expect(badge).toBeTruthy();
     expect(Array.from(badge!.classList)).toEqual([
-      'badge',
-      'status',
-      'status-in-progress',
+      'kalendly-badge',
+      'kalendly-status-in-progress',
     ]);
     expect(badge?.textContent?.trim()).toBe('IN PROGRESS');
   });
@@ -1543,7 +1542,7 @@ describe('CalendarElement — output escaping', () => {
     openDay(el);
     await flush();
 
-    const card = el.querySelector('.event-card');
+    const card = el.querySelector('.kalendly-event-card');
     expect(card?.querySelector('b')).toBeNull();
     expect(card?.textContent).toContain('<b>HQ</b>');
     expect(card?.textContent).toContain('<b>Ada</b>');
@@ -1564,7 +1563,7 @@ describe('CalendarElement — output escaping', () => {
     openDay(el);
     await flush();
 
-    const tag = el.querySelector('.event-tag');
+    const tag = el.querySelector('.kalendly-event-tag');
     expect(tag?.querySelector('b')).toBeNull();
     expect(tag?.textContent).toBe('<b>urgent</b>');
   });
@@ -1666,7 +1665,7 @@ describe('CalendarElement — selectability predicate', () => {
       td => td.textContent?.trim() === '20'
     );
 
-    cell?.classList.remove('availability-blocked');
+    cell?.classList.remove('kalendly-availability-blocked');
 
     const selections: unknown[] = [];
     el.addEventListener('cal-availability-select', e =>
@@ -1696,7 +1695,7 @@ describe('CalendarElement — open badge values', () => {
     });
     openDay(el);
     await flush();
-    return Array.from(el.querySelectorAll('.badge'));
+    return Array.from(el.querySelectorAll('.kalendly-badge'));
   }
 
   it('accepts a caller-defined category and priority', async () => {
@@ -1706,26 +1705,23 @@ describe('CalendarElement — open badge values', () => {
     });
 
     expect(Array.from(badges[0].classList)).toEqual([
-      'badge',
-      'category',
-      'category-maintenance',
+      'kalendly-badge',
+      'kalendly-category-maintenance',
     ]);
     expect(badges[0].textContent?.trim()).toBe('MAINTENANCE');
     expect(Array.from(badges[1].classList)).toEqual([
-      'badge',
-      'priority',
-      'priority-urgent',
+      'kalendly-badge',
+      'kalendly-priority-urgent',
     ]);
     expect(badges[1].textContent?.trim()).toBe('URGENT');
   });
 
-  it('keeps the marker class on known values', async () => {
+  it('renders known values with just the value class', async () => {
     for (const status of ['completed', 'cancelled', 'tentative']) {
       const badges = await badgesFor({ status });
       expect(Array.from(badges[0].classList)).toEqual([
-        'badge',
-        'status',
-        `status-${status}`,
+        'kalendly-badge',
+        `kalendly-status-${status}`,
       ]);
       expect(badges[0].textContent?.trim()).toBe(status.toUpperCase());
     }
@@ -1740,20 +1736,29 @@ describe('CalendarElement — open badge values', () => {
       resolve(__dirname, '../../../src/styles/calendar.css'),
       'utf-8'
     );
-    const fallback = css.indexOf('.badge.category,');
-
     it('declares both custom properties in :root', () => {
-      expect(css).toContain('--calendar-badge-bg:');
-      expect(css).toContain('--calendar-badge-text:');
+      expect(css).toContain('--kalendly-badge-bg:');
+      expect(css).toContain('--kalendly-badge-text:');
     });
 
-    it.each(['category-meeting', 'priority-high', 'status-completed'])(
-      'precedes .badge.%s, which has equal specificity',
-      selector => {
-        expect(fallback).toBeGreaterThan(-1);
-        expect(fallback).toBeLessThan(css.indexOf(`.badge.${selector}`));
-      }
-    );
+    it('carries the neutral fill on .kalendly-badge itself', () => {
+      const base = css.slice(
+        css.indexOf('.kalendly-badge {'),
+        css.indexOf('}', css.indexOf('.kalendly-badge {'))
+      );
+      expect(base).toContain('var(--kalendly-badge-bg)');
+      expect(base).toContain('var(--kalendly-badge-text)');
+    });
+
+    // The specific rules carry an extra class, so they beat the fill on
+    // specificity. Order no longer matters, which is the point of the change.
+    it.each([
+      'kalendly-category-meeting',
+      'kalendly-priority-high',
+      'kalendly-status-completed',
+    ])('is overridden by .kalendly-badge.%s on specificity', selector => {
+      expect(css).toContain(`.kalendly-badge.${selector} {`);
+    });
   });
 });
 
@@ -1820,7 +1825,7 @@ describe('CalendarElement — design tokens', () => {
     mount({ theme: FULL_THEME });
 
     const written = Array.from(document.documentElement.style).filter(p =>
-      p.startsWith('--calendar-')
+      p.startsWith('--kalendly-')
     );
     expect(written.length).toBe(Object.keys(FULL_THEME).length);
   });
@@ -1830,7 +1835,7 @@ describe('CalendarElement — design tokens', () => {
 
     const root = document.documentElement;
     const values = Array.from(root.style)
-      .filter(p => p.startsWith('--calendar-'))
+      .filter(p => p.startsWith('--kalendly-'))
       .map(p => root.style.getPropertyValue(p));
     expect(new Set(values).size).toBe(values.length);
   });
@@ -1894,10 +1899,10 @@ describe('CalendarElement — multi-state availability', () => {
       },
     ]);
 
-    expect(cell(el, '20')?.classList.contains('availability-blocked')).toBe(
+    expect(cell(el, '20')?.classList.contains('kalendly-availability-blocked')).toBe(
       true
     );
-    expect(cell(el, '21')?.classList.contains('availability-open')).toBe(true);
+    expect(cell(el, '21')?.classList.contains('kalendly-availability-open')).toBe(true);
     expect(cell(el, '20')?.getAttribute('style')).toBeNull();
   });
 
@@ -1973,7 +1978,7 @@ describe('CalendarElement — multi-state availability', () => {
       { availabilityColors: { maintenance: '#0891b2' } }
     );
 
-    expect(cell(el, '20')?.classList.contains('availability-maintenance')).toBe(
+    expect(cell(el, '20')?.classList.contains('kalendly-availability-maintenance')).toBe(
       true
     );
   });
@@ -1999,11 +2004,11 @@ describe('CalendarElement — multi-state availability', () => {
       { id: 3, name: 'c', date: '2024-01-20', availabilityStatus: 'blocked' },
     ]);
 
-    expect(cell(el, '18')?.classList.contains('availability-open')).toBe(true);
-    expect(cell(el, '19')?.classList.contains('availability-conditional')).toBe(
+    expect(cell(el, '18')?.classList.contains('kalendly-availability-open')).toBe(true);
+    expect(cell(el, '19')?.classList.contains('kalendly-availability-conditional')).toBe(
       true
     );
-    expect(cell(el, '20')?.classList.contains('availability-blocked')).toBe(
+    expect(cell(el, '20')?.classList.contains('kalendly-availability-blocked')).toBe(
       true
     );
     // built-ins paint from CSS variables, so no inline style
@@ -2024,9 +2029,9 @@ describe('CalendarElement — multi-state availability', () => {
     );
 
     const td = cell(el, '20');
-    expect(td?.classList.contains('availability-maintenance')).toBe(true);
-    expect(td?.classList.contains('availability-status')).toBe(true);
-    expect(td?.style.getPropertyValue('--availability-color')).toBe('#0891b2');
+    expect(td?.classList.contains('kalendly-availability-maintenance')).toBe(true);
+    expect(td?.classList.contains('kalendly-availability-status')).toBe(true);
+    expect(td?.style.getPropertyValue('--kalendly-availability-color')).toBe('#0891b2');
   });
 
   it('overrides a built-in colour without losing the others', () => {
@@ -2043,7 +2048,7 @@ describe('CalendarElement — multi-state availability', () => {
       { availabilityColors: { conditional: '#7c3aed' } }
     );
 
-    expect(cell(el, '19')?.style.getPropertyValue('--availability-color')).toBe(
+    expect(cell(el, '19')?.style.getPropertyValue('--kalendly-availability-color')).toBe(
       '#7c3aed'
     );
     expect(cell(el, '20')?.getAttribute('style')).toBeNull();
@@ -2061,7 +2066,7 @@ describe('CalendarElement — multi-state availability', () => {
       { id: 3, name: 'c', date: '2024-01-20', availabilityStatus: 'blocked' },
     ]);
 
-    expect(cell(el, '20')?.classList.contains('availability-blocked')).toBe(
+    expect(cell(el, '20')?.classList.contains('kalendly-availability-blocked')).toBe(
       true
     );
   });
@@ -2081,14 +2086,14 @@ describe('CalendarElement — multi-state availability', () => {
       availabilityColors: { maintenance: '#111111', cleaning: '#222222' },
     });
     expect(
-      cell(first, '20')?.classList.contains('availability-maintenance')
+      cell(first, '20')?.classList.contains('kalendly-availability-maintenance')
     ).toBe(true);
 
     const second = mountDay(events, {
       availabilityColors: { cleaning: '#222222', maintenance: '#111111' },
     });
     expect(
-      cell(second, '20')?.classList.contains('availability-cleaning')
+      cell(second, '20')?.classList.contains('kalendly-availability-cleaning')
     ).toBe(true);
   });
 
@@ -2103,12 +2108,12 @@ describe('CalendarElement — multi-state availability', () => {
     ]);
 
     expect(
-      cell(el, '20')?.classList.contains('availability-unselectable')
+      cell(el, '20')?.classList.contains('kalendly-availability-unselectable')
     ).toBe(true);
     expect(cell(el, '20')?.getAttribute('aria-label')).toBe('conditional');
     expect(cell(el, '21')?.getAttribute('aria-label')).toBe('open');
     expect(
-      cell(el, '21')?.classList.contains('availability-unselectable')
+      cell(el, '21')?.classList.contains('kalendly-availability-unselectable')
     ).toBe(false);
   });
 
@@ -2182,7 +2187,7 @@ describe('CalendarElement — multi-state availability', () => {
     expect(td?.getAttribute('onmouseover')).toBeNull();
     expect(td?.getAttribute('onload')).toBeNull();
     expect(td?.className).toContain('availability-a-onmouseover-alert-1');
-    expect(td?.style.getPropertyValue('--availability-color')).toBe('#3b82f6');
+    expect(td?.style.getPropertyValue('--kalendly-availability-color')).toBe('#3b82f6');
   });
 });
 
@@ -2234,7 +2239,7 @@ describe('CalendarElement — availability validation timing', () => {
     ];
 
     await expect(el.updateComplete).resolves.toBeUndefined();
-    expect(el.querySelector('td.availability-blocked')).toBeTruthy();
+    expect(el.querySelector('td.kalendly-availability-blocked')).toBeTruthy();
   });
 
   it('rejects when the mode is applied and the events are never corrected', async () => {
@@ -2328,7 +2333,7 @@ describe('CalendarElement — heading attribute', () => {
     await flush();
     document.body.appendChild(el);
 
-    expect(el.querySelector('.calendar-title h1')?.textContent).toBe(
+    expect(el.querySelector('.kalendly-title h1')?.textContent).toBe(
       'Room bookings'
     );
   });
@@ -2341,7 +2346,7 @@ describe('CalendarElement — heading attribute', () => {
     await flush();
     document.body.appendChild(el);
 
-    expect(el.querySelector('.calendar-title h1')?.textContent).toBe('new');
+    expect(el.querySelector('.kalendly-title h1')?.textContent).toBe('new');
   });
 
   it('still renders a deprecated title, and warns once', async () => {
@@ -2360,7 +2365,7 @@ describe('CalendarElement — heading attribute', () => {
     await flush();
     document.body.appendChild(second);
 
-    expect(first.querySelector('.calendar-title h1')?.textContent).toBe(
+    expect(first.querySelector('.kalendly-title h1')?.textContent).toBe(
       'Legacy'
     );
     expect(warn).toHaveBeenCalledTimes(1);
@@ -2395,7 +2400,7 @@ describe('CalendarElement — malformed times', () => {
       .find(td => td.textContent?.trim() === '15')
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flush();
-    return el.querySelectorAll('.time-grid-slot-blocked').length;
+    return el.querySelectorAll('.kalendly-time-grid-slot-blocked').length;
   }
 
   it('books the whole day when a time cannot be parsed', async () => {
@@ -2442,7 +2447,7 @@ describe('CalendarElement — malformed times', () => {
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flush();
 
-    expect(el.querySelectorAll('.time-grid-slot-open').length).toBe(23);
+    expect(el.querySelectorAll('.kalendly-time-grid-slot-open').length).toBe(23);
   });
 });
 
@@ -2469,7 +2474,7 @@ describe('CalendarElement — multi-month view', () => {
   it('renders two consecutive months', () => {
     const el = mountMonths('2');
     const captions = Array.from(
-      el.querySelectorAll('.calendar-pane-caption')
+      el.querySelectorAll('.kalendly-pane-caption')
     ).map(node => node.textContent?.trim());
 
     expect(el.querySelectorAll('table').length).toBe(2);
@@ -2489,7 +2494,7 @@ describe('CalendarElement — multi-month view', () => {
     document.body.appendChild(el);
 
     const captions = Array.from(
-      el.querySelectorAll('.calendar-pane-caption')
+      el.querySelectorAll('.kalendly-pane-caption')
     ).map(node => node.textContent?.trim());
     expect(captions).toEqual(['December 2024', 'January 2025']);
   });
@@ -2500,13 +2505,13 @@ describe('CalendarElement — multi-month view', () => {
     await flush();
 
     const captions = Array.from(
-      el.querySelectorAll('.calendar-pane-caption')
+      el.querySelectorAll('.kalendly-pane-caption')
     ).map(node => node.textContent?.trim());
     expect(captions).toEqual(['February 2024', 'March 2024']);
   });
 
   it('shows no caption for a single pane', () => {
-    expect(mountMonths('1').querySelector('.calendar-pane-caption')).toBeNull();
+    expect(mountMonths('1').querySelector('.kalendly-pane-caption')).toBeNull();
   });
 
   it('renders two panes in time mode', () => {
@@ -2528,17 +2533,17 @@ describe('CalendarElement — multi-month view', () => {
     document.body.appendChild(el);
     await flush();
 
-    const pane = el.querySelectorAll('.calendar-pane')[1];
+    const pane = el.querySelectorAll('.kalendly-pane')[1];
     Array.from(pane.querySelectorAll('td'))
       .find(
         td =>
           td.textContent?.trim() === '5' &&
-          !td.classList.contains('calendar-cell-other-month')
+          !td.classList.contains('kalendly-cell-other-month')
       )
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flush();
 
-    const popup = el.querySelector('.date-popup');
+    const popup = el.querySelector('.kalendly-popup');
     expect(popup?.textContent).toContain('Feb event');
     expect(popup?.textContent).not.toContain('Jan event');
   });
@@ -2577,11 +2582,11 @@ describe('CalendarElement — multi-month view', () => {
       paneIndex: number,
       day: string
     ): Promise<void> => {
-      const pane = el.querySelectorAll('.calendar-pane')[paneIndex];
+      const pane = el.querySelectorAll('.kalendly-pane')[paneIndex];
       const cell = Array.from(pane.querySelectorAll('td')).find(
         td =>
           td.textContent?.trim() === day &&
-          !td.classList.contains('calendar-cell-other-month')
+          !td.classList.contains('kalendly-cell-other-month')
       );
       expect(cell).toBeTruthy();
       cell?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -2616,14 +2621,14 @@ describe('CalendarElement — multi-month loading', () => {
     await flush();
 
     expect(el.querySelectorAll('table').length).toBe(2);
-    expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(84);
+    expect(el.querySelectorAll('td.kalendly-skeleton').length).toBe(84);
     el.querySelectorAll('table').forEach(table => {
-      expect(table.querySelectorAll('td.calendar-skeleton').length).toBe(42);
+      expect(table.querySelectorAll('td.kalendly-skeleton').length).toBe(42);
     });
 
     el.loading = false;
     await flush();
-    expect(el.querySelectorAll('td.calendar-skeleton').length).toBe(0);
+    expect(el.querySelectorAll('td.kalendly-skeleton').length).toBe(0);
     expect(el.querySelectorAll('table').length).toBe(2);
   });
 });
@@ -2648,7 +2653,7 @@ describe('CalendarElement — slot duration', () => {
       .find(
         td =>
           td.textContent?.trim() === day &&
-          !td.classList.contains('calendar-cell-other-month')
+          !td.classList.contains('kalendly-cell-other-month')
       )
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     return el;
@@ -2668,19 +2673,19 @@ describe('CalendarElement — slot duration', () => {
   it('renders 24 slots by default', async () => {
     const el = mountGrid([]);
     await flush();
-    expect(el.querySelectorAll('.time-grid-slot').length).toBe(24);
+    expect(el.querySelectorAll('.kalendly-time-grid-slot').length).toBe(24);
   });
 
   it('renders 48 slots at 30 minutes, labelled on the half hour', async () => {
     const el = mountGrid([], '30');
     await flush();
 
-    const slots = el.querySelectorAll('.time-grid-slot');
+    const slots = el.querySelectorAll('.kalendly-time-grid-slot');
     expect(slots.length).toBe(48);
-    expect(slots[0].querySelector('.time-grid-label')?.textContent).toBe(
+    expect(slots[0].querySelector('.kalendly-time-grid-label')?.textContent).toBe(
       '00:00'
     );
-    expect(slots[1].querySelector('.time-grid-label')?.textContent).toBe(
+    expect(slots[1].querySelector('.kalendly-time-grid-label')?.textContent).toBe(
       '00:30'
     );
   });
@@ -2710,7 +2715,7 @@ describe('CalendarElement — slot duration', () => {
     const el = mountGrid([], '50');
     await flush();
 
-    expect(el.querySelectorAll('.time-grid-slot').length).toBe(24);
+    expect(el.querySelectorAll('.kalendly-time-grid-slot').length).toBe(24);
     expect(warn.mock.calls.some(c => /slot-duration="50"/.test(c[0]))).toBe(
       true
     );
@@ -2721,9 +2726,9 @@ describe('CalendarElement — slot duration', () => {
     const el = mountGrid(NIGHT);
     await flush();
 
-    const blocked = Array.from(el.querySelectorAll('.time-grid-slot')).flatMap(
+    const blocked = Array.from(el.querySelectorAll('.kalendly-time-grid-slot')).flatMap(
       (slot, i) =>
-        slot.classList.contains('time-grid-slot-blocked') ? [i] : []
+        slot.classList.contains('kalendly-time-grid-slot-blocked') ? [i] : []
     );
     expect(blocked).toEqual([22, 23]);
   });
@@ -2732,9 +2737,9 @@ describe('CalendarElement — slot duration', () => {
     const el = mountGrid(NIGHT, undefined, '16');
     await flush();
 
-    const blocked = Array.from(el.querySelectorAll('.time-grid-slot')).flatMap(
+    const blocked = Array.from(el.querySelectorAll('.kalendly-time-grid-slot')).flatMap(
       (slot, i) =>
-        slot.classList.contains('time-grid-slot-blocked') ? [i] : []
+        slot.classList.contains('kalendly-time-grid-slot-blocked') ? [i] : []
     );
     expect(blocked).toEqual([0, 1, 2, 3, 4, 5]);
   });
@@ -2742,7 +2747,7 @@ describe('CalendarElement — slot duration', () => {
   it('leaves the day before a night booking untouched', async () => {
     const el = mountGrid(NIGHT, undefined, '14');
     await flush();
-    expect(el.querySelectorAll('.time-grid-slot-blocked').length).toBe(0);
+    expect(el.querySelectorAll('.kalendly-time-grid-slot-blocked').length).toBe(0);
   });
 
   it('warns once per event when an end time is missing', async () => {
@@ -2794,7 +2799,7 @@ describe('CalendarElement — multi-day events', () => {
     Array.from(root.querySelectorAll('td')).find(
       td =>
         td.textContent?.trim() === day &&
-        !td.classList.contains('calendar-cell-other-month')
+        !td.classList.contains('kalendly-cell-other-month')
     );
 
   it('colours every day a span covers', async () => {
@@ -2813,11 +2818,11 @@ describe('CalendarElement — multi-day events', () => {
     await flush();
 
     for (const d of ['15', '16', '17']) {
-      expect(cellIn(el, d)?.classList.contains('availability-blocked')).toBe(
+      expect(cellIn(el, d)?.classList.contains('kalendly-availability-blocked')).toBe(
         true
       );
     }
-    expect(cellIn(el, '18')?.classList.contains('availability-open')).toBe(
+    expect(cellIn(el, '18')?.classList.contains('kalendly-availability-open')).toBe(
       true
     );
   });
@@ -2838,7 +2843,7 @@ describe('CalendarElement — multi-day events', () => {
     await flush();
 
     expect(
-      cellIn(el, '16')?.classList.contains('availability-unselectable')
+      cellIn(el, '16')?.classList.contains('kalendly-availability-unselectable')
     ).toBe(true);
   });
 
@@ -2890,14 +2895,14 @@ describe('CalendarElement — multi-day events', () => {
     );
     await flush();
 
-    const panes = el.querySelectorAll('.calendar-pane');
+    const panes = el.querySelectorAll('.kalendly-pane');
     expect(
-      cellIn(panes[0], '31')?.classList.contains('availability-blocked')
+      cellIn(panes[0], '31')?.classList.contains('kalendly-availability-blocked')
     ).toBe(true);
     expect(
-      cellIn(panes[1], '1')?.classList.contains('availability-blocked')
+      cellIn(panes[1], '1')?.classList.contains('kalendly-availability-blocked')
     ).toBe(true);
-    expect(cellIn(panes[1], '3')?.classList.contains('availability-open')).toBe(
+    expect(cellIn(panes[1], '3')?.classList.contains('kalendly-availability-open')).toBe(
       true
     );
   });
@@ -2916,7 +2921,7 @@ describe('CalendarElement — multi-day events', () => {
     for (const d of ['15', '16', '17']) {
       cellIn(el, d)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      expect(el.querySelector('.date-popup')?.textContent).toContain(
+      expect(el.querySelector('.kalendly-popup')?.textContent).toContain(
         'Conference'
       );
     }
@@ -2954,7 +2959,7 @@ describe('CalendarElement — interaction feedback', () => {
     Array.from(el.querySelectorAll('td')).find(
       td =>
         td.textContent?.trim() === d &&
-        !td.classList.contains('calendar-cell-other-month')
+        !td.classList.contains('kalendly-cell-other-month')
     );
 
   it('hover targets only clickable cells, so it outranks a bucket colour', () => {
@@ -2962,9 +2967,9 @@ describe('CalendarElement — interaction feedback', () => {
       resolve(__dirname, '../../../src/styles/calendar.css'),
       'utf-8'
     );
-    expect(css).toContain('.calendar-table td[data-clickable]:hover');
-    // two class-level selectors would still lose to .availability-open
-    expect(css).not.toContain('.calendar-table td:hover {');
+    expect(css).toContain('.kalendly-table td[data-clickable]:hover');
+    // two class-level selectors would still lose to .kalendly-availability-open
+    expect(css).not.toContain('.kalendly-table td:hover {');
   });
 
   it('marks the clicked day as selected in every mode', async () => {
@@ -2975,10 +2980,10 @@ describe('CalendarElement — interaction feedback', () => {
       day(el, '20')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
 
-      expect(day(el, '20')?.classList.contains('calendar-cell-selected')).toBe(
+      expect(day(el, '20')?.classList.contains('kalendly-cell-selected')).toBe(
         true
       );
-      expect(day(el, '21')?.classList.contains('calendar-cell-selected')).toBe(
+      expect(day(el, '21')?.classList.contains('kalendly-cell-selected')).toBe(
         false
       );
     }
@@ -2990,7 +2995,7 @@ describe('CalendarElement — interaction feedback', () => {
       'utf-8'
     );
     expect(css).toMatch(
-      /\.calendar-table td\.calendar-cell-selected \{[^}]*--calendar-selected-bg/
+      /\.kalendly-table td\.kalendly-cell-selected \{[^}]*--kalendly-selected-bg/
     );
   });
 
@@ -3005,7 +3010,7 @@ describe('CalendarElement — interaction feedback', () => {
       seen.push((e as CustomEvent).detail as Record<string, unknown>)
     );
 
-    el.querySelectorAll<HTMLElement>('.time-grid-slot')[14]?.click();
+    el.querySelectorAll<HTMLElement>('.kalendly-time-grid-slot')[14]?.click();
     await flush();
 
     expect(seen).toHaveLength(1);
@@ -3025,7 +3030,7 @@ describe('CalendarElement — interaction feedback', () => {
       seen.push((e as CustomEvent).detail as Record<string, unknown>)
     );
 
-    el.querySelectorAll<HTMLElement>('.time-grid-slot')[9]?.click();
+    el.querySelectorAll<HTMLElement>('.kalendly-time-grid-slot')[9]?.click();
     await flush();
 
     expect(seen[0].booked).toBe(true);
@@ -3043,7 +3048,7 @@ describe('CalendarElement — interaction feedback', () => {
       seen.push((e as CustomEvent).detail as Record<string, unknown>)
     );
 
-    el.querySelectorAll<HTMLElement>('.time-grid-slot')[29]?.click();
+    el.querySelectorAll<HTMLElement>('.kalendly-time-grid-slot')[29]?.click();
     await flush();
 
     expect(seen[0].startTime).toBe('14:30');
@@ -3059,7 +3064,7 @@ describe('CalendarElement — interaction feedback', () => {
     const booking: unknown[] = [];
     el.addEventListener('cal-availability-select', e => booking.push(e));
 
-    el.querySelectorAll<HTMLElement>('.time-grid-slot')[14]?.click();
+    el.querySelectorAll<HTMLElement>('.kalendly-time-grid-slot')[14]?.click();
     await flush();
 
     expect(booking).toHaveLength(0);
@@ -3074,7 +3079,7 @@ describe('CalendarElement — interaction feedback', () => {
     const booking: unknown[] = [];
     el.addEventListener('cal-availability-select', e => booking.push(e));
 
-    el.querySelectorAll<HTMLElement>('.time-grid-slot')[9]?.click();
+    el.querySelectorAll<HTMLElement>('.kalendly-time-grid-slot')[9]?.click();
     await flush();
 
     expect(booking).toHaveLength(0);
@@ -3087,7 +3092,7 @@ describe('CalendarElement — interaction feedback', () => {
       new MouseEvent('click', { bubbles: true })
     );
     await flush();
-    expect(readOnly.querySelector('.time-grid-selectable')).toBeNull();
+    expect(readOnly.querySelector('.kalendly-time-grid-selectable')).toBeNull();
 
     const bookable = mountMode('time', { selectable: 'range' });
     await flush();
@@ -3095,7 +3100,7 @@ describe('CalendarElement — interaction feedback', () => {
       new MouseEvent('click', { bubbles: true })
     );
     await flush();
-    expect(bookable.querySelector('.time-grid-selectable')).toBeTruthy();
+    expect(bookable.querySelector('.kalendly-time-grid-selectable')).toBeTruthy();
   });
 });
 
@@ -3117,15 +3122,15 @@ describe('CalendarElement — optional event name', () => {
     const el = openDayWith({ description: 'no name here' });
     await flush();
 
-    expect(el.querySelector('.event-card')).toBeTruthy();
-    expect(el.querySelector('.event-title')).toBeNull();
+    expect(el.querySelector('.kalendly-event-card')).toBeTruthy();
+    expect(el.querySelector('.kalendly-event-title')).toBeNull();
   });
 
   it('renders the title when a name is given', async () => {
     const el = openDayWith({ name: 'Standup' });
     await flush();
 
-    expect(el.querySelector('.event-title')?.textContent).toBe('Standup');
+    expect(el.querySelector('.kalendly-event-title')?.textContent).toBe('Standup');
   });
 
   it('hands a supplied name back through cal-date-select', async () => {
@@ -3178,7 +3183,7 @@ describe('CalendarElement — booking constraints', () => {
       const el = mount({ initialDate: MARCH });
       await el.updateComplete;
 
-      expect(el.querySelector('.calendar-cell-out-of-range')).toBeNull();
+      expect(el.querySelector('.kalendly-cell-out-of-range')).toBeNull();
     });
   });
 
@@ -3188,7 +3193,7 @@ describe('CalendarElement — booking constraints', () => {
       await el.updateComplete;
 
       const before = cellFor(el, 9)!;
-      expect(before.classList.contains('calendar-cell-out-of-range')).toBe(
+      expect(before.classList.contains('kalendly-cell-out-of-range')).toBe(
         true
       );
       expect(before.hasAttribute('data-clickable')).toBe(false);
@@ -3204,13 +3209,13 @@ describe('CalendarElement — booking constraints', () => {
 
       for (const day of [10, 15, 20]) {
         const cell = cellFor(el, day)!;
-        expect(cell.classList.contains('calendar-cell-out-of-range')).toBe(
+        expect(cell.classList.contains('kalendly-cell-out-of-range')).toBe(
           false
         );
         expect(cell.getAttribute('data-clickable')).toBe('true');
       }
       expect(
-        cellFor(el, 21)!.classList.contains('calendar-cell-out-of-range')
+        cellFor(el, 21)!.classList.contains('kalendly-cell-out-of-range')
       ).toBe(true);
     });
 
@@ -3268,13 +3273,13 @@ describe('CalendarElement — booking constraints', () => {
 
       // 9th Sat, 10th Sun, 11th Mon
       expect(
-        cellFor(el, 9)!.classList.contains('calendar-cell-out-of-range')
+        cellFor(el, 9)!.classList.contains('kalendly-cell-out-of-range')
       ).toBe(true);
       expect(
-        cellFor(el, 10)!.classList.contains('calendar-cell-out-of-range')
+        cellFor(el, 10)!.classList.contains('kalendly-cell-out-of-range')
       ).toBe(true);
       expect(
-        cellFor(el, 11)!.classList.contains('calendar-cell-out-of-range')
+        cellFor(el, 11)!.classList.contains('kalendly-cell-out-of-range')
       ).toBe(false);
     });
 
@@ -3283,10 +3288,10 @@ describe('CalendarElement — booking constraints', () => {
       await el.updateComplete;
 
       expect(
-        cellFor(el, 10)!.classList.contains('calendar-cell-out-of-range')
+        cellFor(el, 10)!.classList.contains('kalendly-cell-out-of-range')
       ).toBe(false);
       expect(
-        cellFor(el, 11)!.classList.contains('calendar-cell-out-of-range')
+        cellFor(el, 11)!.classList.contains('kalendly-cell-out-of-range')
       ).toBe(true);
     });
 
@@ -3313,7 +3318,7 @@ describe('CalendarElement — booking constraints', () => {
 
   describe('available-hours', () => {
     const slots = (el: CalendarElement): HTMLElement[] =>
-      Array.from(el.querySelectorAll('.time-grid-slot'));
+      Array.from(el.querySelectorAll('.kalendly-time-grid-slot'));
 
     const openDay = async (el: CalendarElement): Promise<void> => {
       cellFor(el, 15)!.click();
@@ -3334,20 +3339,20 @@ describe('CalendarElement — booking constraints', () => {
       expect(rendered).toHaveLength(24);
 
       const outOfRange = rendered.filter(s =>
-        s.classList.contains('time-grid-slot-out-of-range')
+        s.classList.contains('kalendly-time-grid-slot-out-of-range')
       );
       expect(outOfRange).toHaveLength(16);
       expect(
-        rendered[9].classList.contains('time-grid-slot-out-of-range')
+        rendered[9].classList.contains('kalendly-time-grid-slot-out-of-range')
       ).toBe(false);
       expect(
-        rendered[8].classList.contains('time-grid-slot-out-of-range')
+        rendered[8].classList.contains('kalendly-time-grid-slot-out-of-range')
       ).toBe(true);
       expect(
-        rendered[16].classList.contains('time-grid-slot-out-of-range')
+        rendered[16].classList.contains('kalendly-time-grid-slot-out-of-range')
       ).toBe(false);
       expect(
-        rendered[17].classList.contains('time-grid-slot-out-of-range')
+        rendered[17].classList.contains('kalendly-time-grid-slot-out-of-range')
       ).toBe(true);
     });
 
@@ -3362,7 +3367,7 @@ describe('CalendarElement — booking constraints', () => {
 
       const rendered = slots(el);
       const closed = (i: number): boolean =>
-        rendered[i].classList.contains('time-grid-slot-out-of-range');
+        rendered[i].classList.contains('kalendly-time-grid-slot-out-of-range');
 
       expect(closed(11)).toBe(false);
       expect(closed(12)).toBe(true);
@@ -3416,10 +3421,10 @@ describe('CalendarElement — booking constraints', () => {
       const rendered = slots(el);
       expect(rendered).toHaveLength(48);
       expect(
-        rendered[19].classList.contains('time-grid-slot-out-of-range')
+        rendered[19].classList.contains('kalendly-time-grid-slot-out-of-range')
       ).toBe(false);
       expect(
-        rendered[18].classList.contains('time-grid-slot-out-of-range')
+        rendered[18].classList.contains('kalendly-time-grid-slot-out-of-range')
       ).toBe(true);
     });
 
@@ -3489,7 +3494,7 @@ describe('CalendarElement — cross-month display', () => {
     }) as HTMLElement | undefined;
 
   const heading = (el: CalendarElement): string =>
-    el.querySelector('.calendar-picker-btn')?.textContent?.trim() ?? '';
+    el.querySelector('.kalendly-picker-btn')?.textContent?.trim() ?? '';
 
   const openRange = (): CalendarElement =>
     mount({
@@ -3518,22 +3523,22 @@ describe('CalendarElement — cross-month display', () => {
     expect(heading(el)).toContain('August');
 
     expect(
-      cell(el, 2026, 7, 28)!.classList.contains('availability-range-start')
+      cell(el, 2026, 7, 28)!.classList.contains('kalendly-availability-range-start')
     ).toBe(true);
     for (const day of [29, 30, 31]) {
       expect(
-        cell(el, 2026, 7, day)!.classList.contains('availability-in-range'),
+        cell(el, 2026, 7, day)!.classList.contains('kalendly-availability-in-range'),
         `Aug ${day}`
       ).toBe(true);
     }
     for (const day of [1, 2, 3]) {
       expect(
-        cell(el, 2026, 8, day)!.classList.contains('availability-in-range'),
+        cell(el, 2026, 8, day)!.classList.contains('kalendly-availability-in-range'),
         `Sep ${day}`
       ).toBe(true);
     }
     expect(
-      cell(el, 2026, 8, 4)!.classList.contains('availability-range-end')
+      cell(el, 2026, 8, 4)!.classList.contains('kalendly-availability-range-end')
     ).toBe(true);
   });
 
@@ -3555,12 +3560,12 @@ describe('CalendarElement — cross-month display', () => {
 
     for (const day of [30, 31]) {
       expect(
-        cell(el, 2026, 7, day)!.classList.contains('availability-in-range'),
+        cell(el, 2026, 7, day)!.classList.contains('kalendly-availability-in-range'),
         `Aug ${day} seen from September`
       ).toBe(true);
     }
     expect(
-      cell(el, 2026, 8, 4)!.classList.contains('availability-range-end')
+      cell(el, 2026, 8, 4)!.classList.contains('kalendly-availability-range-end')
     ).toBe(true);
   });
 
@@ -3601,13 +3606,13 @@ describe('CalendarElement — cross-month display', () => {
     await el.updateComplete;
 
     expect(
-      cell(el, 2026, 7, 10)!.classList.contains('availability-range-start')
+      cell(el, 2026, 7, 10)!.classList.contains('kalendly-availability-range-start')
     ).toBe(true);
     expect(
-      cell(el, 2026, 7, 12)!.classList.contains('availability-in-range')
+      cell(el, 2026, 7, 12)!.classList.contains('kalendly-availability-in-range')
     ).toBe(true);
     expect(
-      cell(el, 2026, 7, 14)!.classList.contains('availability-range-end')
+      cell(el, 2026, 7, 14)!.classList.contains('kalendly-availability-range-end')
     ).toBe(true);
     expect(heading(el)).toContain('August');
   });

@@ -237,7 +237,7 @@
       <button type="button" id="brandEmeraldBtn">Emerald</button>
       <button type="button" id="brandRoseBtn">Rose</button>
     </div>
-    <p class="hint">Sets <code>--calendar-primary-color</code> and friends <strong>on the element</strong>, so it scopes to this calendar. Selected day, today outline and the <code>&lsaquo;</code> <code>&rsaquo;</code> arrows all follow. The <code>theme</code> property does the same but writes to <code>:root</code>, colouring every calendar on the page.</p>
+    <p class="hint">Sets <code>--kalendly-primary-color</code> and friends <strong>on the element</strong>, so it scopes to this calendar. Selected day, today outline and the <code>&lsaquo;</code> <code>&rsaquo;</code> arrows all follow. The <code>theme</code> property does the same but writes to <code>:root</code>, colouring every calendar on the page.</p>
 
     <hr class="divider">
 
@@ -549,20 +549,19 @@ npm install kalendly
     // Element-scoped custom properties — the whole palette follows the base.
     const BRANDS = {
       Default: null,
-      Indigo:  { hex: '#4f46e5', rgb: '79, 70, 229' },
-      Emerald: { hex: '#059669', rgb: '5, 150, 105' },
-      Rose:    { hex: '#e11d48', rgb: '225, 29, 72' },
+      Indigo:  { hex: '#4f46e5' },
+      Emerald: { hex: '#059669' },
+      Rose:    { hex: '#e11d48' },
     };
 
     function setBrand(kind) {
       setActiveBtn(Object.keys(BRANDS).map(k => `brand${k}Btn`), `brand${kind}Btn`);
       const brand = BRANDS[kind];
       if (brand) {
-        cal.style.setProperty('--calendar-primary-color', brand.hex);
-        cal.style.setProperty('--calendar-primary-color-rgb', brand.rgb);
-        cal.style.setProperty('--calendar-on-accent', '#ffffff');
+        cal.style.setProperty('--kalendly-primary-color', brand.hex);
+        cal.style.setProperty('--kalendly-on-accent', '#ffffff');
       } else {
-        ['--calendar-primary-color', '--calendar-primary-color-rgb', '--calendar-on-accent']
+        ['--kalendly-primary-color', '--kalendly-on-accent']
           .forEach(token => cal.style.removeProperty(token));
       }
       log(`Brand colour → ${brand ? brand.hex : 'default'}`);

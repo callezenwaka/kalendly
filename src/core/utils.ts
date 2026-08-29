@@ -251,15 +251,15 @@ export function getCellClasses(calendarDate: CalendarDate): string[] {
   const classes: string[] = [];
 
   if (!calendarDate.isCurrentMonth) {
-    classes.push('calendar-cell-other-month');
+    classes.push('kalendly-cell-other-month');
   }
 
   if (calendarDate.isToday) {
-    classes.push('calendar-cell-today');
+    classes.push('kalendly-cell-today');
   }
 
   if (calendarDate.hasEvents) {
-    classes.push('calendar-cell-has-event');
+    classes.push('kalendly-cell-has-event');
   }
 
   return classes;
