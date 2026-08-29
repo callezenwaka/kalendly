@@ -28,7 +28,10 @@
     "prepare": "husky",
     "prepublishOnly": "npm run test:run && npm run build",
     "prepack": "npm run test:package",
-    "test:browser": "playwright test"
+    "test:browser": "npm run build && playwright test",
+    "test:browser:ui": "npm run build && playwright test --ui",
+    "test:browser:headed": "npm run build && playwright test --headed",
+    "test:browser:install": "playwright install chromium webkit"
   },
   "exports": {
     ".": {

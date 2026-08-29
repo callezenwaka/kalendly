@@ -8,12 +8,19 @@ This directory contains comprehensive testing for the Kalendly calendar library.
 tests/
 ├── unit/                            # Unit tests (Vitest)
 │   ├── core/                        # Core engine tests
-│   │   ├── calendar-engine.test.ts  #  62 tests - CalendarEngine class
-│   │   └── utils.test.ts            # 101 tests - Utility functions
+│   │   ├── calendar-engine.test.ts  # CalendarEngine class
+│   │   └── utils.test.ts            # Utility functions
 │   ├── web-components/              # Custom element tests
-│   │   └── CalendarElement.test.ts  # 176 tests - <kal-calendar>
-│   └── demos/                       # Demo fixture conformance
-│       └── fixtures.test.ts         #  73 tests - docs/examples + landing
+│   │   └── CalendarElement.test.ts  # <kal-calendar>
+│   ├── styles/                      # Stylesheet guards
+│   │   └── tokens.test.ts           # namespacing, dead tokens
+│   └── demos/                       # Demo page conformance
+│       └── fixtures.test.ts         # fixtures and markup safety
+├── browser/                         # Browser tests (Playwright)
+│   ├── helpers.ts                   # painted-colour comparison, settling
+│   ├── theming.spec.ts              # element-scoped tokens, leak containment
+│   ├── states.spec.ts               # hover, selected, range, out-of-range
+│   └── injection.spec.ts            # the manual page's error and log paths
 ├── integration/                     # Integration tests
 │   └── package-validation.test.mjs  # Pre-publish validation
 ├── manual/                          # Manual browser testing
@@ -26,9 +33,7 @@ tests/
 
 ### 1. Unit Tests (Vitest)
 
-**Purpose:** Test code logic in isolation with 97%+ coverage
-
-**Total:** 412 tests across all modules
+**Purpose:** Test code logic in isolation
 
 **Run commands:**
 
@@ -40,26 +45,9 @@ npm run test:coverage # Generate coverage report
 npm run test:watch    # Watch mode (explicit)
 ```
 
-**Coverage thresholds:**
-
-- Lines: 85% minimum (achieving 98.47%)
-- Functions: 85% minimum (achieving 97.22%)
-- Branches: 80% minimum (achieving 86.66%)
-- Statements: 85% minimum (achieving 97.68%)
-
-**Module breakdown:**
-| Module | Tests |
-|--------|-------|
-| Core (engine) | 62 |
-| Core (utils) | 101 |
-| Web component | 176 |
-| Demo fixtures | 73 |
-
 ### 2. Integration Tests (Node.js)
 
 **Purpose:** Validate build artifacts before publishing to npm
-
-**Total:** 17 checks
 
 **Run command:**
 
@@ -94,6 +82,34 @@ npm run test:manual
 Then open in browser:
 
 - Web component: http://localhost:8080/tests/manual/web-component.html
+
+### 4. Browser Tests (Playwright)
+
+**Purpose:** assert what jsdom cannot — the CSS cascade, `var()` substitution,
+and what actually paints. Two regressions reached published versions with the
+unit suite green because of that gap.
+
+**First run**, once per machine:
+
+```bash
+npm run test:browser:install   # Chromium and WebKit, ~250MB, cached
+```
+
+**Run commands:**
+
+```bash
+npm run test:browser           # builds, then runs both engines
+npm run test:browser:ui        # Playwright UI — pick tests, step, inspect
+npm run test:browser:headed    # watch it drive a real window
+```
+
+Each builds first: the demo pages load the library from `docs/dist`, so running
+against a stale build fails in ways that look like test bugs.
+
+Assertions compare rasterised pixels rather than computed strings, because
+`rgba(...)` and `color(srgb ...)` serialize differently and paint identically.
+Transitions are disabled in the fixture — computed style read mid-transition
+returns interpolated values.
 
 **Note:** For framework integrations, see `docs/examples/` — one page per framework, each unbundled so it mirrors real consumer usage. Their fixtures are validated by `tests/unit/demos/fixtures.test.ts`.
 
@@ -152,9 +168,9 @@ All tests run automatically on:
 
 **CI Requirements:**
 
-- ✅ All 412 unit tests must pass
+- ✅ Unit tests must pass
+- ✅ Browser tests must pass, on Chromium and WebKit
 - ✅ Package validation must pass
-- ✅ Coverage thresholds must be met (85%+ lines, 80%+ branches)
 
 ## Test vs Examples vs Manual
 
@@ -162,6 +178,7 @@ All tests run automatically on:
 | --------------------- | ---------------------------- | ------------------- | ------------------------- |
 | **Unit Tests**        | Automated logic verification | Developers          | During development, CI/CD |
 | **Integration Tests** | Build artifact validation    | Package maintainers | Before publishing         |
+| **Browser Tests**     | Cascade, `var()`, painted output | Developers      | During development, CI/CD |
 | **Manual Tests**      | Quick visual checks          | Developers          | During development        |
 | **Examples**          | Polished demonstrations      | End users           | Documentation, tutorials  |
 

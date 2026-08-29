@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **The `title` attribute is removed.** `heading` has been the supported spelling since 0.3.0, and the deprecation warning said `title` would go in a future release. `title` is a global HTML attribute, so the browser also rendered it as a tooltip over the whole calendar — which is why `heading` replaced it. Setting `title` now does nothing but produce that tooltip.
+
+- **Four attributes throw on invalid input instead of quietly substituting.** `availability-mode`, `available-hours`, `available-days`, `min-date` and `max-date` already did; these four predated that decision:
+
+  | Input | Was | Now |
+  | --- | --- | --- |
+  | `slot-duration="17"` | fell back to 60, warned | throws |
+  | `months="3"` | clamped to 2, silently | throws |
+  | `months="abc"` | fell back to 1, silently | throws |
+  | `min-year="abc"` | yielded `NaN`, silently | throws |
+
+  A **default for an absent attribute is unchanged** — omitting `slot-duration` still means 60. What changed is an attribute that is present and invalid: the caller said something and the component ignored it. `min-year="abc"` was the worst of them, producing `NaN` so that every comparison against it was false and the failure surfaced somewhere unrelated.
+
+  `slot-duration` is now validated on render rather than when the time grid draws, so a bad value surfaces immediately instead of waiting for someone to open a day.
+
+### Added
+
+- **A misconfigured calendar now says what is wrong, where the calendar would be.** A thrown configuration error previously left an empty element with the reason only in the console, so an integrator saw a blank space and had to go looking. The element now renders the message — the attribute, the value it was given, and the limit — styled through `--kalendly-error-bg`, `-fg` and `-border`. The value is escaped, so a value carrying markup renders as text. The console error, the `updateComplete` rejection and the `getEngine()` throw are all unchanged; this is a fourth signal, in the one place someone is already looking.
+
+### Fixed
+
+- **A configuration error no longer leaves the component permanently broken.** `reinit` bailed out when `engine` was null, but a failed `initEngine` left it null — so after any attribute error, no later attribute change could rebuild the calendar. It now keys on whether the element is connected, and a successful reaction clears the stored error, so correcting the attribute recovers.
+
+- **Errors from an attribute change now reach `updateComplete`.** They happen synchronously inside `initEngine`, so they never reached the render scheduler and `updateComplete` resolved as though nothing had gone wrong. `connectedCallback` already captured errors this way; `attributeChangedCallback` did not.
+
 - **Every class and CSS variable is now prefixed `kalendly-`.** The stylesheet shipped 51 top-level class selectors, 18 of them generic enough to collide with a host application: `.badge`, `.event-card`, `.date-popup`, `.popup-header` and similar. Importing `kalendly/styles` alongside Bootstrap, Bulma or most design systems uppercased every badge in the application and gave it our padding and letter-spacing. This was not a regression and could not be escaped by pinning a version — it had been true since the stylesheet existed.
 
   Classes drop the now-redundant word: `.calendar-table` → `.kalendly-table`, `.badge` → `.kalendly-badge`, `.date-popup` → `.kalendly-popup`. The host class `.kalendly-calendar` becomes `.kalendly`, since `kalendly` already means calendar. Tokens move from `--calendar-*` to `--kalendly-*`; primitives stay `--kal-*`. `CalendarTheme` keys are unchanged, so the JS theme API is unaffected.

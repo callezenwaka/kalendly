@@ -114,3 +114,64 @@ test.describe('interaction states are visible', () => {
     expect(await closed.getAttribute('data-action')).toBeNull();
   });
 });
+
+// A thrown configuration error used to leave an empty element with the reason
+// only in the console. The vendor saw a blank space and had to go looking.
+test.describe('a misconfigured calendar says so', () => {
+  test.beforeEach(async ({ page }) => {
+    page.on('pageerror', () => {}); // the throw is expected
+    await openDemo(page);
+  });
+
+  test('renders the reason where the calendar would be', async ({ page }) => {
+    const shown = await page.evaluate(async () => {
+      const el = document.createElement('kal-calendar');
+      el.setAttribute('months', '3');
+      document.body.appendChild(el);
+      await new Promise(r => setTimeout(r, 60));
+      return {
+        text: el.textContent?.trim() ?? '',
+        hasBlock: !!el.querySelector('.kalendly-error'),
+      };
+    });
+
+    expect(shown.hasBlock).toBe(true);
+    expect(shown.text).toContain('months="3"');
+    expect(shown.text).toContain('maximum of 2');
+  });
+
+  test('escapes a value that carries markup', async ({ page }) => {
+    const shown = await page.evaluate(async () => {
+      const el = document.createElement('kal-calendar');
+      el.setAttribute('months', '<img src=x onerror=alert(1)>');
+      document.body.appendChild(el);
+      await new Promise(r => setTimeout(r, 60));
+      return {
+        injected: !!el.querySelector('img'),
+        text: el.textContent?.trim() ?? '',
+      };
+    });
+
+    expect(shown.injected).toBe(false);
+    expect(shown.text).toContain('<img src=x onerror=alert(1)>');
+  });
+
+  test('clears once the attribute is corrected', async ({ page }) => {
+    const recovered = await page.evaluate(async () => {
+      const el = document.createElement('kal-calendar');
+      el.setAttribute('months', '3');
+      document.body.appendChild(el);
+      await new Promise(r => setTimeout(r, 60));
+
+      el.setAttribute('months', '2');
+      await new Promise(r => setTimeout(r, 60));
+      return {
+        error: !!el.querySelector('.kalendly-error'),
+        tables: el.querySelectorAll('.kalendly-table').length,
+      };
+    });
+
+    expect(recovered.error).toBe(false);
+    expect(recovered.tables).toBe(2);
+  });
+});

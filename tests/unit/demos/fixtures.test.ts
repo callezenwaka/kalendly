@@ -157,6 +157,24 @@ describe('demo fixtures', () => {
       }
     });
 
+    // These attributes throw on invalid input, so a demo offering a bad value
+    // would fail at the click rather than degrading.
+    it('offers only attribute values the component accepts', () => {
+      const months = [...source.matchAll(/setMonths\((\d+)\)/g)].map(m =>
+        Number(m[1])
+      );
+      for (const count of months) {
+        expect(Number.isInteger(count) && count >= 1 && count <= 2).toBe(true);
+      }
+
+      const durations = [
+        ...source.matchAll(/setSlotDuration\((\d+)\)|slot-(\d+)/g),
+      ].map(m => Number(m[1] ?? m[2]));
+      for (const minutes of durations) {
+        expect(Number.isInteger(minutes) && 1440 % minutes === 0).toBe(true);
+      }
+    });
+
     it('renders a time grid without throwing', () => {
       const lean = events.filter(e => e.availabilityStatus !== undefined);
       expect(() => bookedSlots(lean, new Date(2024, 0, 15), 60)).not.toThrow();
@@ -203,6 +221,25 @@ describe('demo stylesheets', () => {
       ].map(m => m[0].trim());
 
       expect(offenders).toEqual([]);
+    });
+  });
+});
+
+// The manual page fed an attribute value straight into an innerHTML log line,
+// so a payload passed to the component executed in the page instead. Event
+// names and attribute values both reach the logger.
+describe('demo pages do not build markup from data', () => {
+  describe.each(pages)('%s', (_name, file) => {
+    it('never assigns innerHTML in a log helper', () => {
+      const source = readFileSync(file, 'utf-8');
+      const sinks = source
+        .split('\n')
+        .map((line, i) => [i + 1, line.trim()] as const)
+        .filter(([, line]) => /\.innerHTML\s*=/.test(line))
+        .filter(([, line]) => /log|line|entry|message/i.test(line))
+        .map(([n, line]) => `${n}: ${line}`);
+
+      expect(sinks).toEqual([]);
     });
   });
 });

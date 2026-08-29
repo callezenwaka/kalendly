@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  vi,
+} from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
@@ -34,7 +42,7 @@ const flush = (): Promise<void> => Promise.resolve().then(() => undefined);
 function mount(
   props: {
     events?: CalendarEvent[];
-    title?: string;
+    heading?: string;
     initialDate?: Date;
     weekStartsOn?: 0 | 1;
     minYear?: number;
@@ -56,7 +64,7 @@ function mount(
 ): CalendarElement {
   const el = document.createElement('kal-calendar') as CalendarElement;
 
-  if (props.title) el.setAttribute('title', props.title);
+  if (props.heading) el.setAttribute('heading', props.heading);
   if (props.initialDate)
     el.setAttribute('initial-date', props.initialDate.toISOString());
   if (props.weekStartsOn !== undefined)
@@ -165,8 +173,8 @@ describe('CalendarElement', () => {
       expect(el.querySelector('.kalendly-picker-btn')).toBeTruthy();
     });
 
-    it('should render title when attribute is set', () => {
-      const el = mount({ title: 'My Calendar' });
+    it('should render the heading when the attribute is set', () => {
+      const el = mount({ heading: 'My Calendar' });
       const h1 = el.querySelector('h1');
       expect(h1).toBeTruthy();
       expect(h1?.textContent).toBe('My Calendar');
@@ -1469,10 +1477,10 @@ describe('CalendarElement — output escaping', () => {
     expect(card?.getAttribute('style')).toContain('#3b82f6');
   });
 
-  it('escapes the title attribute', () => {
+  it('escapes the heading attribute', () => {
     const el = mount({
       initialDate: DAY,
-      title: '<img src=x onerror=alert(1)>',
+      heading: '<img src=x onerror=alert(1)>',
     });
 
     const heading = el.querySelector('.kalendly-title h1');
@@ -2338,41 +2346,7 @@ describe('CalendarElement — heading attribute', () => {
     );
   });
 
-  it('prefers heading when both are set', async () => {
-    const el = document.createElement('kal-calendar') as CalendarElement;
-    el.setAttribute('title', 'old');
-    await flush();
-    el.setAttribute('heading', 'new');
-    await flush();
-    document.body.appendChild(el);
 
-    expect(el.querySelector('.kalendly-title h1')?.textContent).toBe('new');
-  });
-
-  it('still renders a deprecated title, and warns once', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    (
-      CalendarElement as unknown as { titleDeprecationWarned: boolean }
-    ).titleDeprecationWarned = false;
-
-    const first = document.createElement('kal-calendar') as CalendarElement;
-    first.setAttribute('title', 'Legacy');
-    await flush();
-    document.body.appendChild(first);
-
-    const second = document.createElement('kal-calendar') as CalendarElement;
-    second.setAttribute('title', 'Legacy too');
-    await flush();
-    document.body.appendChild(second);
-
-    expect(first.querySelector('.kalendly-title h1')?.textContent).toBe(
-      'Legacy'
-    );
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0][0]).toMatch(/title attribute is deprecated/);
-
-    warn.mockRestore();
-  });
 });
 
 describe('CalendarElement — malformed times', () => {
@@ -2548,12 +2522,37 @@ describe('CalendarElement — multi-month view', () => {
     expect(popup?.textContent).not.toContain('Jan event');
   });
 
-  it('clamps beyond two panes', () => {
-    expect(mountMonths('5').querySelectorAll('table').length).toBe(2);
+  // reaction() rethrows after capturing so a browser still logs it; jsdom
+  // reports that as an uncaught error, which is expected for these two.
+  let swallowMonths: (e: ErrorEvent) => void;
+
+  beforeEach(() => {
+    swallowMonths = e => e.preventDefault();
+    window.addEventListener('error', swallowMonths);
   });
 
-  it('ignores a non-numeric months attribute', () => {
-    expect(mountMonths('lots').querySelectorAll('table').length).toBe(1);
+  afterEach(() => {
+    window.removeEventListener('error', swallowMonths);
+  });
+
+  it('throws beyond the maximum panes', async () => {
+    const el = mountMonths('1');
+    await el.updateComplete;
+
+    el.setAttribute('months', '5');
+    await expect(el.updateComplete).rejects.toThrow(
+      /months="5" exceeds the maximum of 2/
+    );
+  });
+
+  it('throws on a non-numeric months attribute', async () => {
+    const el = mountMonths('1');
+    await el.updateComplete;
+
+    el.setAttribute('months', 'lots');
+    await expect(el.updateComplete).rejects.toThrow(
+      /months="lots" must be a whole number of 1 or more/
+    );
   });
 
   it('selects a range spanning both panes', async () => {
@@ -2710,16 +2709,14 @@ describe('CalendarElement — slot duration', () => {
     expect(selections[0].endTime).toBe('10:00');
   });
 
-  it('falls back to 60 minutes for a duration that does not divide the day', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const el = mountGrid([], '50');
-    await flush();
+  it('throws for a duration that does not divide the day', async () => {
+    const el = mountGrid([], '60');
+    await el.updateComplete;
 
-    expect(el.querySelectorAll('.kalendly-time-grid-slot').length).toBe(24);
-    expect(warn.mock.calls.some(c => /slot-duration="50"/.test(c[0]))).toBe(
-      true
+    el.setAttribute('slot-duration', '50');
+    await expect(el.updateComplete).rejects.toThrow(
+      /slot-duration="50" must be a positive whole number/
     );
-    warn.mockRestore();
   });
 
   it('blocks the evening of the day a night booking starts', async () => {
@@ -3615,5 +3612,73 @@ describe('CalendarElement — cross-month display', () => {
       cell(el, 2026, 7, 14)!.classList.contains('kalendly-availability-range-end')
     ).toBe(true);
     expect(heading(el)).toContain('August');
+  });
+});
+
+describe('CalendarElement — invalid attribute input', () => {
+  const BASE = new Date(2024, 0, 15);
+
+  const mounted = async (): Promise<CalendarElement> => {
+    const el = document.createElement('kal-calendar') as CalendarElement;
+    el.setAttribute('initial-date', BASE.toISOString());
+    el.events = [];
+    document.body.appendChild(el);
+    await el.updateComplete;
+    return el;
+  };
+
+  // reaction() captures the error and rethrows so a browser still logs it.
+  // jsdom surfaces that as an uncaught error, which is expected here.
+  let swallow: (e: ErrorEvent) => void;
+
+  beforeEach(() => {
+    swallow = e => e.preventDefault();
+    window.addEventListener('error', swallow);
+  });
+
+  afterEach(() => {
+    window.removeEventListener('error', swallow);
+    document.body.innerHTML = '';
+  });
+
+  // An absent attribute keeps its default. That is not what changed.
+  it.each([
+    ['slot-duration', 'months'],
+    ['months', 'min-year'],
+  ])('renders with no %s and no %s set', async () => {
+    const el = await mounted();
+    expect(el.querySelectorAll('table').length).toBe(1);
+  });
+
+  it.each([
+    ['min-year', 'abc', /min-year="abc" must be a whole number/],
+    ['min-year', '19.5', /min-year="19.5" must be a whole number/],
+    ['max-year', 'soon', /max-year="soon" must be a whole number/],
+    ['months', '0', /months="0" must be a whole number of 1 or more/],
+    ['months', '3', /months="3" exceeds the maximum of 2/],
+    ['slot-duration', '17', /slot-duration="17" must be a positive whole/],
+    ['slot-duration', '-30', /slot-duration="-30" must be a positive whole/],
+  ])('throws for %s="%s"', async (attr, value, pattern) => {
+    const el = await mounted();
+
+    el.setAttribute(attr as string, value as string);
+    await expect(el.updateComplete).rejects.toThrow(pattern as RegExp);
+  });
+
+  it('recovers once the value is corrected', async () => {
+    const el = await mounted();
+
+    el.setAttribute('months', '9');
+    await expect(el.updateComplete).rejects.toThrow(/exceeds the maximum/);
+
+    el.setAttribute('months', '1');
+    await expect(el.updateComplete).resolves.toBeUndefined();
+  });
+
+  it('treats an empty year attribute as absent', async () => {
+    const el = await mounted();
+
+    el.setAttribute('min-year', '');
+    await expect(el.updateComplete).resolves.toBeUndefined();
   });
 });
